@@ -3,7 +3,7 @@ name: backup
 description: List, make or restore the verified Parquet backups of the {{ project_name }} database. Use when the user asks about backups, wants a backup now, or must recover the database.
 when_to_use: >-
   Use when the user says things like "back up the database", "list the backups", "is the data backed up", "restore from backup", "I lost the database".
-argument-hint: "[list|now|restore <snapshot>]"
+argument-hint: "[list|now|verify|restore <snapshot>]"
 allowed-tools: Bash(uv run {{ project_name }} backup) Bash(uv run {{ project_name }} backups) Bash(uv run {{ project_name }} restore *) Bash(uv run {{ project_name }} status)
 ---
 
@@ -18,14 +18,21 @@ Action: $ARGUMENTS (default: list)
 - DuckDB's `EXPORT DATABASE` writes it: Parquet files, `schema.sql` and `load.sql`, readable without this code.
 - Each new snapshot is imported again and every table's rows and content hash must match the database.
 - The newest snapshots stay (default 30); older ones are deleted.
-- For a copy off this machine, point the folder at a synced folder.
 
 ## Actions
 
 - **list:** `uv run {{ project_name }} backups`.
 - **now:** `uv run {{ project_name }} backup`.
+- **verify:** no command verifies an existing snapshot. `uv run {{ project_name }} backup` makes a new one and
+  verifies it; tell the user that older snapshots are not verified again.
 - **restore:**
   1. `uv run {{ project_name }} restore <snapshot folder>`. It writes `data/restored.duckdb` and never overwrites.
-  2. Show the counts. Ask the user (AskUserQuestion) before you replace the database.
+  2. Show the counts, and compare them with `uv run {{ project_name }} status`. Ask the user (AskUserQuestion)
+     before you replace the database.
   3. To use it: the user moves the current database away, then moves the restored file in its place. Do not delete
      the old database: tell the user where it is.
+
+## Off-machine backups
+
+The backups are on the same disk as the database. For a copy elsewhere, suggest pointing the backup folder at a
+synced folder (Google Drive for desktop, iCloud Drive){% if motherduck %}, or `/publish` for a copy of the contract views in MotherDuck{% endif %}.

@@ -39,7 +39,9 @@ Use the tailnet when the arguments contain `tailnet`, or when the user wants the
 
 1. Start the app with `--tailnet` added. The command prints a URL: give it to the user.
 2. The app still listens only on localhost. `tailscale serve` forwards `https://<this machine's tailnet name>:<port>`
-   to it. Only devices on the user's tailnet can open it. The forward stops when the app stops.
+   to it. Only devices on the user's tailnet can open it. The forward stops when the app stops: to keep the app on
+   the tailnet after a restart, use `--tailnet` again. `tailscale serve status --json` shows the forward, under
+   `Foreground`.
 3. The first time, Tailscale can print a link that turns on Serve (HTTPS) for the tailnet. Only the user can open it.
 4. If Tailscale is not found or not connected, the app does not start. Ask the user to connect Tailscale.
 
