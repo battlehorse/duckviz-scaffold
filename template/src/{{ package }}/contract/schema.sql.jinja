@@ -1,0 +1,24 @@
+-- The reference schema of the {{ contract_name }} contract: every view the app reads, as a table of the same name.
+-- A comment block above a CREATE TABLE describes the view; a comment after a column describes the column. They
+-- become the descriptions of the published tables, so write them for a reader who has only these.
+
+-- The contract this database offers: one row, its name and version.
+CREATE TABLE v_contract (
+    contract VARCHAR NOT NULL,  -- the contract's name: {{ contract_name }}
+    version VARCHAR NOT NULL    -- major.minor; readers accept the same major version
+);
+
+-- One row per day: the day's value. (An example view: replace it with the app's own.)
+CREATE TABLE v_daily (
+    day DATE NOT NULL,          -- the local day ({{ timezone }})
+    value DOUBLE NOT NULL,      -- the day's total
+    PRIMARY KEY (day)
+);
+
+-- One row per ingest run, newest last: when it ran and whether it worked.
+CREATE TABLE v_ingests (
+    started_at TIMESTAMPTZ NOT NULL,  -- when the run started
+    finished_at TIMESTAMPTZ,          -- when it ended; NULL while it runs
+    ok BOOLEAN NOT NULL,              -- whether every step worked
+    PRIMARY KEY (started_at)
+);

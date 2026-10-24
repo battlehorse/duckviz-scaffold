@@ -1,0 +1,44 @@
+"""The `{{ project_name }}` command line: this app's own commands, plus duckkit's standard ones (docs/cli.md)."""
+
+from pathlib import Path
+from typing import Annotated
+
+import duckdb
+import typer
+from duckkit.cli import add_standard_commands, contract_line
+
+from {{ package }}.db.store import connect
+from {{ package }}.spec import SPEC
+
+app = typer.Typer(help="{{ description }}")
+
+
+@app.command()
+def ingest(
+    paths: Annotated[list[Path], typer.Argument(exists=True, dir_okay=False, help="CSV files with day,value.")],
+) -> None:
+    """Load files into the database. Re-running is safe: rows already stored are left as they are."""
+    from {{ package }}.ingest.pipeline import run
+
+    with connect() as con:
+        summary = run(con, paths)
+        typer.echo(f"  {summary['files']} files, {summary['new']} new rows")
+        for error in summary["errors"]:
+            typer.echo(f"  ✗ {error}", err=True)
+        problems = SPEC.contract.check(con)
+    contract_line(SPEC, problems)
+    if summary["errors"] or problems:
+        raise typer.Exit(1)
+
+
+def status_lines(con: duckdb.DuckDBPyConnection) -> list[str]:
+    """What `status` says about the data, before the contract check."""
+    days = con.execute("SELECT count(*), min(day), max(day) FROM v_daily").fetchone()
+    last = con.execute("SELECT strftime(max(started_at), '%Y-%m-%d %H:%M') FROM v_ingests WHERE ok").fetchone()[0]
+    return [f"Days:         {days[0]:,}, {days[1]} → {days[2]}", f"Last ingest:  {last or 'never'}"]
+
+
+add_standard_commands(
+    app, SPEC, connect=connect, status=status_lines,
+    backups={{ backup }}, publishing={{ motherduck }}, privacy={{ privacy_hook }},
+)

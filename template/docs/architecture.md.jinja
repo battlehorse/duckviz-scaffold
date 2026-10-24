@@ -1,0 +1,39 @@
+# Architecture
+
+{{ description }}
+
+```mermaid
+flowchart LR
+    src[sources] --> ingest[ingestion service<br/>src/{{ package }}/ingest]
+    ingest --> db[(DuckDB<br/>data/{{ db_file }})]
+{%- if backup %}
+    db -- backup --> backups[(Parquet snapshots<br/>backups/)]
+{%- endif %}
+    db -- contract views --> app[Streamlit app<br/>localhost:{{ app_port }}]
+{%- if motherduck %}
+    db -- contract views, on request --> md[(MotherDuck<br/>md:{{ motherduck_db }})]
+{%- endif %}
+{%- if cloud_run %}
+    md --> hosted[Cloud Run app<br/>behind Google sign-in]
+{%- endif %}
+```
+
+## Principles
+
+- **The app reads a contract, not the tables.** The browser app reads only the versioned `v_*` views
+  (docs/contract.md), from an in-memory snapshot that holds nothing else. The ingestion can change its tables
+  freely. `tests/app/test_contract_only.py` enforces the split.
+- **Nothing personal goes into git.** Settings, secrets and data stay in gitignored files.
+- **The database may be the only copy.** No code drops a table; schema changes are migrations.
+
+## Components
+
+| Part | Code | Notes |
+|---|---|---|
+| Ingestion | `src/{{ package }}/ingest/` | reads the sources, merges into the tables |
+| Storage | `src/{{ package }}/db/` | `schema.sql` (tables, then the contract views), `store.py` (version, migrations) |
+| Contract | `src/{{ package }}/contract/` | `schema.sql` (the reference schema), the rules |
+| Browser app | `src/{{ package }}/app/`, `query/` | pages in `app/views/`; queries on the views only |
+| Shared code | `duckkit` | from the scaffold: snapshots, publish, backups, serving, the standard commands |
+
+(Describe this app's sources, tables and design choices here.)

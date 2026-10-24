@@ -1,0 +1,221 @@
+"""The commands every app's CLI has. The app's own `cli.py` makes the Typer app, adds its domain commands
+(`ingest`, …) and calls `add_standard_commands`:
+
+    app = typer.Typer(help="…")
+    add_standard_commands(app, SPEC, connect=connect, status=status_lines)
+
+| Command | What it does |
+|---|---|
+| `status` | the app's own summary lines (`status` hook), then the contract check |
+| `sql "<SELECT>"` | one read-only SELECT on a snapshot of the database |
+| `publish [--to] [--dry-run] [--check]` | the contract views to MotherDuck (or a file); never automatic |
+| `backup`, `backups`, `restore <snapshot>` | verified Parquet snapshots (needs `connect`) |
+| `app [name] [--tailnet] [--demo]` | serve a Streamlit app on localhost, optionally on the tailnet |
+| `privacy-check` | fail if a committable file holds personal data (the pre-commit hook) |
+| `doctor` | how this repo compares with the scaffold it was made from |
+"""
+
+from collections.abc import Callable
+from pathlib import Path
+from typing import Annotated
+
+import duckdb
+import typer
+
+from duckkit.spec import AppSpec
+
+
+def fail(message: str) -> None:
+    """Print `message` to stderr and exit with status 1."""
+    typer.echo(f"✗ {message}", err=True)
+    raise typer.Exit(1)
+
+
+def contract_line(spec: AppSpec, problems: list[str], pad: str = "") -> None:
+    """Print the contract check: one line, then one per problem."""
+    contract = spec.contract
+    typer.echo(f"Contract:{pad} {contract.name} {contract.version}, "
+               + (f"{len(problems)} problems" if problems else "the app's views conform"))
+    for problem in problems:
+        typer.echo(f"  ✗ {problem}")
+
+
+def add_standard_commands(
+    app: typer.Typer,
+    spec: AppSpec,
+    *,
+    connect: Callable[[], duckdb.DuckDBPyConnection] | None = None,
+    status: Callable[[duckdb.DuckDBPyConnection], list[str]] | None = None,
+    privacy_terms: Callable[[AppSpec], dict[str, str]] | None = None,
+    backups: bool = True,
+    publishing: bool = True,
+    privacy: bool = True,
+) -> None:
+    """Add the standard commands to `app`.
+
+    - `connect`: opens the database for writing (the app's db/store.py), for `backup`.
+    - `status`: the app's own summary lines for `status`, from a snapshot of the whole database.
+    - `privacy_terms`: the app's own personal terms for `privacy-check` (names in its database, say).
+    - `backups`, `publishing`, `privacy`: False leaves those commands out (the scaffold's feature flags).
+    """
+
+    @app.command("status")
+    def status_command() -> None:
+        """What the database holds (the app's summary), and the contract check."""
+        from duckkit.snapshot import database_snapshot
+
+        try:
+            con = database_snapshot(spec)
+        except FileNotFoundError as e:
+            typer.echo(str(e))
+            return
+        lines = status(con) if status else [f"Database:     {spec.db_path}"]
+        for line in lines:
+            typer.echo(line)
+        contract_line(spec, spec.contract.check(con), pad="    ")
+
+    @app.command("sql")
+    def sql_command(query: str, limit: int = typer.Option(200, help="Maximum rows to print.")) -> None:
+        """Run one read-only SELECT on a snapshot of the database. Prefer the contract views (docs/contract.md)."""
+        import pandas as pd
+
+        from duckkit.snapshot import database_snapshot
+
+        try:
+            con = database_snapshot(spec)
+            statements = con.extract_statements(query)
+        except (FileNotFoundError, duckdb.Error) as e:
+            fail(str(e))
+        if len(statements) != 1 or statements[0].type != duckdb.StatementType.SELECT:
+            fail("only a single SELECT (or WITH … SELECT) query is allowed")
+        try:
+            df = con.execute(query).df()
+        except duckdb.Error as e:
+            fail(str(e))
+        with pd.option_context("display.max_columns", None, "display.width", 200, "display.max_colwidth", 80):
+            typer.echo(df.head(limit).to_string(index=False) if len(df) else "(no rows)")
+        if len(df) > limit:
+            typer.echo(f"… {len(df) - limit} more rows (use --limit)")
+
+    if publishing:
+        @app.command("publish")
+        def publish_command(
+            to: Annotated[str | None, typer.Option(
+                help=f"MotherDuck database (md:<name>) or a DuckDB file to write. Default: {spec.motherduck_target}."
+            )] = None,
+            dry_run: bool = typer.Option(False, "--dry-run", help="Only show what would be sent."),
+            check: bool = typer.Option(False, "--check", help="Only compare the published copy with the database."),
+        ) -> None:
+            """Publish the contract views to MotherDuck. Never automatic: only this command (or /publish) does."""
+            from duckkit.publish import compare, plan
+            from duckkit.publish import publish as publish_contract
+            from duckkit.snapshot import ContractError
+
+            if spec.demo_db_path and spec.db_path.resolve() == spec.demo_db_path.resolve():
+                fail("this is the demo database: publishing it would replace the real copy")
+            target = to or spec.motherduck_target
+            try:
+                if dry_run:
+                    for view, (rows, columns) in plan(spec).items():
+                        typer.echo(f"  {view}: {rows:,} rows, {len(columns)} columns")
+                    typer.echo(f"Nothing sent. `{spec.cli} publish` sends these to {target}.")
+                    return
+                result = compare(spec, to) if check else publish_contract(spec, to)
+            except (FileNotFoundError, ContractError, ValueError, duckdb.Error) as e:
+                fail(str(e))
+            if not check:
+                typer.echo(f"Published to {target}: " + ", ".join(f"{view} {n:,} rows" for view, n in result.items()))
+                return
+            stale = {view: r for view, r in result.items() if not r[2]}
+            if not stale:
+                typer.echo(f"✓ {target} is up to date")
+                return
+            for view, (here, there, _) in stale.items():
+                typer.echo(f"  {view}: " + ("missing there" if there is None else f"{here:,} rows here, {there:,} published"))
+            raise typer.Exit(1)
+
+    if backups and connect:
+        @app.command("backup")
+        def backup_command() -> None:
+            """Export the database to a new verified Parquet snapshot in the backup folder; keep the newest ones."""
+            from duckkit.backup import backup
+
+            if not spec.db_path.exists():
+                fail(f"no database at {spec.db_path}")
+            with connect() as con:
+                typer.echo(f"Backed up to {backup(spec, con)} (verified)")
+
+        @app.command("backups")
+        def backups_command() -> None:
+            """List the backup snapshots, oldest first."""
+            from duckkit.backup import snapshots
+
+            found = snapshots(spec)
+            for path in found:
+                size = sum(f.stat().st_size for f in path.iterdir())
+                typer.echo(f"{path}  {size / 1024:,.0f} KB")
+            typer.echo(f"{len(found)} snapshots in {spec.backup_dir()}")
+
+        @app.command("restore")
+        def restore_command(
+            snapshot: Annotated[Path, typer.Argument(exists=True, file_okay=False, help="A snapshot folder.")],
+            to: Annotated[Path | None, typer.Option(help="The database file to create (never overwritten).")] = None,
+        ) -> None:
+            """Rebuild a database from a backup snapshot, into a new file (default: data/restored.duckdb)."""
+            from duckkit.backup import restore
+
+            target = to or spec.data_dir / "restored.duckdb"
+            try:
+                counts = restore(spec, snapshot, target)
+            except FileExistsError as e:
+                fail(str(e))
+            typer.echo(f"Restored {target}: " + ", ".join(f"{t} {n:,}" for t, (n, _) in counts.items()))
+            typer.echo(f"To use it: move {spec.db_path} away, then move {target} to {spec.db_path}")
+
+    names = ", ".join(f"{a.name} (:{a.port})" for a in spec.apps)
+
+    @app.command("app")
+    def app_command(
+        name: Annotated[str | None, typer.Argument(help=f"Which app: {names}. Default: {spec.apps[0].name}.")] = None,
+        tailnet: bool = typer.Option(False, "--tailnet",
+                                     help="Also serve it to your Tailscale devices (`tailscale serve`), while it runs."),
+        demo: bool = typer.Option(False, "--demo", help="Read the demo database instead of the real one."),
+    ) -> None:
+        """Serve an app on localhost until Ctrl+C.
+
+        With --tailnet, `tailscale serve` also forwards https://<this machine's tailnet name>:<port> to it, in the
+        foreground: the forwarding ends when the app does, and the app itself still listens on localhost only.
+        """
+        from duckkit.serve import ServeError, run_app
+
+        try:
+            code = run_app(spec, name, tailnet=tailnet, demo=demo, echo=typer.echo)
+        except (ServeError, KeyError) as e:
+            fail(str(e).strip("'\""))
+        raise typer.Exit(code)
+
+    if privacy:
+        @app.command("privacy-check")
+        def privacy_command() -> None:
+            """Fail if any file git would commit contains personal data (the pre-commit hook runs this)."""
+            from duckkit.privacy import check
+
+            findings = check(spec, privacy_terms)
+            for f in findings:
+                typer.echo(f"  ✗ {f.path}:{f.line}: {f.what}", err=True)  # never print the value itself
+            if findings:
+                fail(f"{len(findings)} lines with personal data: remove them before committing")
+            typer.echo("✓ no personal data in the files git would commit")
+
+    @app.command("doctor")
+    def doctor_command(
+        remote: bool = typer.Option(False, "--remote", help="Also ask the scaffold's repo for its newest release."),
+    ) -> None:
+        """Compare this repo with the scaffold it was made from: versions, expected files, declared deviations."""
+        from duckkit.doctor import diagnose
+
+        report = diagnose(spec, remote=remote)
+        for line in report.lines():
+            typer.echo(line)
+        if report.problems:
+            raise typer.Exit(1)

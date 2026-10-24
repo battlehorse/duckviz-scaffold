@@ -1,0 +1,41 @@
+# The data contract: {{ contract_name }} 1.0
+
+The browser app reads these views and nothing else. The ingestion promises their shape, keys and rules; the app
+may rely on them. The reference schema is `src/{{ package }}/contract/schema.sql`; `{{ project_name }} status`
+checks a database against it, and `tests/test_contract.py` checks this page against it.
+
+## Versioning
+
+- `v_contract` has one row: the name and the version.
+- A **minor** version adds views or columns. A **major** version renames or removes something, or changes a meaning.
+- The app reads any database with the same major version.
+- To change a view: change `contract/schema.sql`, this page, the view in `db/schema.sql`, and `VERSION` in
+  `contract/__init__.py`. Then `uv run pytest` and `uv run {{ project_name }} ingest` (which rebuilds the views).
+
+## Views
+
+### `v_contract`
+
+| Column | Type | Meaning |
+|---|---|---|
+| `contract` | VARCHAR | the contract's name: `{{ contract_name }}` |
+| `version` | VARCHAR | major.minor |
+
+### `v_daily`
+
+One row per day. (An example: replace it with the app's own views.)
+
+| Column | Type | Meaning |
+|---|---|---|
+| `day` | DATE | the local day ({{ timezone }}) |
+| `value` | DOUBLE | the day's total, never negative |
+
+### `v_ingests`
+
+One row per ingest run.
+
+| Column | Type | Meaning |
+|---|---|---|
+| `started_at` | TIMESTAMPTZ | when the run started |
+| `finished_at` | TIMESTAMPTZ | when it ended; NULL while it runs |
+| `ok` | BOOLEAN | whether every step worked |

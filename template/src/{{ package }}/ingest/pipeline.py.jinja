@@ -1,0 +1,39 @@
+"""One ingest run: each source in its own transaction, the run logged in `ingest_runs`.
+
+The example source is CSV files with `day,value` columns. Replace it with the app's own: a parser, an API.
+Re-running is safe: rows already stored are left as they are.
+"""
+
+import csv
+from datetime import UTC, date, datetime
+from pathlib import Path
+
+import duckdb
+
+
+def run(con: duckdb.DuckDBPyConnection, paths: list[Path]) -> dict:
+    """Ingest every file of `paths`; returns {"new": rows added, "files": files read, "errors": [messages]}."""
+    started = datetime.now(UTC)
+    con.execute("INSERT INTO ingest_runs (started_at) VALUES (?)", [started])
+    summary = {"new": 0, "files": 0, "errors": []}
+    for path in paths:
+        try:
+            con.begin()
+            summary["new"] += _load(con, path)
+            con.commit()
+            summary["files"] += 1
+        except (OSError, ValueError, KeyError, duckdb.Error) as e:
+            con.rollback()
+            summary["errors"].append(f"{path.name}: {e}")
+    con.execute("UPDATE ingest_runs SET finished_at = ?, ok = ?, detail = ? WHERE started_at = ?",
+                [datetime.now(UTC), not summary["errors"], "; ".join(summary["errors"]) or None, started])
+    return summary
+
+
+def _load(con: duckdb.DuckDBPyConnection, path: Path) -> int:
+    """Insert the rows of one CSV file that aren't stored yet; returns how many."""
+    with open(path, newline="") as f:
+        rows = [(date.fromisoformat(r["day"]), float(r["value"]), path.name) for r in csv.DictReader(f)]
+    before = con.execute("SELECT count(*) FROM readings").fetchone()[0]
+    con.executemany("INSERT OR IGNORE INTO readings VALUES (?, ?, ?)", rows)
+    return con.execute("SELECT count(*) FROM readings").fetchone()[0] - before

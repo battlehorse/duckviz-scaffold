@@ -1,0 +1,20 @@
+---
+name: ingest
+description: Load new data into the {{ project_name }} database, report what was added, and check the contract. Use when the user has new data, or before looking at the app when the data is stale.
+when_to_use: >-
+  Use when the user says things like "ingest", "load the new files", "update the data", "refresh the database".
+argument-hint: "[files…]"
+allowed-tools: Bash(uv run {{ project_name }} ingest *) Bash(uv run {{ project_name }} status)
+---
+
+# Ingest
+
+Files: $ARGUMENTS
+
+1. `uv run {{ project_name }} status`: how fresh the data is now.
+2. `uv run {{ project_name }} ingest <files>`.
+3. Report the counts, every error, and the contract line. If the contract has problems, show them and stop.
+4. If the app is running, tell the user to click *Reload data*.
+{%- if motherduck %} Do not publish: suggest `/publish` only if the user wants the copy current.{% endif %}
+
+(Describe this app's sources here: where new data comes from, how to get it, what can go wrong.)

@@ -1,0 +1,14 @@
+---
+name: ask
+description: Answer questions about the {{ project_name }} data with read-only SQL on the contract views. Use when the user asks a question the data can answer.
+argument-hint: "<question>"
+allowed-tools: Bash(uv run {{ project_name }} sql *)
+---
+
+# Ask the data
+
+Question: $ARGUMENTS
+
+1. Read docs/contract.md for the views and what each column means.
+2. Query with `uv run {{ project_name }} sql "<SELECT …>"`. Prefer the contract views; one SELECT per call.
+3. Answer in plain words, with the numbers and the period they cover. Say what the data can't tell.

@@ -1,0 +1,21 @@
+"""Ingesting is idempotent, and the views it builds conform to the contract."""
+
+from {{ package }}.ingest.pipeline import run
+from {{ package }}.spec import SPEC
+
+
+def test_the_views_conform(ingested):
+    assert SPEC.contract.check(ingested) == []
+    assert ingested.execute("SELECT count(*) FROM v_daily").fetchone()[0] == 3
+
+
+def test_ingesting_again_adds_nothing(ingested, tmp_path):
+    assert run(ingested, [tmp_path / "sample.csv"])["new"] == 0
+
+
+def test_a_bad_file_is_reported_and_skipped(db, tmp_path):
+    bad = tmp_path / "bad.csv"
+    bad.write_text("day,value\nnot-a-day,1\n")
+    summary = run(db, [bad])
+    assert summary["files"] == 0 and summary["errors"]
+    assert db.execute("SELECT ok FROM v_ingests").fetchone()[0] is False

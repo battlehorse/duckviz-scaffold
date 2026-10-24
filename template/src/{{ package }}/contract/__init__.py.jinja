@@ -1,0 +1,20 @@
+"""The app's data contract (docs/contract.md): `schema.sql` is its reference schema; duckkit checks it.
+
+To change the shape of a view, change schema.sql, docs/contract.md, the view in db/schema.sql and VERSION (a new
+column or view: minor; a rename or removal: major), as docs/contract.md says.
+"""
+
+from importlib.resources import files
+
+from duckkit import Contract
+from duckkit.contract import Rule
+
+NAME = "{{ contract_name }}"
+VERSION = "1.0"
+
+# Each rule counts the rows breaking it: (query, message with {n}). duckkit.contract has enum_rule and relation_rule.
+RULES: list[Rule] = [
+    ("SELECT count(*) FROM v_daily WHERE value < 0", "v_daily: {n} days with a negative value"),
+]
+
+CONTRACT = Contract(name=NAME, version=VERSION, schema=files(__name__) / "schema.sql", rules=RULES)

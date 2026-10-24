@@ -1,0 +1,20 @@
+---
+name: app-check
+description: Walk the browser checks of docs/browser-checks.md in the running app, in light mode, dark mode or both, and report what passes and what fails, with screenshots of failures. Use after a change to a page or a chart, before a PR.
+argument-hint: "[light|dark|both] [check numbers]"
+---
+
+# Check the app in the browser
+
+Arguments: $ARGUMENTS (default: both modes, every check)
+
+1. **The app runs the current code.** Check the health URL (`/app`). If code changed since it started, restart it.
+2. **Load the browser tools** (the claude-in-chrome skill) and open http://localhost:{{ app_port }} in a new tab.
+3. **Walk each check** of docs/browser-checks.md in order, in each mode asked for. Switch the theme with
+   ⋮ → Settings → Theme. For each check, note pass or fail; for a failure, take a screenshot and read the
+   console (`read_console_messages`, pattern `Error`).
+   - ECharts charts: hover a point before you click it; a click without a hover can miss.
+   - After a theme switch the charts must recolour without a reload (duckkit's theme watcher).
+4. **Report** a table: check, light, dark, notes. Do not fix anything unless the user asks.
+
+Use synthetic data for screenshots you keep{% if demo_data %} (`/app demo`){% endif %}: real data must not go into git or a PR.

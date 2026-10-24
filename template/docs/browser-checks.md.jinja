@@ -1,0 +1,8 @@
+# Browser checks
+
+Scenarios `/app-check` walks in the running app (light and dark). Add one for every page and interaction.
+
+1. **Overview loads.** Open http://localhost:{{ app_port }}. The title is "Overview"; the chart shows one line; the
+   Table tab lists the days.
+2. **Theme.** Switch the theme (⋮ → Settings). The chart's colours follow without a reload.
+3. **Reload data.** Click *Reload data* in the sidebar. The page reruns with no error.

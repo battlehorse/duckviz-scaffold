@@ -1,0 +1,59 @@
+---
+name: app
+description: Start, stop or restart the {{ title }} app at http://localhost:{{ app_port }}{% for a in extra_apps %} (or the {{ a.name }} app at :{{ a.port }}){% endfor %}. Use when the user wants to see the charts, or when the app must restart after a code change.
+when_to_use: >-
+  Use when the user says things like "open the app", "show me the dashboard", "restart the app", "stop the app"{% if tailnet %}, "open it on my phone", "serve it on the tailnet"{% endif %}.
+argument-hint: "[start|stop|restart]{% if extra_apps %} [{{ (['app'] + extra_apps | map(attribute='name') | list) | join('|') }}]{% endif %}{% if tailnet %} [tailnet]{% endif %}{% if demo_data %} [demo]{% endif %}"
+allowed-tools: Bash(uv run {{ project_name }} app *) Bash(uv run {{ project_name }} app) Bash(pkill -f "streamlit run .*/{{ package }}/*/main.py") Bash(curl -s localhost:*/_stcore/health)
+---
+
+# The app
+
+Action: $ARGUMENTS (default: start the `app`)
+
+| App | Start | URL | Stop |
+|---|---|---|---|
+| `app` | `uv run {{ project_name }} app` | http://localhost:{{ app_port }} | `pkill -f "streamlit run .*/{{ package }}/app/main.py"` |
+{%- for a in extra_apps %}
+| `{{ a.name }}` | `uv run {{ project_name }} app {{ a.name }}` | http://localhost:{{ a.port }} | `pkill -f "streamlit run .*/{{ package }}/{{ a.name }}/main.py"` |
+{%- endfor %}
+
+Health: `curl -s localhost:<port>/_stcore/health` → `ok`. Do not use `pkill -f streamlit` alone: it stops other apps.
+
+## Start
+
+1. Send a request to the health URL. If the answer is `ok`, give the link to the user. Stop here.
+2. Start the app in the background. It runs until you stop it.
+3. Send requests to the health URL until the answer is `ok`, then give the link.
+
+The app listens only on localhost. It does not open a browser tab.
+
+## Restart
+
+After a code change: stop the app, then start it.
+{%- if tailnet %}
+
+## Tailnet
+
+Use the tailnet when the arguments contain `tailnet`, or when the user wants the app on another device.
+
+1. Start the app with `--tailnet` added. The command prints a URL: give it to the user.
+2. The app still listens only on localhost. `tailscale serve` forwards `https://<this machine's tailnet name>:<port>`
+   to it. Only devices on the user's tailnet can open it. The forward stops when the app stops.
+3. The first time, Tailscale can print a link that turns on Serve (HTTPS) for the tailnet. Only the user can open it.
+4. If Tailscale is not found or not connected, the app does not start. Ask the user to connect Tailscale.
+
+Do not use `tailscale funnel`. It puts the app on the public internet.
+{%- endif %}
+{%- if demo_data %}
+
+## Demo
+
+With `demo`, add `--demo`: the app reads `data/demo.duckdb` (synthetic data), safe for screenshots.
+{%- endif %}
+
+## Data
+
+The app reads a snapshot of the contract views; it does not block `ingest`.
+- After an ingest, tell the user to click *Reload data*.
+- If the app says that the database does not match the contract, run `uv run {{ project_name }} ingest`.

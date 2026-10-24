@@ -1,0 +1,61 @@
+# The scaffold
+
+This repo was made from [duckviz-scaffold]({{ scaffold_repo }}), release **{{ kit_ref }}**. The scaffold gives every
+app of this kind the same architecture, commands, docs and skills, and brings new capabilities to all of them.
+`copier update` changes this file: write this app's differences in docs/deviations.md.
+
+## What comes from where
+
+| Kind | Where | How it changes |
+|---|---|---|
+| **Shared code** | the `duckkit` package (a dependency in pyproject.toml, at the same release) | only in the scaffold; `copier update` moves the version |
+| **Template-managed files** | the list below | `copier update` merges the scaffold's changes in, keeping this repo's edits |
+| **This app's files** | everything else: `src/{{ package }}/`, the contract, the pages, the domain skills, most docs | never touched by an update |
+
+Template-managed files:
+- `CLAUDE.md` (this app's rules are in `.claude/project-rules.md`, which it imports)
+- `pyproject.toml` (keep this app's dependencies; the merge keeps them)
+- `.gitignore`, `.python-version`, `.streamlit/config.toml`
+- `.github/workflows/tests.yml`, `.github/workflows/scaffold-update.yml`
+{%- if privacy_hook %}
+- `.githooks/pre-commit`
+{%- endif %}
+{%- if cloud_run %}
+- `Dockerfile`, `.dockerignore`, `.gcloudignore`, `docs/hosting.md`
+{%- endif %}
+- `docs/scaffold.md`, `docs/cli.md`
+- `tests/app/test_contract_only.py`
+- the skills: `app`, `app-check`, `catch-up`, `scaffold-update`{% if motherduck %}, `publish`{% endif %}{% if backup %}, `backup`{% endif %}{% if cloud_run %}, `hosting`{% endif %}
+
+The answers this repo was made with (its name, port, and feature flags) are in `.copier-answers.yml`.
+
+## Features
+
+| Flag | On here | What it adds |
+|---|---|---|
+| `motherduck` | {{ 'yes' if motherduck else 'no' }} | `publish [--dry-run] [--check]`, `/publish` |
+| `cloud_run` | {{ 'yes' if cloud_run else 'no' }} | Dockerfile, `/hosting`, docs/hosting.md, the idle pause |
+| `tailnet` | {{ 'yes' if tailnet else 'no' }} | `app --tailnet` in the docs and the app skill |
+| `backup` | {{ 'yes' if backup else 'no' }} | `backup`, `backups`, `restore`, `/backup` |
+| `privacy_hook` | {{ 'yes' if privacy_hook else 'no' }} | `privacy-check` and the pre-commit hook |
+| `demo_data` | {{ 'yes' if demo_data else 'no' }} | `app --demo` reads `data/demo.duckdb` |
+
+To turn one on: `uvx copier update --trust -d <flag>=true`, then review the diff like any update.
+
+## Updating
+
+`/scaffold-update` (or the weekly `scaffold-update` workflow, which opens a PR) brings in a newer release:
+1. `uvx copier update --trust` re-renders the template at the old and the new release with this repo's answers, and
+   applies the difference here as a 3-way merge. This repo's edits stay. A clash shows as conflict markers.
+2. The duckkit version in pyproject.toml moves with it; `uv lock` picks it up.
+3. The tests, ruff and `uv run {{ project_name }} doctor` must pass.
+
+The scaffold's CHANGELOG says what each release adds and any steps to take by hand.
+
+## A new capability
+
+When you build something here that every app of this kind could use, build it in the scaffold instead:
+1. In the scaffold repo, `/upstream` takes the change: code into duckkit (with tests), files into the template
+   (behind a flag if not every app wants it), and a CHANGELOG entry. The scaffold's CI renders and tests sample apps.
+2. A release (a `vX.Y.Z` tag) publishes it.
+3. Each app gets it with `/scaffold-update`.

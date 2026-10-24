@@ -1,0 +1,24 @@
+-- The ingestion's tables, then the contract's views over them (docs/contract.md). This file runs on every write
+-- connection: create only what is missing, and replace the views. A change to a table needs a migration in store.py.
+
+CREATE TABLE IF NOT EXISTS readings (
+    day DATE NOT NULL,
+    value DOUBLE NOT NULL,
+    source VARCHAR NOT NULL,          -- the file it came from
+    PRIMARY KEY (day, source)
+);
+
+CREATE TABLE IF NOT EXISTS ingest_runs (
+    started_at TIMESTAMPTZ PRIMARY KEY,
+    finished_at TIMESTAMPTZ,
+    ok BOOLEAN NOT NULL DEFAULT false,
+    detail VARCHAR
+);
+
+-- ─── The contract ───
+
+CREATE OR REPLACE VIEW v_contract AS SELECT '{{ contract_name }}' AS contract, '1.0' AS version;
+
+CREATE OR REPLACE VIEW v_daily AS SELECT day, sum(value) AS value FROM readings GROUP BY day;
+
+CREATE OR REPLACE VIEW v_ingests AS SELECT started_at, finished_at, ok FROM ingest_runs;

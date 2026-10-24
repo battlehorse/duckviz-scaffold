@@ -1,0 +1,8 @@
+"""{{ package }}: {{ description }}"""
+
+
+def main():
+    """The `{{ project_name }}` command (pyproject.toml [project.scripts]): runs the Typer CLI in cli.py."""
+    from {{ package }}.cli import app
+
+    app()

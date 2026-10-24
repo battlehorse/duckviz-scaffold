@@ -1,0 +1,24 @@
+"""A database with the contract's exact shape, filled with invented rows, for the app's tests.
+
+The app reads only the contract's views, so its tests build them directly from the reference schema, without the
+ingestion: if the app needs anything else, these tests fail.
+"""
+
+from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
+
+from duckkit.testing import contract_db
+
+from {{ package }}.spec import SPEC
+
+START = date(2026, 1, 1)
+
+
+def write(path: Path, days: int = 10) -> Path:
+    """The reference schema at `path`, with `days` days of values and one good ingest run."""
+    con = contract_db(SPEC, path)
+    con.executemany("INSERT INTO v_daily VALUES (?, ?)", [(START + timedelta(days=d), float(d % 4)) for d in range(days)])
+    run = datetime(2026, 1, 15, 10, tzinfo=UTC)
+    con.execute("INSERT INTO v_ingests VALUES (?, ?, true)", [run, run + timedelta(seconds=5)])
+    con.close()
+    return path

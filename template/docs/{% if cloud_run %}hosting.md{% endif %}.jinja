@@ -1,0 +1,38 @@
+# Hosting on Cloud Run
+
+The browser app runs on Cloud Run, behind Google sign-in (IAP), and reads the contract copy that `publish` sends
+to MotherDuck (`md:{{ motherduck_db }}`). No personal file is in the image: `.dockerignore` lets in only the code.
+
+```mermaid
+flowchart LR
+    mac[this machine<br/>DuckDB] -- publish, on request --> md[(MotherDuck<br/>md:{{ motherduck_db }})]
+    user[a signed-in person] -- Google sign-in --> iap[IAP] --> run[Cloud Run<br/>{{ project_name }}]
+    run -- read-only token --> md
+```
+
+| Setting | Value |
+|---|---|
+| Project | `{{ gcp_project }}` |
+| Region | `{{ gcp_region }}` |
+| Service | `{{ project_name }}` |
+| Service account | `{{ project_name }}-app@{{ gcp_project }}.iam.gserviceaccount.com` |
+| Secret | `motherduck-token` (a MotherDuck read-only token) |
+
+Costs stay near zero: at most one instance, none when idle (`--min-instances=0`). An idle tab goes to a static
+"Paused" page after {{ env_prefix }}_IDLE_MINUTES (default 15), so the instance can stop.
+
+## One-time setup
+
+Run each step once, as the project's owner:
+
+1. `gcloud projects create {{ gcp_project }}` and link a billing account; set a budget alert.
+2. `gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com iap.googleapis.com --project={{ gcp_project }}`
+3. The service account: `gcloud iam service-accounts create {{ project_name }}-app --project={{ gcp_project }}`.
+4. The token: make a **read-only** token in MotherDuck, then
+   `printf %s "<token>" | gcloud secrets create motherduck-token --data-file=- --project={{ gcp_project }}` and
+   `gcloud secrets add-iam-policy-binding motherduck-token --member=serviceAccount:{{ project_name }}-app@{{ gcp_project }}.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor --project={{ gcp_project }}`.
+5. The OAuth consent screen (Google Auth Platform): an External app, in Testing, with you as a test user.
+6. The first deploy: `/hosting deploy`. It turns on IAP (`--iap`).
+7. Keep two images: an Artifact Registry cleanup policy on `cloud-run-source-deploy` that keeps the 2 newest.
+
+After this, `/hosting` does the recurring tasks: deploy, roll back, add or remove a person, status.

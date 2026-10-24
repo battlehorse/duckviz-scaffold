@@ -1,0 +1,13 @@
+"""The app's entry point (`{{ project_name }} app`): the pages and their navigation. Pages live in views/, not
+pages/, so Streamlit's legacy multipage discovery leaves them alone."""
+
+from pathlib import Path
+
+import streamlit as st
+
+PAGES = Path(__file__).parent / "views"
+
+st.set_page_config(page_title="{{ title }}", page_icon=":material/monitoring:", layout="wide")
+st.navigation([
+    st.Page(PAGES / "overview.py", title="Overview", icon=":material/monitoring:", default=True),
+]).run()

@@ -1,0 +1,47 @@
+"""Fixtures shared across the suite. Every test works in a temporary folder: nothing touches data/, the settings or
+MotherDuck (duckkit.testing.isolate). Tests that use the real data are marked `realdata`, opt-in.
+
+The ingestion is imported inside the fixtures that use it, so the app's tests (tests/app/, which only build the
+contract's views) run without loading it.
+"""
+
+import pytest
+import streamlit as st
+from duckkit.testing import isolate
+
+from {{ package }}.spec import SPEC
+
+
+@pytest.fixture(autouse=True)
+def _isolate(tmp_path, monkeypatch):
+    isolate(SPEC, tmp_path, monkeypatch)
+
+
+@pytest.fixture
+def db():
+    """An empty database at SPEC.db_path, schema created."""
+    from {{ package }}.db.store import connect
+
+    con = connect()
+    yield con
+    con.close()
+
+
+@pytest.fixture
+def ingested(db, tmp_path):
+    """`db` with a small synthetic file ingested."""
+    from {{ package }}.ingest.pipeline import run
+
+    path = tmp_path / "sample.csv"
+    path.write_text("day,value\n2026-01-01,3\n2026-01-02,5\n2026-01-03,4\n")
+    run(db, [path])
+    return db
+
+
+@pytest.fixture
+def app_db(ingested):
+    """`ingested`, closed so the app can open it, with Streamlit's caches cleared. Returns its path."""
+    ingested.close()
+    st.cache_resource.clear()
+    st.cache_data.clear()
+    return SPEC.db_path

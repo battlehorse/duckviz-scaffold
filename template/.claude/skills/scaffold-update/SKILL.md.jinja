@@ -1,0 +1,34 @@
+---
+name: scaffold-update
+description: Bring this repo up to a newer release of duckviz-scaffold (the template and the duckkit package together), or turn a scaffold feature on. Runs copier update, resolves conflicts keeping this app's declared deviations, then checks tests, ruff and doctor, and opens a PR.
+when_to_use: >-
+  Use when the user says things like "update the scaffold", "pull in the new scaffold release", "turn on cloud run", "enable backups", or when /catch-up or a scaffold-update PR says a release is out.
+argument-hint: "[vX.Y.Z] [-d flag=value …]"
+---
+
+# Update from the scaffold
+
+Arguments: $ARGUMENTS (default: the newest release, same answers)
+
+Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app differs) first.
+
+1. **Start clean.** `git status` must be clean, on an up-to-date `main`. Make a branch: `scaffold/<release>`.
+   If a `scaffold/<release>` PR from the weekly workflow exists, check it out instead and go to step 3.
+2. **Update.** `uvx copier update --trust --defaults --conflict inline` (add `--vcs-ref <release>` and any
+   `-d flag=value` from the arguments). Copier re-renders the template at the old and new release with this repo's
+   answers and merges the difference.
+3. **Read the release notes**: the scaffold's CHANGELOG.md entries between `_commit` before and after
+   (`git diff .copier-answers.yml`). Do the steps they list by hand.
+4. **Resolve conflicts.** `git grep -n '^<<<<<<< '`. For each:
+   - the file is listed in docs/deviations.md → keep this app's side, and take any scaffold change that doesn't
+     touch the deviation;
+   - otherwise → take the scaffold's side, and keep this app's lines that are clearly its own (its dependencies in
+     pyproject.toml, its names).
+   - Never edit the duckkit version by hand. Delete any `*.rej` file once handled.
+5. **Lock and check.** `uv lock`, `uv sync`, then `uv run ruff check .`, `uv run pytest -q`,
+   `uv run {{ project_name }} doctor`. Fix what this app's code needs for the new duckkit (the CHANGELOG says).
+6. **Show the user** the diff summary (`git diff --stat main`), every conflict and how you resolved it, and any
+   new deviation (add it to docs/deviations.md).
+7. **Ask** before you commit, then commit and open a PR titled "Update the scaffold to <release>".
+
+To turn a feature on (e.g. `-d cloud_run=true`): same steps; then follow the new docs it adds (docs/hosting.md).

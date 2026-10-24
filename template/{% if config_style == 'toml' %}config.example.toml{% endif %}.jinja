@@ -1,0 +1,16 @@
+# Copy to config.toml (gitignored) and fill in. Everything personal lives in config.toml only.
+# Environment variables override it (MOTHERDUCK_TOKEN, {{ env_prefix }}_DB, …).
+{%- if backup %}
+
+[backup]
+dir = "backups"      # Parquet snapshots; relative to the project, or absolute (a synced folder, say)
+keep = 30            # newest snapshots kept
+{%- endif %}
+{%- if motherduck %}
+
+[motherduck]
+token = ""           # optional: `{{ project_name }} publish` (MotherDuck → Settings → Access tokens)
+{%- endif %}
+
+[privacy]
+terms = []           # more words `privacy-check` refuses in committed files (names, places)

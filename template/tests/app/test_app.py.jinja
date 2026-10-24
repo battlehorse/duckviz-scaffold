@@ -1,0 +1,25 @@
+"""The pages render on a database that holds only the contract's views, and say so when there is none."""
+
+import streamlit as st
+from streamlit.testing.v1 import AppTest
+
+from {{ package }}.spec import SPEC
+from tests.app import contract_data
+
+
+def page(name: str) -> AppTest:
+    st.cache_resource.clear()
+    return AppTest.from_file(str(SPEC.main_script().parent / "views" / f"{name}.py"), default_timeout=30).run()
+
+
+def test_overview_renders_from_the_contract_alone():
+    contract_data.write(SPEC.db_path)
+    at = page("overview")
+    assert not at.exception
+    assert at.title[0].value == "Overview"
+
+
+def test_no_database_says_so():
+    at = page("overview")
+    assert not at.exception
+    assert "No data to show yet" in at.info[0].value

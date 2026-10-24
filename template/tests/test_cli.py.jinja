@@ -1,0 +1,31 @@
+"""The command line: ingest, status, sql{% if motherduck %}, publish{% endif %}{% if backup %}, backup{% endif %}."""
+
+from typer.testing import CliRunner
+
+from {{ package }}.cli import app
+
+runner = CliRunner()
+
+
+def test_ingest_then_status(tmp_path):
+    path = tmp_path / "sample.csv"
+    path.write_text("day,value\n2026-01-01,3\n")
+    assert runner.invoke(app, ["ingest", str(path)]).exit_code == 0
+    result = runner.invoke(app, ["status"])
+    assert "Days:         1" in result.output and "the app's views conform" in result.output
+    assert "2026-01-01" in runner.invoke(app, ["sql", "SELECT day FROM v_daily"]).output
+{%- if motherduck %}
+
+
+def test_publish_to_a_file(app_db, tmp_path):
+    target = str(tmp_path / "published.duckdb")
+    assert runner.invoke(app, ["publish", "--to", target]).exit_code == 0
+    assert "up to date" in runner.invoke(app, ["publish", "--to", target, "--check"]).output
+{%- endif %}
+{%- if backup %}
+
+
+def test_backup(app_db):
+    assert runner.invoke(app, ["backup"]).exit_code == 0
+    assert "1 snapshots" in runner.invoke(app, ["backups"]).output
+{%- endif %}

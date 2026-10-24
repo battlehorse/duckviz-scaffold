@@ -1,0 +1,23 @@
+# Personal data and secrets: never commit. The repo must stay safe to make public (see CLAUDE.md).
+/config.toml
+.env
+data/
+backups/
+*.duckdb
+*.duckdb.wal
+*.parquet
+
+# Copier's leftovers when an update can't merge a file (resolve them, then delete)
+*.rej
+*.orig
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.DS_Store
+.claude/worktrees/
+.claude/settings.local.json

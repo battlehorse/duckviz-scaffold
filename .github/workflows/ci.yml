@@ -1,0 +1,33 @@
+# The kit's tests, then sample apps rendered from the template (every flag on, every flag off) with their own tests,
+# and `doctor`.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  kit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+        working-directory: kit
+      - run: uv run ruff check .
+        working-directory: kit
+      - run: uv run pytest -q --cov=duckkit --cov-report=term
+        working-directory: kit
+  template:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - run: |
+          git config --global user.name ci
+          git config --global user.email ci@example.com
+          git config --global init.defaultBranch main
+      - run: scripts/render.sh

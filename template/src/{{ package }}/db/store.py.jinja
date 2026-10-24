@@ -1,0 +1,22 @@
+"""Open the database, creating its schema (schema.sql) and migrating an older one (duckkit.store).
+
+Nothing here drops a table: a change of shape needs a migration in MIGRATIONS (from version → SQL, or a function of
+the connection), with SCHEMA_VERSION one higher.
+"""
+
+from importlib.resources import files
+from pathlib import Path
+
+import duckdb
+from duckkit import store
+
+from {{ package }}.spec import SPEC
+
+SCHEMA_VERSION = 1
+MIGRATIONS: dict[int, store.Migration] = {}  # version → what brings it to version + 1
+
+
+def connect(path: Path | None = None, read_only: bool = False) -> duckdb.DuckDBPyConnection:
+    """Open the database (default: SPEC.db_path), creating or migrating its schema."""
+    return store.connect(SPEC, lambda: files("{{ package }}.db").joinpath("schema.sql").read_text(),
+                         SCHEMA_VERSION, MIGRATIONS, path=path, read_only=read_only)

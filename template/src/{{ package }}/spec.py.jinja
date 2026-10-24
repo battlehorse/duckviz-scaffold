@@ -1,0 +1,35 @@
+"""This app, as duckkit sees it: paths, ports, the contract, the settings. Made once, imported everywhere.
+
+The browser app imports this too, so it must not import the ingestion (db, ingest, cli).
+"""
+
+from pathlib import Path
+
+from duckkit import AppEntry, AppSpec
+
+from {{ package }}.contract import CONTRACT
+
+SPEC = AppSpec(
+    package="{{ package }}",
+    cli="{{ project_name }}",
+    root=Path(__file__).resolve().parents[2],
+    contract=CONTRACT,
+    env_prefix="{{ env_prefix }}",
+    db_file="{{ db_file }}",
+    {%- if demo_data %}
+    demo_file="demo.duckdb",
+    {%- endif %}
+    timezone="{{ timezone }}",
+    motherduck_target={{ ('"md:' ~ motherduck_db ~ '"') if motherduck else 'None' }},
+    config_style="{{ config_style }}",
+    apps=[
+        AppEntry("app", port={{ app_port }}, title="{{ title }}"),
+        {%- for a in extra_apps %}
+        AppEntry("{{ a.name }}", port={{ a.port }}, title="{{ a.title | default(a.name) }}", hosted={{ a.hosted | default(false) }}),
+        {%- endfor %}
+    ],
+    # Settings that are personal: (section, key, environment variable, what). privacy-check refuses them in git.
+    private_settings=(),
+    # The ingestion side, which the browser app must never import
+    forbidden=("ingest", "db", "cli"{% for a in extra_apps if not a.hosted | default(false) %}, "{{ a.name }}"{% endfor %}),
+)

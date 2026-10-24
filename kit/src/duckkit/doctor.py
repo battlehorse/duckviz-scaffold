@@ -1,0 +1,117 @@
+"""`doctor`: how an app's repo compares with the scaffold it was made from.
+
+It reads `.copier-answers.yml` (written by `copier copy` / `copier update`: the scaffold version and the answers,
+including the feature flags and `opt_out`) and checks:
+
+- the scaffold version the files come from, against the installed duckkit (they should be the same release);
+- with `--remote`, the newest release of the scaffold (`git ls-remote --tags`);
+- that the files every app has are there, unless a flag turns them off or `opt_out` lists them;
+- that every opted-out file is explained in docs/deviations.md (the app's own list of where it differs).
+
+Problems make `doctor` fail; notes don't.
+"""
+
+import re
+import subprocess
+from dataclasses import dataclass, field
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as installed_version
+
+import yaml
+
+from duckkit.spec import AppSpec
+
+ANSWERS = ".copier-answers.yml"
+
+# Files every app has: (path, the flag that must be on for it, or None)
+EXPECTED = [
+    ("CLAUDE.md", None),
+    ("README.md", None),
+    ("docs/architecture.md", None),
+    ("docs/contract.md", None),
+    ("docs/dashboard.md", None),
+    ("docs/getting-started.md", None),
+    ("docs/scaffold.md", None),
+    ("docs/deviations.md", None),
+    ("tests/app/test_contract_only.py", None),
+    (".github/workflows/tests.yml", None),
+    (".streamlit/config.toml", None),
+    (".claude/skills/app/SKILL.md", None),
+    (".claude/skills/catch-up/SKILL.md", None),
+    (".claude/skills/scaffold-update/SKILL.md", None),
+    (".claude/skills/publish/SKILL.md", "motherduck"),
+    (".claude/skills/backup/SKILL.md", "backup"),
+    (".claude/skills/hosting/SKILL.md", "cloud_run"),
+    ("docs/hosting.md", "cloud_run"),
+    ("Dockerfile", "cloud_run"),
+    (".gcloudignore", "cloud_run"),
+    (".githooks/pre-commit", "privacy_hook"),
+]
+
+
+@dataclass
+class Report:
+    problems: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+    def lines(self) -> list[str]:
+        out = [f"  · {n}" for n in self.notes] + [f"  ✗ {p}" for p in self.problems]
+        out.append("✗ " + f"{len(self.problems)} problems" if self.problems else "✓ in step with the scaffold")
+        return out
+
+
+def answers(spec: AppSpec) -> dict | None:
+    """The scaffold answers of the repo, or None when it wasn't made from the scaffold."""
+    path = spec.root / ANSWERS
+    return yaml.safe_load(path.read_text()) or {} if path.exists() else None
+
+
+def kit_version() -> str | None:
+    try:
+        return installed_version("duckkit")
+    except PackageNotFoundError:
+        return None
+
+
+def newest_release(source: str) -> str | None:
+    """The highest vX.Y.Z tag of the scaffold's repo; None when it can't be reached."""
+    out = subprocess.run(["git", "ls-remote", "--tags", "--refs", source], capture_output=True, text=True,
+                         check=False, timeout=30)
+    tags = re.findall(r"refs/tags/(v\d+\.\d+\.\d+)$", out.stdout, re.MULTILINE)
+    return max(tags, key=lambda t: tuple(int(x) for x in t[1:].split("."))) if tags else None
+
+
+def diagnose(spec: AppSpec, remote: bool = False) -> Report:
+    report = Report()
+    found = answers(spec)
+    if found is None:
+        report.problems.append(f"no {ANSWERS}: this repo wasn't made from the scaffold (see the scaffold's "
+                               "docs/upgrading.md, \"Adopting the scaffold\")")
+        return report
+    commit = str(found.get("_commit", "?"))
+    kit = kit_version()
+    report.notes.append(f"scaffold files from {commit}, duckkit {kit or 'not installed'}")
+    if not re.match(r"v\d+\.\d+\.\d+$", commit):
+        report.notes.append(f"{commit} is not a release: made from a working copy of the scaffold (its own CI)")
+    elif kit and commit.lstrip("v") != kit:
+        report.problems.append(f"the files come from scaffold {commit} but duckkit is {kit}: run `/scaffold-update` "
+                               "(or `copier update`), which moves both together")
+    if remote and (source := found.get("_src_path")):
+        newest = newest_release(source)
+        if newest and newest != commit.split("-")[0]:
+            report.notes.append(f"scaffold {newest} is out: `/scaffold-update` brings it in")
+    opt_out = set(found.get("opt_out") or [])
+    for path, flag in EXPECTED:
+        if flag and not found.get(flag):
+            continue
+        if path in opt_out:
+            continue
+        if not (spec.root / path).exists():
+            report.problems.append(f"{path} is missing (restore it with `copier update`, or add it to opt_out and "
+                                   "explain why in docs/deviations.md)")
+    doc = spec.root / "docs" / "deviations.md"
+    deviations = doc.read_text() if doc.exists() else ""
+    for path in sorted(opt_out):
+        if path not in deviations:
+            report.problems.append(f"{path} is opted out but docs/deviations.md doesn't say why")
+    return report

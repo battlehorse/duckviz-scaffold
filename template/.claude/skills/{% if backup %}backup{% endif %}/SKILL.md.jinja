@@ -1,0 +1,31 @@
+---
+name: backup
+description: List, make or restore the verified Parquet backups of the {{ project_name }} database. Use when the user asks about backups, wants a backup now, or must recover the database.
+when_to_use: >-
+  Use when the user says things like "back up the database", "list the backups", "is the data backed up", "restore from backup", "I lost the database".
+argument-hint: "[list|now|restore <snapshot>]"
+allowed-tools: Bash(uv run {{ project_name }} backup) Bash(uv run {{ project_name }} backups) Bash(uv run {{ project_name }} restore *) Bash(uv run {{ project_name }} status)
+---
+
+# Backups
+
+Action: $ARGUMENTS (default: list)
+
+## How the backups work
+
+- Each snapshot is a folder `<prefix><UTC time>` in the backup folder ({{ '`[backup] dir` in config.toml' if config_style == 'toml' else '`' ~ env_prefix ~ '_BACKUP_DIR`' }}; default
+  `backups/`, gitignored).
+- DuckDB's `EXPORT DATABASE` writes it: Parquet files, `schema.sql` and `load.sql`, readable without this code.
+- Each new snapshot is imported again and every table's rows and content hash must match the database.
+- The newest snapshots stay (default 30); older ones are deleted.
+- For a copy off this machine, point the folder at a synced folder.
+
+## Actions
+
+- **list:** `uv run {{ project_name }} backups`.
+- **now:** `uv run {{ project_name }} backup`.
+- **restore:**
+  1. `uv run {{ project_name }} restore <snapshot folder>`. It writes `data/restored.duckdb` and never overwrites.
+  2. Show the counts. Ask the user (AskUserQuestion) before you replace the database.
+  3. To use it: the user moves the current database away, then moves the restored file in its place. Do not delete
+     the old database: tell the user where it is.

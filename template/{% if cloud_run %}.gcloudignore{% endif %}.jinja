@@ -1,0 +1,13 @@
+# What `gcloud run deploy --source .` uploads to Cloud Build: only what the Dockerfile needs (docs/hosting.md).
+# Without this file gcloud would use .gitignore, and upload the rest of the repo.
+*
+!Dockerfile
+!.dockerignore
+!pyproject.toml
+!uv.lock
+!README.md
+!.streamlit/
+!.streamlit/**
+!src/
+!src/**
+**/__pycache__/

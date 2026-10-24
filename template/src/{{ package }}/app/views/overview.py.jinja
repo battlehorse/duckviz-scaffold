@@ -1,0 +1,29 @@
+"""Overview: the daily values, as a chart and a table. (An example page: replace it with the app's own.)"""
+
+import streamlit as st
+from duckkit.app import theme
+from streamlit_echarts import st_echarts
+
+from {{ package }}.app.common import DATA_ERRORS, con, no_data, sidebar, table
+from {{ package }}.query.dashboard import load_daily
+
+sidebar()
+st.title("Overview")
+try:
+    daily = load_daily(con())
+except DATA_ERRORS as e:
+    no_data(e)
+    st.stop()
+
+m = theme.mode()
+option = theme.base_option(m) | {
+    "xAxis": {"type": "category", "data": [f"{d:%Y-%m-%d}" for d in daily["day"]]},
+    "yAxis": {"type": "value", "splitLine": {"lineStyle": {"color": theme.INK[m]["grid"]}}},
+    "series": [{"type": "line", "data": daily["value"].tolist(), "color": theme.CATEGORICAL[m][0]}],
+    "tooltip": theme.base_option(m)["tooltip"] | {"trigger": "axis"},
+}
+chart, data = st.tabs(["Chart", "Table"])
+with chart:
+    st_echarts(option, height="360px", key=f"daily-{m}")
+with data:
+    table(daily)

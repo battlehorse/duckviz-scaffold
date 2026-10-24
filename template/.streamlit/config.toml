@@ -1,0 +1,10 @@
+# Personal data: serve on this machine only, and send nothing to Streamlit. A Cloud Run image overrides the address.
+[server]
+address = "localhost"
+headless = true  # no first-run email prompt, and no browser tab: open the URL yourself
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "viewer"  # hide the Deploy button and developer options; keep settings (theme)

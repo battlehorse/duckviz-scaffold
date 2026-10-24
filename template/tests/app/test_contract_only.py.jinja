@@ -1,0 +1,28 @@
+"""Guard rails: the browser app reads the contract's views and nothing else, and never loads the ingestion.
+
+Managed by the scaffold (`copier update` keeps it current); the checks are in duckkit.testing.guard. What counts as
+the app's code and as the ingestion is set in spec.py (app_code, forbidden, forbidden_in_tests).
+"""
+
+import pytest
+from duckkit.testing import guard
+
+from {{ package }}.spec import SPEC
+
+
+def test_the_app_reads_only_the_contracts_views():
+    checked, problems = guard.sql_problems(SPEC)
+    assert checked > 0  # the guard found the app's queries
+    assert not problems, "\n".join(problems)
+
+
+@pytest.mark.parametrize("path", guard.app_files(SPEC) + guard.app_tests(SPEC), ids=lambda p: guard.name(SPEC, p))
+def test_no_ingestion_imports(path):
+    assert not guard.import_problems(SPEC, path)
+
+
+def test_loading_the_app_and_its_tests_loads_no_ingestion():
+    """Imports can be indirect (a package's __init__, a conftest): load everything in a fresh interpreter."""
+    loaded, problems = guard.loaded_problems(SPEC)
+    assert f"{SPEC.package}.spec" in loaded
+    assert not problems

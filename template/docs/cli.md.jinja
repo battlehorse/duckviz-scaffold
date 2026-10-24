@@ -1,0 +1,23 @@
+# Commands
+
+Run each with `uv run {{ project_name }} …`. `--help` on any command shows its options. This app's own commands
+come first; the rest are duckkit's standard commands (the same in every app made from the scaffold).
+
+| Command | What it does |
+|---|---|
+| `ingest <files>` | load data into the database (this app's own) |
+| `status` | what the database holds, and the contract check |
+| `sql "<SELECT>"` | one read-only SELECT on a snapshot (prefer the contract views) |
+| `app [name]{% if tailnet %} [--tailnet]{% endif %}{% if demo_data %} [--demo]{% endif %}` | serve an app on localhost: `app` (:{{ app_port }}){% for a in extra_apps %}, `{{ a.name }}` (:{{ a.port }}){% endfor %} |
+{%- if motherduck %}
+| `publish [--to md:<name>] [--dry-run] [--check]` | the contract views to MotherDuck (`md:{{ motherduck_db }}`); `--check` compares |
+{%- endif %}
+{%- if backup %}
+| `backup` | a verified Parquet snapshot in the backup folder |
+| `backups` | the snapshots, oldest first |
+| `restore <snapshot> [--to <file>]` | a new database from a snapshot (never overwrites) |
+{%- endif %}
+{%- if privacy_hook %}
+| `privacy-check` | fail if a file git would commit holds personal data |
+{%- endif %}
+| `doctor [--remote]` | whether the repo is in step with the scaffold |

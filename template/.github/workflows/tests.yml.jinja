@@ -1,0 +1,23 @@
+# Lint and test every pull request, and every push to main. Uses only the synthetic data in tests/: no real data,
+# database or token is needed (or available) here.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install
+        run: uv sync --locked
+      - name: Lint
+        run: uv run ruff check .
+      - name: Test
+        run: uv run pytest -q --cov={{ package }} --cov-report=term
+      - name: Scaffold
+        run: uv run {{ project_name }} doctor

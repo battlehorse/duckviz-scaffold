@@ -1,0 +1,57 @@
+# {{ project_name }}
+
+{{ description }}
+
+This file is managed by the scaffold (duckviz-scaffold): `copier update` changes it. Rules that belong to this app
+only are in `.claude/project-rules.md`, which is imported here:
+
+@.claude/project-rules.md
+
+Read these first:
+- README.md
+- docs/getting-started.md
+- docs/architecture.md
+- docs/contract.md: the views the app reads.
+- docs/dashboard.md: the app's pages, and the questions that they answer.
+- docs/scaffold.md and docs/deviations.md: what comes from the scaffold, and where this app differs.
+
+## Rules
+
+- **Data contract.** The browser app reads only the `v_*` views of docs/contract.md, through
+  `duckkit.snapshot.contract_snapshot`. `tests/app/test_contract_only.py` enforces this. To change the shape of a
+  view, increase the contract version in `src/{{ package }}/contract/__init__.py` and follow docs/contract.md.
+- **The database may hold data you cannot get again.** Do not delete `data/`{% if backup %} or `backups/`{% endif %}. Do
+  not drop a table. For a schema change, write a migration in `src/{{ package }}/db/store.py`.
+  {%- if backup %} Run `uv run {{ project_name }} backup` before you change data by hand.{% endif %}
+- **Keep personal data out of git.** Settings and secrets go in `{{ 'config.toml' if config_style == 'toml' else '.env' }}`; data goes in `data/`. Tests and docs
+  use synthetic data only.
+  {%- if privacy_hook %} The pre-commit hook runs `uv run {{ project_name }} privacy-check`.{% endif %}
+{%- if motherduck %}
+- **Publishing** sends personal data to MotherDuck. Run `publish` only when the user asks (`/publish`).
+{%- endif %}
+- **Charts.** Load the `dataviz` skill before you change a chart. Give each chart a table view. Update
+  docs/dashboard.md in the same change.
+- **The app** uses port **{{ app_port }}**{% for a in extra_apps %}, `{{ a.name }}` port **{{ a.port }}**{% endfor %}. Restart it after a code change (`/app restart`).
+- **Shared code lives in the scaffold.** `duckkit` (snapshots, contract check, publish, backups, privacy, serving,
+  the standard commands, theme) and the template-managed files (docs/scaffold.md lists them) come from
+  duckviz-scaffold. Do not copy duckkit code into this repo, and do not change it here. When you build something
+  every app of this kind could use, say so, and propose to upstream it to the scaffold first (its `/upstream`
+  skill); this app then gets it with `/scaffold-update`. A change that only this app needs stays here; if it
+  changes a template-managed file, record it in docs/deviations.md.
+
+## Running
+
+- Run the commands with `uv run {{ project_name }} …` (see docs/cli.md). Use `uv` for all Python work. Ask the user
+  before you add a dependency.
+- Keep DuckDB at 1.5.x. MotherDuck does not support DuckDB 2.0 yet. DuckDB 2.0 writes a file that 1.x cannot open.
+- A command that connects to the internet needs the sandbox off in Claude Code.
+
+## Tests and quality
+
+- `uv run pytest` must pass. It uses only synthetic data. The `-m realdata` tests use the real data on this machine.
+- `uv run ruff check .` must pass before a commit.
+- `uv run {{ project_name }} doctor` must pass: the repo is in step with the scaffold.
+
+## Git
+
+- Commit only when the user asks. Send the work as PRs for review.

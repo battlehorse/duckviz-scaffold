@@ -1,0 +1,33 @@
+[project]
+name = "duckkit"
+version = "0.1.0"
+description = "The shared code of the DuckDB + data contract + Streamlit apps made from duckviz-scaffold"
+readme = "README.md"
+authors = [
+    { name = "Riccardo Govoni", email = "battlehorse@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    # MotherDuck does not support DuckDB 2.0 yet. A 2.0 database file cannot open in 1.x.
+    "duckdb>=1.5.6,<2",
+    "pyyaml>=6.0.2",
+    "streamlit>=1.65",
+    "typer>=0.27.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.2",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint.isort]
+known-first-party = ["duckkit", "tests"]

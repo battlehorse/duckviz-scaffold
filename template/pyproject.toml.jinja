@@ -1,0 +1,50 @@
+[project]
+name = "{{ project_name }}"
+version = "0.1.0"
+description = "{{ description }}"
+readme = "README.md"
+authors = [
+    { name = "{{ author_name }}", email = "{{ author_email }}" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    # The shared code (the scaffold's kit), at the scaffold release this repo's files come from: `copier update`
+    # moves both together. Don't bump it by hand.
+    "duckkit @ git+{{ scaffold_repo }}@{{ kit_ref }}#subdirectory=kit",
+    # MotherDuck does not support DuckDB 2.0 yet. A 2.0 database file cannot open in 1.x.
+    "duckdb>=1.5.6,<2",
+    "streamlit>=1.66.1",
+    "streamlit-echarts>=0.7.0",
+    "typer>=0.27.3",
+]
+
+[project.scripts]
+{{ project_name }} = "{{ package }}:main"
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.14.0"]
+build-backend = "uv_build"
+{%- if kit_path %}
+
+[tool.uv.sources]
+duckkit = { path = "{{ kit_path }}", editable = true }
+{%- endif %}
+
+[tool.pytest.ini_options]
+markers = ["realdata: uses the real data on this machine (opt-in: `pytest -m realdata`)"]
+addopts = "-m 'not realdata'"
+# Raised inside duckdb's own pandas conversion (.df()), not by this code
+filterwarnings = ["ignore:The inplace keyword in DataFrame.drop is deprecated"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint.isort]
+known-first-party = ["{{ package }}", "tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.2",
+]

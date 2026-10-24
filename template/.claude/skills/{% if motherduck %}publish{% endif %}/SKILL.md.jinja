@@ -1,0 +1,26 @@
+---
+name: publish
+description: Publish the contract views of the {{ project_name }} database to MotherDuck (md:{{ motherduck_db }}){% if cloud_run %}, which the hosted app reads{% endif %}. Shows the data that will leave this computer, and asks first.
+disable-model-invocation: true
+argument-hint: "[md:<name>]"
+allowed-tools: Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} publish --dry-run*) Bash(uv run {{ project_name }} publish) Bash(uv run {{ project_name }} publish --to md:*) Bash(uv run {{ project_name }} publish --check*)
+---
+
+# Publish to MotherDuck
+
+Target: $ARGUMENTS (default `md:{{ motherduck_db }}`)
+
+Run this skill only when the user asks. It sends personal data to a third party. `ingest` never publishes.
+
+1. Run `uv run {{ project_name }} status`. The **Contract** line must say that the views conform. If not, recommend
+   `/ingest` and stop.
+2. Run `uv run {{ project_name }} publish --dry-run` and show what will leave the computer: the target, each
+   contract view with its rows and columns. Say that nothing else goes out: no raw tables, no settings or tokens.
+3. Ask the user (AskUserQuestion) if you can publish. If the answer is no, stop.
+4. Run `uv run {{ project_name }} publish` (or `--to md:<name>`).
+   - No MotherDuck token: make one in MotherDuck (Settings → Access tokens), then set {{ '`[motherduck] token` in config.toml' if config_style == 'toml' else '`MOTHERDUCK_TOKEN=…` in .env' }}.
+   - The first run downloads DuckDB's `motherduck` extension.
+5. Report the counts. Later, `uv run {{ project_name }} publish --check` tells whether the copy is up to date.
+{%- if cloud_run %}
+6. The hosted app reads the new copy after *Reload data* (or its next start).
+{%- endif %}

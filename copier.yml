@@ -1,0 +1,171 @@
+# duckviz-scaffold: an app that ingests data with Python into DuckDB, offers it through a versioned SQL contract,
+# and shows it in a Streamlit app that reads only the contract. See README.md and docs/.
+#
+#   New app:          copier copy --trust gh:battlehorse/duckviz-scaffold my-app
+#   Update an app:    copier update --trust            (or /scaffold-update in Claude Code)
+#   Turn a feature on: copier update --trust -d cloud_run=true
+
+_min_copier_version: "9.4"
+_subdirectory: template
+_templates_suffix: .jinja
+_answers_file: .copier-answers.yml
+
+# The scaffold's own release: the duckkit version every generated app depends on. scripts/release.py bumps it
+# together with kit/pyproject.toml and the tag. Hidden: never asked, never stored, so `copier update` always
+# brings in the release it updates to.
+kit_ref:
+  type: str
+  default: v0.1.0
+  when: false
+scaffold_repo:
+  type: str
+  default: https://github.com/battlehorse/duckviz-scaffold
+  when: false
+
+# ─── The app ───
+project_name:
+  type: str
+  help: The project's name (the repo and the command), e.g. heatmiserviz
+  validator: "{% if not (project_name | regex_search('^[a-z][a-z0-9-]*$')) %}lowercase letters, digits and dashes{% endif %}"
+package:
+  type: str
+  help: The Python package
+  default: "{{ project_name | replace('-', '_') }}"
+description:
+  type: str
+  help: One line about what the app records and shows
+title:
+  type: str
+  help: The browser app's title
+  default: "{{ project_name }}"
+author_name:
+  type: str
+  default: Riccardo Govoni
+author_email:
+  type: str
+  default: battlehorse@gmail.com
+github_owner:
+  type: str
+  default: battlehorse
+env_prefix:
+  type: str
+  help: The prefix of the app's environment variables (<PREFIX>_DB, <PREFIX>_APP_DB, …)
+  default: "{{ package | upper }}"
+contract_name:
+  type: str
+  help: The contract's name, in v_contract (e.g. heating, groceries, cards)
+db_file:
+  type: str
+  default: "{{ project_name }}.duckdb"
+timezone:
+  type: str
+  help: The time zone of every connection (local days and hours)
+  default: Europe/London
+app_port:
+  type: int
+  help: The browser app's port on localhost (pick one no other app here uses)
+  default: 8501
+extra_apps:
+  type: yaml
+  multiline: true
+  help: >-
+    More Streamlit apps besides `app`, as a YAML list of {name, port, title, hosted}. `hosted: false` reads the whole
+    database and never goes to Cloud Run (a curation app, say). Their code is yours to write: the scaffold lists
+    them in spec.py, the app skill and the docs.
+  default: "[]"
+config_style:
+  type: str
+  help: Where the user keeps settings and secrets
+  choices:
+    ".env (KEY=value)": env
+    "config.toml ([section] key)": toml
+  default: env
+
+# ─── Features: each one adds files, commands and skills; turn one on later with `copier update -d <flag>=true` ───
+motherduck:
+  type: bool
+  help: Publish the contract views to MotherDuck (`publish`, /publish)?
+  default: true
+motherduck_db:
+  type: str
+  default: "{{ contract_name }}"
+  when: "{{ motherduck }}"
+cloud_run:
+  type: bool
+  help: Host the browser app on Cloud Run, behind Google sign-in (IAP), reading MotherDuck?
+  default: false
+  when: "{{ motherduck }}"
+gcp_project:
+  type: str
+  default: "{{ project_name }}"
+  when: "{{ cloud_run }}"
+gcp_region:
+  type: str
+  default: europe-west2
+  when: "{{ cloud_run }}"
+tailnet:
+  type: bool
+  help: Serve the app to your Tailscale devices (`app --tailnet`)?
+  default: true
+backup:
+  type: bool
+  help: Verified Parquet backups (`backup`, `backups`, `restore`, /backup)?
+  default: true
+privacy_hook:
+  type: bool
+  help: A pre-commit hook that refuses personal data (`privacy-check`)?
+  default: true
+demo_data:
+  type: bool
+  help: A synthetic demo database (`app --demo`, data/demo.duckdb)?
+  default: false
+
+# ─── Deviations ───
+opt_out:
+  type: yaml
+  multiline: true
+  help: >-
+    Template files this app doesn't want, as a YAML list of paths (e.g. [.claude/skills/catch-up/SKILL.md]). Say
+    why in docs/deviations.md: `doctor` checks.
+  default: "[]"
+
+# Only for the scaffold's own CI: use the kit from a local folder instead of the release tag.
+kit_path:
+  type: str
+  default: ""
+  when: false
+
+# Copier splits a rendered pattern on line breaks, so one line excludes every opted-out path (matched on the
+# destination path). The placeholder keeps the pattern non-empty when nothing is opted out.
+_exclude:
+  - "{{ (opt_out or ['.no-opt-out']) | join('\n') }}"
+
+# Written once, then the app's own: updates never touch them. Everything else is template-managed: `copier update`
+# merges the template's changes into it, keeping local edits (a clash shows as a merge conflict).
+_skip_if_exists:
+  - README.md
+  - .claude/project-rules.md
+  - docs/architecture.md
+  - docs/contract.md
+  - docs/dashboard.md
+  - docs/getting-started.md
+  - docs/deviations.md
+  - docs/browser-checks.md
+  - .claude/skills/ingest/SKILL.md
+  - .claude/skills/ask/SKILL.md
+  - "src/{{ package }}/**"
+  - tests/conftest.py
+  - tests/test_*.py
+  - tests/app/test_app.py
+  - tests/app/contract_data.py
+  - config.example.toml
+  - .env.example
+
+_message_after_copy: |
+  Made {{ project_name }}. Next:
+    cd {{ _copier_conf.dst_path }}
+    git init -b main && uv sync && uv run pytest -q
+  {%- if privacy_hook %}
+    git config core.hooksPath .githooks
+  {%- endif %}
+  Then read docs/getting-started.md, and docs/scaffold.md for how updates work.

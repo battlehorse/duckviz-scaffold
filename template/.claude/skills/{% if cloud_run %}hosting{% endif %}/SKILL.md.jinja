@@ -1,0 +1,66 @@
+---
+name: hosting
+description: Manage the {{ title }} app hosted on Google Cloud Run (project {{ gcp_project }}, behind Google sign-in). Deploy a new version (or roll back), add or remove a person who can open it, list who has access, or show its status. Asks before each deploy and each change of access.
+when_to_use: >-
+  Use when the user says things like "deploy the app", "redeploy", "roll back the app", "give someone access", "remove someone from the app", "who can see the hosted app?", "is the cloud app OK?".
+argument-hint: "[deploy | rollback | add <email> | remove <email> | users | status]"
+allowed-tools: Bash(git status *) Bash(git fetch *) Bash(git rev-parse *) Bash(git log *) Bash(git rev-list *) Bash(uv run pytest -q) Bash(gcloud auth list *) Bash(gcloud run services describe {{ project_name }} *) Bash(gcloud run revisions list --service={{ project_name }} *) Bash(gcloud logging read *) Bash(gcloud iap web get-iam-policy --resource-type=cloud-run --service={{ project_name }} *) Bash(gcloud run deploy {{ project_name }} *) Bash(gcloud run services update-traffic {{ project_name }} *) Bash(gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} *) Bash(gcloud iap web remove-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} *)
+---
+
+# Manage the hosted app
+
+Request: $ARGUMENTS
+
+The hosted app reads the copy that `/publish` sends to MotherDuck. docs/hosting.md explains the architecture and
+the one-time setup; this skill does the recurring tasks only. Add `--project={{ gcp_project }} --region={{ gcp_region }}`
+to every `gcloud` command. Do not depend on the gcloud defaults.
+
+## 0. Before each task
+
+Run `gcloud auth list --filter=status:ACTIVE --format="value(account)"`. If no account is active, tell the user to
+type `! gcloud auth login`, and stop.
+
+## Deploy
+
+1. **Check the code.** `git fetch --prune`, `git status -sb`. The branch must be `main`, clean, and the same as
+   `origin/main`; otherwise say what differs and stop (deploy another branch only if the user names it).
+2. **Run the tests**: `uv run pytest -q`. If a test fails, stop.
+3. **Ask** the user (AskUserQuestion), showing the commit (`git log --oneline -1`) and the serving revision.
+4. **Deploy.** Get the commit with `git rev-parse --short HEAD` and write it in place of `<commit>` (no `$(…)`):
+   ```sh
+   gcloud run deploy {{ project_name }} --source . --project={{ gcp_project }} --region={{ gcp_region }} \
+       --service-account={{ project_name }}-app@{{ gcp_project }}.iam.gserviceaccount.com \
+       --set-secrets=MOTHERDUCK_TOKEN=motherduck-token:latest \
+       --update-labels=commit=<commit> --update-env-vars={{ env_prefix }}_VERSION=<commit> \
+       --no-allow-unauthenticated --iap \
+       --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --timeout=3600 --session-affinity --quiet
+   ```
+5. **Check.** The output ends with `is serving 100 percent of traffic`; the label is the commit; read the
+   warnings since: `gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="{{ project_name }}" AND severity>=WARNING' --project={{ gcp_project }} --freshness=15m --limit=20 --format="value(timestamp,severity,textPayload)"`.
+6. **Report** the revision, the commit and any warnings.
+
+## Roll back
+
+Ask the user, then `gcloud run services update-traffic {{ project_name }} … --to-revisions=<previous revision>=100`
+(find it with `gcloud run revisions list --service={{ project_name }} … --limit=3`).
+
+## Add or remove a person
+
+1. Ask the user (AskUserQuestion) to confirm the email. Say that the person sees **all** the data in the app.
+2. `gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} --region={{ gcp_region }} --project={{ gcp_project }} --member=user:<email> --role=roles/iap.httpsResourceAccessor`
+   (`remove-iam-policy-binding` to remove).
+3. Tell the user what to send: the URL, and to sign in with that Google account. While the OAuth app is in
+   Testing, the person must also be a test user (Google Auth Platform → Audience).
+
+## Users and status
+
+- Users: `gcloud iap web get-iam-policy --resource-type=cloud-run --service={{ project_name }} --region={{ gcp_region }} --project={{ gcp_project }} --format=json`;
+  show the members of `roles/iap.httpsResourceAccessor`.
+- Status: the URL, the serving revision, the deployed commit against `origin/main`
+  (`git rev-list --count <commit>..origin/main`), `Iap Enabled`, the people, and the last 24 hours' warnings.
+
+## Do not
+
+- Change the project's settings, secrets, service accounts, OAuth client, budgets or APIs (the one-time setup).
+- Give a person any role but `roles/iap.httpsResourceAccessor`.
+- Deploy or roll back without the user's OK, or deploy a dirty working tree.

@@ -1,0 +1,48 @@
+# Once a week, look for a newer release of the scaffold this repo was made from. When there is one, run
+# `copier update` and open a pull request with the result, conflicts and all, for review (docs/scaffold.md).
+# Resolve the PR locally with /scaffold-update, which also checks the tests and `doctor`.
+name: scaffold-update
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - name: Newest release
+        id: release
+        run: |
+          current=$(sed -n 's/^_commit: //p' .copier-answers.yml)
+          newest=$(git ls-remote --tags --refs {{ scaffold_repo }} | sed -n 's|.*refs/tags/\(v[0-9.]*\)$|\1|p' | sort -V | tail -1)
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "newest=$newest" >> "$GITHUB_OUTPUT"
+      - name: Update
+        if: steps.release.outputs.newest != steps.release.outputs.current
+        run: |
+          git config user.name "scaffold-update[bot]"
+          git config user.email "scaffold-update@users.noreply.github.com"
+          branch="scaffold/${{ '{{' }} steps.release.outputs.newest {{ '}}' }}"
+          if git ls-remote --exit-code --heads origin "$branch"; then echo "already proposed"; exit 0; fi
+          git switch -c "$branch"
+          uvx copier update --trust --defaults --conflict inline --vcs-ref "${{ '{{' }} steps.release.outputs.newest {{ '}}' }}"
+          uv lock
+          git add -A
+          git commit -m "Update the scaffold to ${{ '{{' }} steps.release.outputs.newest {{ '}}' }}"
+          git push -u origin "$branch"
+          conflicts=$(git grep -l '^<<<<<<< ' -- . || true)
+          gh pr create --title "Update the scaffold to ${{ '{{' }} steps.release.outputs.newest {{ '}}' }}" --body "$(printf \
+            'From %s to %s. See the scaffold CHANGELOG for what changed and any steps.\n\nConflicts to resolve (run /scaffold-update locally):\n%s\n' \
+            "${{ '{{' }} steps.release.outputs.current {{ '}}' }}" "${{ '{{' }} steps.release.outputs.newest {{ '}}' }}" "${conflicts:-none}")"
+        env:
+          GH_TOKEN: ${{ '{{' }} secrets.GITHUB_TOKEN {{ '}}' }}

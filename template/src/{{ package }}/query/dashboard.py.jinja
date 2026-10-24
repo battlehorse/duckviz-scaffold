@@ -1,0 +1,8 @@
+"""The app's queries, on the contract's views and nothing else. Each returns a DataFrame."""
+
+import pandas as pd
+
+
+def load_daily(con) -> pd.DataFrame:
+    """Every day and its value, oldest first."""
+    return con.execute("SELECT day, value FROM v_daily ORDER BY day").df()

@@ -1,0 +1,25 @@
+"""Shared by the app's pages: duckkit's snapshot and sidebar, bound to this app."""
+
+import streamlit as st
+from duckkit.app import common
+from duckkit.app.common import DATA_ERRORS, table  # noqa: F401 — the pages' imports
+
+from {{ package }}.spec import SPEC
+
+
+def con():
+    """A new cursor on the contract snapshot."""
+    return common.con(SPEC)
+
+
+def sidebar() -> None:
+    """The sidebar of every page: how fresh the data is, "Reload data", the theme (and idle) watchers."""
+    try:
+        last = con().execute("SELECT max(day) FROM v_daily").fetchone()[0]
+    except DATA_ERRORS:
+        last = None
+    common.sidebar(SPEC, caption=f"Data to {last:%-d %b %Y}" if last else None)
+
+
+def no_data(error: Exception) -> None:
+    st.info(f"No data to show yet: {error}")
