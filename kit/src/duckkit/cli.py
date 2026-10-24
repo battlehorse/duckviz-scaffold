@@ -40,6 +40,21 @@ def contract_line(spec: AppSpec, problems: list[str], pad: str = "") -> None:
         typer.echo(f"  ✗ {problem}")
 
 
+def backups_line(spec: AppSpec) -> str:
+    """How many backup snapshots there are, and how old the newest is."""
+    from datetime import UTC, datetime
+
+    from duckkit.backup import snapshots
+
+    found = snapshots(spec)
+    if not found:
+        return "Backups:      none yet (`backup`)"
+    stamp = datetime.strptime(found[-1].name.removeprefix(spec.backup_prefix), "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
+    hours = (datetime.now(UTC) - stamp).total_seconds() / 3600
+    age = f"{hours:.0f} hours" if hours < 48 else f"{hours / 24:.0f} days"
+    return f"Backups:      {len(found)}, the newest {age} old ({spec.backup_dir()})"
+
+
 def add_standard_commands(
     app: typer.Typer,
     spec: AppSpec,
@@ -72,6 +87,8 @@ def add_standard_commands(
         lines = status(con) if status else [f"Database:     {spec.db_path}"]
         for line in lines:
             typer.echo(line)
+        if backups and connect:
+            typer.echo(backups_line(spec))
         contract_line(spec, spec.contract.check(con), pad="    ")
 
     @app.command("sql")

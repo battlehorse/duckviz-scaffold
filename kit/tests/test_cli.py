@@ -98,8 +98,10 @@ def test_status_sql_publish_and_backups(cli, closed_db, spec, tmp_path, monkeypa
     target = str(tmp_path / "p.duckdb")
     assert runner.invoke(cli, ["publish", "--to", target]).exit_code == 0
     assert "up to date" in runner.invoke(cli, ["publish", "--to", target, "--check"]).output
+    assert "Backups:      none yet" in runner.invoke(cli, ["status"]).output
     assert runner.invoke(cli, ["backup"]).exit_code == 0
     assert "1 snapshots" in runner.invoke(cli, ["backups"]).output
+    assert "Backups:      1, the newest 0 hours old" in runner.invoke(cli, ["status"]).output
 
 
 def test_publish_refuses_the_demo_database(cli, spec, monkeypatch):

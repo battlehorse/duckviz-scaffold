@@ -3,6 +3,13 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## v0.2.0
+
+- duckkit: `status` reports the backups (how many, how old the newest is) in apps with backups.
+- Template: CLAUDE.md's data rule mentions it, and wraps cleanly.
+
+**Steps:** none.
+
 ## v0.1.0
 
 The first release, drawn from heatmiserviz, sainsburysviz and amex-parser.

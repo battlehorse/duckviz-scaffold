@@ -20,9 +20,11 @@ Read these first:
 - **Data contract.** The browser app reads only the `v_*` views of docs/contract.md, through
   `duckkit.snapshot.contract_snapshot`. `tests/app/test_contract_only.py` enforces this. To change the shape of a
   view, increase the contract version in `src/{{ package }}/contract/__init__.py` and follow docs/contract.md.
-- **The database may hold data you cannot get again.** Do not delete `data/`{% if backup %} or `backups/`{% endif %}. Do
-  not drop a table. For a schema change, write a migration in `src/{{ package }}/db/store.py`.
-  {%- if backup %} Run `uv run {{ project_name }} backup` before you change data by hand.{% endif %}
+- **The database may hold data you cannot get again.** Do not delete `data/`{% if backup %} or `backups/`{% endif %}.
+  Do not drop a table. For a schema change, write a migration in `src/{{ package }}/db/store.py`.
+{%- if backup %}
+  Run `uv run {{ project_name }} backup` before you change data by hand. `status` shows how old the newest backup is.
+{%- endif %}
 - **Keep personal data out of git.** Settings and secrets go in `{{ 'config.toml' if config_style == 'toml' else '.env' }}`; data goes in `data/`. Tests and docs
   use synthetic data only.
   {%- if privacy_hook %} The pre-commit hook runs `uv run {{ project_name }} privacy-check`.{% endif %}
