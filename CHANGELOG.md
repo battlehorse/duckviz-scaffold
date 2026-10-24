@@ -3,6 +3,10 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- `/scaffold-update` and docs/upgrading.md: a seeded file an app deleted comes back on update unless opted out.
+
 ## v0.2.0
 
 - duckkit: `status` reports the backups (how many, how old the newest is) in apps with backups.
