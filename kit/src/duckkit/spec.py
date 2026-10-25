@@ -3,8 +3,8 @@
 Paths and environment overrides are resolved when the spec is made (at import, like module constants). Tests
 change them on the spec itself (`duckkit.testing.isolate`).
 
-Settings come from, in order: the environment variable, `.env` (by the same variable name), `config.toml`
-(`[section] key`), then the default. Empty values count as unset. An app uses `.env` or `config.toml`, rarely both.
+Settings live in `config.toml` (`[section] key`), which is gitignored. An environment variable overrides one, for
+CI, tests and a hosted app (Cloud Run passes secrets as variables). Empty values count as unset.
 """
 
 import os
@@ -48,8 +48,7 @@ class AppSpec:
     db_file: str = "app.duckdb"  # in data/
     demo_file: str | None = None  # in data/, when the app has a demo database
     timezone: str | None = None  # every connection's TimeZone; None: DuckDB's default
-    motherduck_target: str | None = None  # where `publish` writes, e.g. "md:heating"; None: no publishing
-    config_style: str = "env"  # "env" (.env) or "toml" (config.toml): where the user keeps settings and secrets
+    motherduck_target: str | None = None  # where `publish` writes, e.g. "md:shop"; None: no publishing
     # Settings that are personal (section, key, env, what): `privacy-check` refuses them in committed files
     private_settings: tuple[tuple[str, str, str | None, str], ...] = ()
     # The browser app's code, relative to src/<package>: it may read only the contract (duckkit.testing.guard)
@@ -68,7 +67,6 @@ class AppSpec:
     demo_db_path: Path | None = field(init=False)
     app_db: str | None = field(init=False)
     config_path: Path = field(init=False)
-    env_file: Path = field(init=False)
     version: str | None = field(init=False)
 
     def __post_init__(self):
@@ -80,9 +78,8 @@ class AppSpec:
         self.data_dir = self.root / "data"
         self.db_path = Path(self.env("DB") or self.data_dir / self.db_file)
         self.demo_db_path = self.data_dir / self.demo_file if self.demo_file else None
-        self.app_db = self.env("APP_DB")  # where a hosted app reads the contract, e.g. "md:heating"
+        self.app_db = self.env("APP_DB")  # where a hosted app reads the contract, e.g. "md:shop"
         self.config_path = Path(self.env("CONFIG") or self.root / "config.toml")
-        self.env_file = self.root / ".env"
         self.version = self.env("VERSION")  # the deployed commit, shown by a hosted app
         self.idle_minutes = int(self.env("IDLE_MINUTES") or self.idle_minutes)
 
@@ -113,31 +110,11 @@ class AppSpec:
         except FileNotFoundError:
             return {}
 
-    def dotenv(self) -> dict[str, str]:
-        """The variables in .env; empty when there is none. `KEY=value` lines; quotes around a value are removed."""
-        try:
-            text = self.env_file.read_text()
-        except FileNotFoundError:
-            return {}
-        values = {}
-        for line in text.splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, value = line.removeprefix("export ").partition("=")
-            value = value.strip()
-            if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
-                value = value[1:-1]
-            values[key.strip()] = value
-        return values
-
     def setting(self, section: str | None, key: str | None, env: str | None = None, default=None):
-        """One setting: the environment variable `env`, else `env` in .env, else `[section] key` in config.toml,
-        else `default`. Empty strings count as unset."""
+        """One setting: the environment variable `env`, else `[section] key` in config.toml, else `default`. Empty
+        strings count as unset."""
         if env and os.environ.get(env):
             return os.environ[env]
-        if env and (value := self.dotenv().get(env)):
-            return value
         if section and key:
             value = self.load().get(section, {}).get(key)
             if value not in (None, ""):
@@ -150,7 +127,7 @@ class AppSpec:
 
     def where_token(self) -> str:
         """Where the user puts the MotherDuck token, for messages."""
-        return "[motherduck] token in config.toml" if self.config_style == "toml" else "MOTHERDUCK_TOKEN=… in .env"
+        return "[motherduck] token in config.toml"
 
     def backup_dir(self) -> Path:
         """The folder of backup snapshots. A relative `[backup] dir` (or <PREFIX>_BACKUP_DIR) is relative to the root."""

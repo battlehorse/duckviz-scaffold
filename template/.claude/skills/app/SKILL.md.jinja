@@ -2,8 +2,8 @@
 name: app
 description: Start, stop or restart the {{ title }} app at http://localhost:{{ app_port }}{% for a in extra_apps %} (or the {{ a.name }} app at :{{ a.port }}){% endfor %}. Use when the user wants to see the charts, or when the app must restart after a code change.
 when_to_use: >-
-  Use when the user says things like "open the app", "show me the dashboard", "restart the app", "stop the app"{% if tailnet %}, "open it on my phone", "serve it on the tailnet"{% endif %}.
-argument-hint: "[start|stop|restart]{% if extra_apps %} [{{ (['app'] + extra_apps | map(attribute='name') | list) | join('|') }}]{% endif %}{% if tailnet %} [tailnet]{% endif %}{% if demo_data %} [demo]{% endif %}"
+  Use when the user says things like "open the app", "show me the dashboard", "restart the app", "stop the app", "open it on my phone", "serve it on the tailnet".
+argument-hint: "[start|stop|restart]{% if extra_apps %} [{{ (['app'] + extra_apps | map(attribute='name') | list) | join('|') }}]{% endif %} [tailnet]{% if demo_data %} [demo]{% endif %}"
 allowed-tools: Bash(uv run {{ project_name }} app *) Bash(uv run {{ project_name }} app) Bash(pkill -f "streamlit run .*/{{ package }}/*/main.py") Bash(curl -s localhost:*/_stcore/health)
 ---
 
@@ -31,7 +31,6 @@ The app listens only on localhost. It does not open a browser tab.
 ## Restart
 
 After a code change: stop the app, then start it.
-{%- if tailnet %}
 
 ## Tailnet
 
@@ -46,7 +45,6 @@ Use the tailnet when the arguments contain `tailnet`, or when the user wants the
 4. If Tailscale is not found or not connected, the app does not start. Ask the user to connect Tailscale.
 
 Do not use `tailscale funnel`. It puts the app on the public internet.
-{%- endif %}
 {%- if demo_data %}
 
 ## Demo

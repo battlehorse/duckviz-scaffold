@@ -152,10 +152,10 @@ The template writes `docs/cli.md` for each app, and the Claude Code skills (`/in
 
 ## Settings, secrets and personal data
 
-- **Settings** are read through `SPEC.setting(section, key, env, default)`. The first value found wins: the
-  environment variable, the same name in `.env`, `[section] key` in `config.toml`, then the default. An app uses
-  `.env` or `config.toml` (`config_style`). Both files are gitignored, and the template writes an `.example` file
-  of the chosen kind.
+- **Settings** live in `config.toml` (`[section] key`). It is gitignored, and the template writes a
+  `config.example.toml` beside it. They are read through `SPEC.setting(section, key, env, default)`. An
+  environment variable overrides the file, which is how CI, tests and Cloud Run (whose secrets arrive as
+  variables) set them. Then comes the default.
 - **Personal data never goes into git.** That covers secrets, addresses, names, readings and screenshots of real
   data. `privacy-check` scans every file git would commit for:
   - the values of `spec.private_settings` and the MotherDuck token;

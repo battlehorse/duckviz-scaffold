@@ -17,9 +17,7 @@ Template-managed files:
 - `pyproject.toml` (keep this app's dependencies; the merge keeps them)
 - `.gitignore`, `.python-version`, `.streamlit/config.toml`
 - `.github/workflows/tests.yml`, `.github/workflows/scaffold-update.yml`
-{%- if privacy_hook %}
 - `.githooks/pre-commit`
-{%- endif %}
 {%- if cloud_run %}
 - `Dockerfile`, `.dockerignore`, `.gcloudignore`, `docs/hosting.md`
 {%- endif %}
@@ -29,18 +27,19 @@ Template-managed files:
 
 The answers this repo was made with (its name, port, and feature flags) are in `.copier-answers.yml`.
 
-## Features
+## Options
 
-| Flag | On here | What it adds |
+Every app has the scaffold's capabilities: the contract and its guard, `status`, `sql`, `doctor`, `privacy-check`
+and the pre-commit hook, `app --tailnet`, settings in `config.toml`. These options are where apps differ:
+
+| Option | On here | What it adds |
 |---|---|---|
 | `motherduck` | {{ 'yes' if motherduck else 'no' }} | `publish [--dry-run] [--check]`, `/publish` |
 | `cloud_run` | {{ 'yes' if cloud_run else 'no' }} | Dockerfile, `/hosting`, docs/hosting.md, the idle pause |
-| `tailnet` | {{ 'yes' if tailnet else 'no' }} | `app --tailnet` in the docs and the app skill |
 | `backup` | {{ 'yes' if backup else 'no' }} | `backup`, `backups`, `restore`, `/backup` |
-| `privacy_hook` | {{ 'yes' if privacy_hook else 'no' }} | `privacy-check` and the pre-commit hook |
 | `demo_data` | {{ 'yes' if demo_data else 'no' }} | `app --demo` reads `data/demo.duckdb` |
 
-To turn one on: `uvx copier update --trust -d <flag>=true`, then review the diff like any update.
+To turn one on: `uvx copier update --trust -d <option>=true`, then review the diff like any update.
 
 ## Updating
 

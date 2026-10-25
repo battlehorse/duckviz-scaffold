@@ -12,7 +12,7 @@ has a copy; it is infrastructure (CI, hosting, serving, backups).
 In this repo, run `/upstream <app path> <what>` (the skill in `.claude/skills/upstream`). It:
 1. reads the change in the app (a diff, a branch, or files);
 2. splits it: **code** → duckkit, generalised through the spec or a hook, with tests in `kit/tests`; **files** →
-   `template/`, behind a flag if not every app wants it; **docs** → docs/kit.md, docs/template.md;
+   `template/`, for every app unless docs/template.md's rule makes it an option; **docs** → docs/kit.md, docs/template.md;
 3. writes a CHANGELOG entry under a new version, with **Steps** for anything an app must do by hand (rename a call,
    add a hook);
 4. runs the kit's tests and `scripts/render.sh`.
@@ -47,7 +47,7 @@ For a repo that predates the scaffold:
    contract check, publish, backup, privacy, serving and standard commands with duckkit calls; keep the domain
    parts as hooks; delete the copies. The tests must pass unchanged in behaviour.
 2. **Apply the template over it**: `uvx copier copy --trust --vcs-ref vX.Y.Z gh:battlehorse/duckviz-scaffold .`
-   with the app's answers (`-d project_name=… -d app_port=…`, the flags). Copier asks before overwriting each
+   with the app's answers (`-d project_name=… -d app_port=…`, the options). Copier asks before overwriting each
    existing file: say **no** to the app's own files (seeded ones are skipped anyway) and **yes** to template-managed
    ones, then review the diff file by file with `git diff`, putting back what the app needs.
 3. Delete the seeded examples the app doesn't use (the template's `overview.py` page, `tests/test_cli.py`, …) and

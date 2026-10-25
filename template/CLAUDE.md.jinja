@@ -25,9 +25,8 @@ Read these first:
 {%- if backup %}
   Run `uv run {{ project_name }} backup` before you change data by hand. `status` shows how old the newest backup is.
 {%- endif %}
-- **Keep personal data out of git.** Settings and secrets go in `{{ 'config.toml' if config_style == 'toml' else '.env' }}`; data goes in `data/`. Tests and docs
-  use synthetic data only.
-  {%- if privacy_hook %} The pre-commit hook runs `uv run {{ project_name }} privacy-check`.{% endif %}
+- **Keep personal data out of git.** Settings and secrets go in `config.toml`; data goes in `data/`. Tests and docs
+  use synthetic data only. The pre-commit hook runs `uv run {{ project_name }} privacy-check`.
 {%- if motherduck %}
 - **Publishing** sends personal data to MotherDuck. Run `publish` only when the user asks (`/publish`).
 {%- endif %}

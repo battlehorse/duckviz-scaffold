@@ -1,24 +1,20 @@
 # Getting started
 
 1. Install [uv](https://docs.astral.sh/uv/), then in the repo: `uv sync`.
-{%- if privacy_hook %}
 2. Turn on the pre-commit hook: `git config core.hooksPath .githooks`.
-{%- endif %}
-3. Copy `{{ 'config.example.toml' if config_style == 'toml' else '.env.example' }}` to `{{ 'config.toml' if config_style == 'toml' else '.env' }}` and fill it in. It is gitignored.
+3. Copy `config.example.toml` to `config.toml` and fill it in. It is gitignored.
 4. Load data: `uv run {{ project_name }} ingest <files>`, then `uv run {{ project_name }} status`.
 5. Open the app: `uv run {{ project_name }} app`, then http://localhost:{{ app_port }}.
-{%- if tailnet %}
 
 ## On your other devices (Tailscale)
 
 `uv run {{ project_name }} app --tailnet` also serves the app at `https://<this machine's tailnet name>:{{ app_port }}`,
 for as long as it runs. Only devices on your tailnet can open it.
-{%- endif %}
 {%- if motherduck %}
 
 ## MotherDuck
 
-Make a token in MotherDuck (Settings → Access tokens) and put it in {{ '`[motherduck] token` in config.toml' if config_style == 'toml' else '`MOTHERDUCK_TOKEN` in .env' }}. Then
+Make a token in MotherDuck (Settings → Access tokens) and put it in `[motherduck] token` in config.toml. Then
 `/publish` (or `uv run {{ project_name }} publish`) copies the contract views to `md:{{ motherduck_db }}`.
 {%- endif %}
 {%- if cloud_run %}

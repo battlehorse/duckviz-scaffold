@@ -10,7 +10,7 @@ contract.
 |---|---|
 | `uv run {{ project_name }} ingest <files>` | load data into `data/{{ db_file }}` |
 | `uv run {{ project_name }} status` | what the database holds, and the contract check |
-| `uv run {{ project_name }} app{% if tailnet %} [--tailnet]{% endif %}` | the app at http://localhost:{{ app_port }} |
+| `uv run {{ project_name }} app [--tailnet]` | the app at http://localhost:{{ app_port }} |
 {%- if motherduck %}
 | `uv run {{ project_name }} publish` | the contract views to MotherDuck (only when you ask) |
 {%- endif %}

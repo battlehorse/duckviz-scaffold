@@ -1,58 +1,211 @@
 # The template
 
-`template/` is a [Copier](https://copier.readthedocs.io) template: Jinja files rendered with the answers to
-`copier.yml`'s questions. Copier records the answers and the release in the app's `.copier-answers.yml`.
+`template/` is a [Copier](https://copier.readthedocs.io) template. Its files are Jinja templates, rendered with the
+answers to the questions in `copier.yml`. Copier records the answers and the scaffold release in the app's
+`.copier-answers.yml`, and `copier update` reuses them.
+
+- [Options or capabilities](#options-or-capabilities): the rule for what may be a question
+- [Answers](#answers-the-apps-names-and-values): the app's names and values
+- [Options](#options-where-apps-truly-differ): where apps truly differ
+- [Capabilities](#capabilities-what-every-app-has): what every app has, with no question
+- [Deviations](#deviations): where one app differs on purpose
+- [Three kinds of file](#three-kinds-of-file), and how an update merges
+- [Writing template files](#writing-template-files), and [adding a question](#adding-a-question)
+
+## Options or capabilities
+
+Every question is a cost. It is one more combination to render and test, one more branch in the docs and skills,
+and one more way for apps to drift apart. So the scaffold keeps three kinds of question apart, and asks as few as
+it can.
+
+| Kind | What it is | Examples |
+|---|---|---|
+| **Answer** | a name or value that each app must have, and that differs between apps by nature | `project_name`, `app_port`, `contract_name` |
+| **Option** | a yes/no choice where each side is right for some app | `motherduck`, `cloud_run`, `backup`, `demo_data` |
+| **Capability** | something every app has. There is no question. | the contract guard, `privacy-check`, `app --tailnet`, settings in `config.toml` |
+
+**Something is an option only when both of these hold:**
+1. **Some apps should not have it,** because it brings a cost or a risk that an app may rightly refuse. Examples:
+   data leaving the machine (`motherduck`), a cloud account and a bill (`cloud_run`), or code that only some apps
+   have to write (`demo_data`).
+2. **Turning it off removes something real:** files, commands or setup. If "off" would only hide a line in the
+   docs, it isn't an option.
+
+**Otherwise it is a capability,** and every app gets it. A capability can still be unused: `app --tailnet` does
+nothing until you pass it.
+
+**Two ways of doing the same thing are never an option.** Pick one for every app, and migrate the apps that do it
+the other way. The settings format is an example: settings are in `config.toml` only, and `.env` is not supported.
+
+The same rule applies to duckkit. An `AppSpec` field or a parameter of `add_standard_commands` exists when apps
+truly differ: a name, a hook for domain code, or the switch behind an option. A behaviour every app should have
+gets no switch.
+
+When a pull request adds a question, it says which kind it is and why (see [Adding a question](#adding-a-question)).
+
+## Answers: the app's names and values
+
+Each app needs these values. Most have a default worked out from an earlier answer. Changing one later is a
+rename: see the last column.
+
+| Answer | Default | What it determines | Changing it later |
+|---|---|---|---|
+| `project_name` | none | The repo and the command (`uv run <project_name> …`). It also names the Cloud Run service and the defaults below. Lowercase letters, digits and dashes. | A rename everywhere: the command, docs, skills, CI. |
+| `package` | `project_name` with `_` for `-` | The Python package, `src/<package>/`. The browser guard and the imports use it. | Move `src/<package>/` and fix every import. |
+| `description` | none | One line about what the app records and shows. It appears in the README, CLAUDE.md, `pyproject.toml`, the CLI's help and the skills' descriptions. | Edit freely. Managed files take the new text on the next update. |
+| `title` | `project_name` | The browser app's title: the page title, the `AppEntry`, the paused page, the app skill and the browser checks. | Edit freely. |
+| `author_name`, `author_email` | the scaffold owner's | The authors in `pyproject.toml`. | Edit freely. |
+| `env_prefix` | `PACKAGE` in capitals | The start of every environment variable duckkit reads: `<PREFIX>_DB`, `_APP_DB`, `_CONFIG`, `_VERSION`, `_BACKUP_DIR`, `_IDLE_MINUTES`, `_PRIVACY_TERMS`. It goes in `spec.py`, the Dockerfile and the hosting docs. | Every place that sets those variables must change: your shell, Cloud Run, CI. |
+| `contract_name` | none | The contract's name in `v_contract`. A reader refuses a database whose contract has another name. It is also the default MotherDuck database. | A major contract change: every database must offer the new name. |
+| `db_file` | `<project_name>.duckdb` | The database file in `data/`. `<PREFIX>_DB` overrides it. | Move the file, or keep the old name. An existing app sets its current file name here. |
+| `timezone` | `Europe/London` | The `TimeZone` of every connection duckkit opens (store, snapshots, backups). This decides what a "local day" is in the views. | The views' days and hours move. Check the contract's rules and tests. |
+| `app_port` | 8501 | The browser app's port on localhost. On the tailnet it is the HTTPS port too. Pick one that no other app on the machine uses. | Edit freely. Bookmarks change. |
+| `extra_apps` | `[]` | More Streamlit apps besides `app`, as a YAML list of `{name, port, title, hosted}`. Each one gets an `AppEntry`, a row in the app skill, `docs/cli.md` and CLAUDE.md. A `hosted: false` app (a curation tool, say) may read the whole database and never goes to Cloud Run, and the browser app may never import it. You write its code in `src/<package>/<name>/`. | Add or remove entries, then write or delete the code. |
+
+These come with an option, and are asked only when it is on:
+
+| Answer | Asked when | Default | What it determines |
+|---|---|---|---|
+| `motherduck_db` | `motherduck` | `contract_name` | Where `publish` writes (`md:<name>`) and where a hosted app reads. |
+| `gcp_project` | `cloud_run` | `project_name` | The Google Cloud project that hosts the app. |
+| `gcp_region` | `cloud_run` | `europe-west2` | Its Cloud Run region. |
+
+## Options: where apps truly differ
+
+Each option adds files, commands and skills. Turn one on later with `/scaffold-update -d <option>=true`, or
+`uvx copier update --trust -d <option>=true`. Then review the diff like any update, and follow the docs it adds.
+
+### `motherduck`: publish the contract to MotherDuck (default: on)
+
+**What it decides:** whether this app's data may leave the machine at all.
+
+**On:**
+- `publish [--to] [--dry-run] [--check]` and `/publish`. They copy only the contract's views to `md:<motherduck_db>`.
+- `[motherduck] token` in `config.example.toml`.
+- The MotherDuck sections of the docs, and the publish steps in `/catch-up` and `/ingest`.
+- `SPEC.motherduck_target`.
+
+A hosted app, Claude, or any DuckDB client can then read the views from anywhere. Nothing is ever sent unless
+someone runs `publish`.
+
+**Off:** there is no `publish` command, and no data ever leaves the machine. Choose off for data that must stay
+local.
+
+**Needed by:** `cloud_run`, because a hosted app reads the published copy.
+
+### `cloud_run`: host the browser app on Cloud Run (default: off)
+
+**What it decides:** whether the app is reachable from anywhere, behind Google sign-in, at the cost of a Google
+Cloud project. **Needs** `motherduck`.
+
+**On:**
+- a `Dockerfile` and its ignore files. The image holds the code only, never `data/` or the settings.
+- `docs/hosting.md`: the one-time setup, IAP, the read-only token secret, costs.
+- `/hosting`: deploy, roll back, add or remove a person, status.
+- `app/static/paused.html`, the page an idle tab goes to so the instance can scale to zero.
+- the deployed version in `/catch-up`.
+
+The hosted app sets `<PREFIX>_APP_DB=md:<motherduck_db>` and reads the published copy. Its code is the same as the
+local app's.
+
+**Off:** the app runs on this machine and, with `--tailnet`, on your own devices.
+
+### `backup`: verified Parquet backups (default: on)
+
+**What it decides:** whether this app keeps snapshots of its database. Choose it when the database holds data
+that can't be fetched again, or takes long to rebuild.
+
+**On:**
+- `backup`, `backups`, `restore` and `/backup`;
+- the backups line in `status`;
+- `[backup] dir` and `keep` in `config.example.toml`;
+- `backups/` in `.gitignore` and `.dockerignore`;
+- the backup rule in CLAUDE.md.
+
+**Off:** there are no backup commands. Use off for an app whose database can always be rebuilt from its sources.
+Even then, a backup before a risky migration is cheap, so on is the default.
+
+### `demo_data`: a synthetic demo database (default: off)
+
+**What it decides:** whether the app has made-up data for screenshots, demos and browser checks without real data.
+
+**On:** `SPEC.demo_file = "demo.duckdb"`, `app --demo` (which reads `data/demo.duckdb`), the demo steps in `/app`
+and `/app-check`, and a guard that stops `publish` from sending the demo database. The data itself is the app's
+to write: a `demo` command that builds `data/demo.duckdb` from made-up sources. The scaffold doesn't generate it.
+
+**Off:** there is no `--demo`.
+
+## Capabilities: what every app has
+
+There is no question for these. An app that truly can't have one lists it in `opt_out` and explains why (see
+[Deviations](#deviations)).
+
+| Capability | What it is |
+|---|---|
+| The data contract and its guard | `contract/`, `v_contract`, `status`'s contract check, `tests/app/test_contract_only.py` |
+| The standard commands | `status`, `sql`, `app [name]`, `doctor` |
+| Settings in `config.toml` | One file, gitignored, with a `config.example.toml` beside it. Environment variables override it (for CI, tests and Cloud Run). |
+| Keeping personal data out of git | `privacy-check`, the `.githooks/pre-commit` hook that runs it, `[privacy] terms`, and `spec.private_settings` |
+| Serving on the tailnet | `app --tailnet`: `tailscale serve` to your own devices, for as long as the app runs |
+| CI | lint, tests and `doctor` on every PR (`.github/workflows/tests.yml`) |
+| Scaffold updates | the weekly `scaffold-update` workflow and `/scaffold-update` |
+| Claude Code | CLAUDE.md with the shared rules, and the skills `/app`, `/app-check`, `/catch-up`, `/scaffold-update`, `/ingest`, `/ask` |
+| Docs | architecture, contract, dashboard, cli, getting-started, browser checks, scaffold, deviations |
+
+## Deviations
+
+An app differs from the scaffold in one of three ways, and lists each one in its `docs/deviations.md`:
+
+1. **An option off**, such as an app that isn't hosted (`cloud_run: false`).
+2. **An opted-out file**, such as `opt_out: [.claude/skills/catch-up/SKILL.md]`. The paths in `opt_out` are never
+   rendered: they are Copier's `_exclude`. `doctor` fails when `docs/deviations.md` doesn't name a path. An app
+   that deletes a seeded example file must opt out of it too, or the next update brings it back.
+3. **A local edit to a template-managed file**, such as an app skill that knows the app's two apps. The merge keeps
+   it. When the scaffold changes the same lines, `docs/deviations.md` tells `/scaffold-update` which side wins.
+
+A deviation that several apps share is a sign that the scaffold should offer it, as a hook or, if the
+[rule](#options-or-capabilities) allows, as an option.
+
+Hidden answers are never asked:
+- `kit_ref`: the release, which `scripts/release.py` sets;
+- `scaffold_repo`: the scaffold's URL, for links;
+- `kit_path`: a local kit, used only by the scaffold's own CI.
 
 ## Three kinds of file
 
 | Kind | Examples | On `copier update` |
 |---|---|---|
-| **Template-managed** | CLAUDE.md, pyproject.toml, CI, Dockerfile, .streamlit/, generic skills, docs/scaffold.md, docs/cli.md, docs/hosting.md, tests/app/test_contract_only.py | the template's change is merged in; the app's edits stay |
-| **Seeded once** (`_skip_if_exists`) | src/<package>/, contract/schema.sql, README.md, docs/architecture, contract, dashboard, getting-started, deviations, .claude/project-rules.md, the ingest and ask skills, tests other than the guard | never touched again |
-| **Shared code** | duckkit | not in the app at all: a version in pyproject.toml |
+| **Template-managed** | CLAUDE.md, pyproject.toml, CI, Dockerfile, .streamlit/, .githooks/, generic skills, docs/scaffold.md, docs/cli.md, docs/hosting.md, tests/app/test_contract_only.py | The template's change is merged in, and the app's edits stay. |
+| **Seeded once** (`_skip_if_exists`) | src/<package>/, contract/schema.sql, README.md, config.example.toml, docs/architecture, contract, dashboard, getting-started, deviations, .claude/project-rules.md, the ingest and ask skills, the tests other than the guard | Never touched again. |
+| **Shared code** | duckkit | Not in the app at all. It is a version in pyproject.toml. |
 
-How the merge works: Copier renders the template at the app's recorded release and at the new one, with the same
-answers, diffs the two, and applies that diff to the app (a 3-way merge). Lines the app changed and the template
-didn't stay as they are; lines both changed become a conflict (`--conflict inline` writes markers).
+**How the merge works:** Copier renders the template twice with the same answers, once at the app's recorded
+release and once at the new one. It diffs the two renders and applies that diff to the app, as a 3-way merge.
+Lines the app changed and the template didn't stay as they are. Lines both changed become a conflict, and
+`--conflict inline` writes the markers into the file.
 
-CLAUDE.md is template-managed and imports `.claude/project-rules.md`, which is the app's: domain rules never
-conflict with the scaffold's.
-
-## Questions and flags
-
-| Answer | Default | Effect |
-|---|---|---|
-| `project_name`, `package`, `env_prefix`, `title`, `description` | | names everywhere |
-| `contract_name`, `db_file`, `timezone`, `app_port` | | spec.py, docs, skills |
-| `extra_apps` | `[]` | more Streamlit apps: spec.py, the app skill, docs. `hosted: false` apps are local-only and forbidden to the browser app |
-| `config_style` | `env` | `.env.example` or `config.example.toml`; messages and docs |
-| `motherduck` (+ `motherduck_db`) | on | `publish`, `/publish` |
-| `cloud_run` (+ `gcp_project`, `gcp_region`) | off | Dockerfile, ignore files, `/hosting`, docs/hosting.md, the idle page |
-| `tailnet` | on | `--tailnet` in docs and the app skill (the command always has it) |
-| `backup` | on | `backup`, `backups`, `restore`, `/backup` |
-| `privacy_hook` | on | `privacy-check`, `.githooks/pre-commit` |
-| `demo_data` | off | `app --demo` and `data/demo.duckdb` |
-| `opt_out` | `[]` | template files this app doesn't want (excluded from every render) |
-
-Hidden: `kit_ref` (the release, set by scripts/release.py), `scaffold_repo`, and `kit_path` (CI only: a local
-kit).
-
-## Deviations
-
-An app differs from the scaffold in one of three ways, and lists each in its `docs/deviations.md`:
-
-1. **A flag off** (an app that isn't hosted: `cloud_run: false`).
-2. **An opted-out file** (`opt_out: [.claude/skills/catch-up/SKILL.md]`). `doctor` fails if docs/deviations.md
-   doesn't name it.
-3. **A local edit to a template-managed file** (an app skill that knows the app's two apps). The merge keeps
-   it; when the scaffold changes the same lines, docs/deviations.md tells `/scaffold-update` which side wins.
-
-A deviation that several apps share is a sign the scaffold should offer it: a flag or a hook.
+CLAUDE.md is template-managed and imports `.claude/project-rules.md`, which belongs to the app. So the app's
+domain rules never conflict with the scaffold's.
 
 ## Writing template files
 
-- `.jinja` files are rendered; others are copied. A file or folder named `{% if flag %}name{% endif %}` exists only
-  with the flag.
-- Seeded files can use any answer; template-managed files should change rarely and in small hunks, so merges stay
-  clean.
+- `.jinja` files are rendered; other files are copied as they are. A file or folder named
+  `{% if option %}name{% endif %}` exists only when the option is on.
+- Seeded files can use any answer. Template-managed files should change rarely and in small hunks, so that merges
+  stay clean.
 - Anything that is code, and the same for every app, belongs in duckkit instead.
+- `scripts/render.sh` renders two sample apps, one with every option on and one with every option off, and runs
+  their lint, tests and `doctor`. Run it after every template change. CI runs it on every PR.
+
+## Adding a question
+
+Before adding a question to `copier.yml`, or a switch to duckkit:
+
+1. **Name its kind:** answer, option or capability. If it's a capability, add it for every app with no question.
+2. **For an option,** say which apps should not have it and why: the cost or risk they avoid. Say what turning it
+   off removes. New options default to off, so updating apps don't gain something by surprise.
+3. **For a second way of doing something,** pick one instead, and list the migration under **Steps** in the
+   CHANGELOG.
+4. Add it to this page: to the answers table, or as an option section with what it decides and what on and off
+   mean.
+5. Make `scripts/render.sh` cover it, and add its files to `doctor`'s `EXPECTED` with the option that brings them.

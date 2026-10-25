@@ -21,11 +21,13 @@ Read docs/kit.md, docs/template.md and docs/upgrading.md first.
      app's config; no app name, path or domain word in duckkit. Mind the sides: the browser app may import only
      `spec`, `contract`, `snapshot`, `app.*`. Add tests in `kit/tests/` with the sample contract.
    - **Files** (a skill, a doc, CI, Dockerfile) → `template/`, with the answers in place of names. If not every
-     app wants it, put it behind a flag: a new question in `copier.yml` (default off for something new), and
-     `{% if flag %}…{% endif %}` file names. Prefer seeded files (`_skip_if_exists`) for anything an app will rewrite.
+     app should have it, make it an option, but only when docs/template.md's rule allows ("Options or
+     capabilities"): some apps should refuse it for a real cost or risk, and turning it off removes something real.
+     Otherwise it is a capability that every app gets. An option is a question in `copier.yml`, off by default, with
+     `{% if option %}…{% endif %}` file names; say in the PR why it is an option. Prefer seeded files (`_skip_if_exists`) for anything an app will rewrite.
    - **Docs** → docs/kit.md or docs/template.md.
 4. **Draft the CHANGELOG entry** under the next version, with **Steps**: what an app's code must change by hand
-   (a renamed function, a new hook to fill in, a flag to turn on). An app that has its own copy of the capability
+   (a renamed function, a new hook to fill in, an option to turn on). An app that has its own copy of the capability
    should delete it: say so in the steps.
 5. **Check**: `cd kit && uv run ruff check . && uv run pytest -q`, then `scripts/render.sh`. Both must pass.
 6. **Show the user** the split (what went to duckkit, what to the template, what stays in the app) and the
