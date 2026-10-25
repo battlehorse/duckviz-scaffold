@@ -1,6 +1,6 @@
 ---
 name: upstream
-description: Bring a capability built in one app (heatmiserviz, amex-parser, sainsburysviz, …) into the scaffold, so every app can get it with /scaffold-update. Splits the change into duckkit code and template files, generalises it, tests it, and drafts the CHANGELOG entry.
+description: Bring a capability built in one app into the scaffold, so every app can get it with /scaffold-update. Splits the change into duckkit code and template files, generalises it, tests it, and drafts the CHANGELOG entry.
 when_to_use: >-
   Use when the user says things like "upstream this", "move this into the scaffold", "make this available to the other apps", "this should be common".
 argument-hint: "<app folder> [branch | commit | files] [what it is]"
@@ -29,5 +29,6 @@ Read docs/kit.md, docs/template.md and docs/upgrading.md first.
    should delete it: say so in the steps.
 5. **Check**: `cd kit && uv run ruff check . && uv run pytest -q`, then `scripts/render.sh`. Both must pass.
 6. **Show the user** the split (what went to duckkit, what to the template, what stays in the app) and the
-   CHANGELOG entry. Ask before you commit. A release is a separate step (`scripts/release.py`), on the user's word.
+   CHANGELOG entry. Ask before you commit. Commit on a branch and open a PR, never on main. A release is a
+   separate step (`scripts/release.py`, docs/upgrading.md), on the user's word.
 7. **The originating app** then moves to the release with `/scaffold-update` and deletes its own copy.

@@ -2,7 +2,7 @@
 
 The scaffold for apps that **ingest data with Python into DuckDB, offer it through a versioned SQL contract, and
 show it in a Streamlit app that reads only the contract**, with optional MotherDuck publishing, Cloud Run hosting
-and Tailscale serving. heatmiserviz, amex-parser and sainsburysviz are made from it.
+and Tailscale serving.
 
 It has two parts that release together:
 

@@ -44,16 +44,26 @@ Read these first:
 ## Running
 
 - Run the commands with `uv run {{ project_name }} …` (see docs/cli.md). Use `uv` for all Python work. Ask the user
-  before you add a dependency.
+  before you add a dependency. Discuss a choice of language or library with the user before you build on it.
 - Keep DuckDB at 1.5.x. MotherDuck does not support DuckDB 2.0 yet. DuckDB 2.0 writes a file that 1.x cannot open.
 - A command that connects to the internet needs the sandbox off in Claude Code.
 
 ## Tests and quality
 
 - `uv run pytest` must pass. It uses only synthetic data. The `-m realdata` tests use the real data on this machine.
+  Run the tests after a significant change. When a test fails, find the cause and fix it before you continue.
+- Keep test data outside test code where you can: fixture files in `tests/data/`. Data that a test builds in many
+  variants stays in builder code (`tests/app/contract_data.py`).
 - `uv run ruff check .` must pass before a commit.
 - `uv run {{ project_name }} doctor` must pass: the repo is in step with the scaffold.
 
+## Notifications
+
+- When a task takes more than a few minutes, tell the user's phone when it is done (the `PushNotification` tool).
+
 ## Git
 
-- Commit only when the user asks. Send the work as PRs for review.
+- Commit only when the user asks.
+- Never commit or push to `main`. Make a branch, push it, and open a PR (`gh pr create`) for the user to review and
+  merge. When a change has several parts, send them as stacked PRs, each on the one before.
+- Do not merge a PR, force-push or delete a branch unless the user asks.

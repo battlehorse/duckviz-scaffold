@@ -41,10 +41,10 @@ kit).
 
 An app differs from the scaffold in one of three ways, and lists each in its `docs/deviations.md`:
 
-1. **A flag off** (amex-parser before Cloud Run: `cloud_run: false`).
+1. **A flag off** (an app that isn't hosted: `cloud_run: false`).
 2. **An opted-out file** (`opt_out: [.claude/skills/catch-up/SKILL.md]`). `doctor` fails if docs/deviations.md
    doesn't name it.
-3. **A local edit to a template-managed file** (sainsburysviz's app skill, which knows its two apps). The merge keeps
+3. **A local edit to a template-managed file** (an app skill that knows the app's two apps). The merge keeps
    it; when the scaffold changes the same lines, docs/deviations.md tells `/scaffold-update` which side wins.
 
 A deviation that several apps share is a sign the scaffold should offer it: a flag or a hook.

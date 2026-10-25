@@ -39,11 +39,11 @@ class AppEntry:
 class AppSpec:
     """Everything duckkit needs to know about one app. Made once, in `<package>/spec.py`."""
 
-    package: str  # the import name, e.g. "heatmiserviz"
+    package: str  # the import name, e.g. "shopviz"
     root: Path  # the project root (the folder of pyproject.toml)
     contract: Contract
     apps: list[AppEntry]
-    env_prefix: str = ""  # e.g. "HEATMISERVIZ": HEATMISERVIZ_DB, HEATMISERVIZ_APP_DB, …
+    env_prefix: str = ""  # e.g. "SHOPVIZ": SHOPVIZ_DB, SHOPVIZ_APP_DB, …
     cli: str = ""  # the command, default the package name
     db_file: str = "app.duckdb"  # in data/
     demo_file: str | None = None  # in data/, when the app has a demo database
