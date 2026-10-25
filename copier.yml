@@ -100,7 +100,7 @@ backup:
   default: true
 demo_data:
   type: bool
-  help: A synthetic demo database (`app --demo`, data/demo.duckdb)?
+  help: A synthetic demo database (`demo`, `app --demo`, data/demo.duckdb)?
   default: false
 
 # ─── Deviations ───
@@ -136,6 +136,7 @@ _exclude:
     docs/browser-checks.md
     .claude/skills/ingest/SKILL.md
     .claude/skills/ask/SKILL.md
+    .claude/skills/demo-data/SKILL.md
     src/{{ package }}/**
     tests/conftest.py
     tests/test_*.py
@@ -160,6 +161,7 @@ _skip_if_exists:
   - docs/browser-checks.md
   - .claude/skills/ingest/SKILL.md
   - .claude/skills/ask/SKILL.md
+  - .claude/skills/demo-data/SKILL.md
   - "src/{{ package }}/**"
   - tests/conftest.py
   - tests/test_*.py

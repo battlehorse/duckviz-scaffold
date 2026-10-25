@@ -1,0 +1,28 @@
+"""The demo database: made-up data for screenshots, demos and browser checks (`{{ project_name }} demo`).
+
+The example makes daily readings with a weekly rhythm and some noise. Replace `fill` with the app's own generator:
+write made-up sources through the app's own ingestion where you can, so the demo has the shape of real data. The
+same parameters always give the same database (`random.Random(seed)`, never the clock). Never copy real values in.
+"""
+
+import math
+import random
+from datetime import UTC, date, datetime, timedelta
+
+import duckdb
+
+
+def fill(con: duckdb.DuckDBPyConnection, seed: int, days: int) -> None:
+    """Write `days` days of made-up readings, up to a fixed date, so a rebuild is identical."""
+    rng = random.Random(seed)
+    end = date(2026, 1, 1)
+    rows = [(end - timedelta(days=n), round(10 + 3 * math.sin(n * 2 * math.pi / 7) + rng.gauss(0, 1), 2), "demo")
+            for n in range(days, 0, -1)]
+    con.executemany("INSERT INTO readings VALUES (?, ?, ?)", rows)
+    at = datetime(end.year, end.month, end.day, tzinfo=UTC)
+    con.execute("INSERT INTO ingest_runs VALUES (?, ?, true, 'demo')", [at, at])
+
+
+def params_toml(seed: int, days: int) -> str:
+    """The parameters as TOML: stored in the demo database's marker table (duckkit.demo.params)."""
+    return f"seed = {seed}\ndays = {days}\n"

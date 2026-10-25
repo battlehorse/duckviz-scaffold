@@ -123,10 +123,12 @@ Even then, a backup before a risky migration is cheap, so on is the default.
 **What it decides:** whether the app has made-up data for screenshots, demos and browser checks without real data.
 
 **On:** `SPEC.demo_file = "demo.duckdb"`, `app --demo` (which reads `data/demo.duckdb`), the demo steps in `/app`
-and `/app-check`, and a guard that stops `publish` from sending the demo database. The data itself is the app's
-to write: a `demo` command that builds `data/demo.duckdb` from made-up sources. The scaffold doesn't generate it.
+and `/app-check`, and a guard that stops `publish` from sending the demo database. Seeded (the app's own once
+written): a `demo` command in `cli.py` that calls `duckkit.demo.build_demo`, an example generator in
+`src/<package>/demo.py`, its test (`tests/test_demo.py`) and a `/demo-data` skill. The app replaces the example
+generator with its own; `build_demo` keeps the safety (the marker, never over another file, never half-built).
 
-**Off:** there is no `--demo`.
+**Off:** there is no `demo` command and no `--demo`.
 
 ## Capabilities: what every app has
 

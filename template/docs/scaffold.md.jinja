@@ -37,7 +37,7 @@ and the pre-commit hook, `app --tailnet`, settings in `config.toml`. These optio
 | `motherduck` | {{ 'yes' if motherduck else 'no' }} | `publish [--dry-run] [--check]`, `/publish` |
 | `cloud_run` | {{ 'yes' if cloud_run else 'no' }} | Dockerfile, `/hosting`, docs/hosting.md, the idle pause |
 | `backup` | {{ 'yes' if backup else 'no' }} | `backup`, `backups`, `restore`, `/backup` |
-| `demo_data` | {{ 'yes' if demo_data else 'no' }} | `app --demo` reads `data/demo.duckdb` |
+| `demo_data` | {{ 'yes' if demo_data else 'no' }} | `demo` builds `data/demo.duckdb` (`src/{{ package }}/demo.py`), `app --demo` reads it, `/demo-data` |
 
 To turn one on: `uvx copier update --trust -d <option>=true`, then review the diff like any update.
 

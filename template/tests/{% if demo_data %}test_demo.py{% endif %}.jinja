@@ -1,0 +1,29 @@
+"""The demo database: made-up, the same for the same seed, and never written over the real database."""
+
+import duckdb
+from duckkit.demo import is_demo
+from typer.testing import CliRunner
+
+from {{ package }}.cli import app
+from {{ package }}.spec import SPEC
+
+runner = CliRunner()
+
+
+def _days(path):
+    with duckdb.connect(str(path), read_only=True) as con:
+        return con.execute("SELECT day, value FROM v_daily ORDER BY day").fetchall()
+
+
+def test_demo_builds_the_same_database_for_the_same_seed():
+    assert runner.invoke(app, ["demo", "--seed", "3", "--days", "30"]).exit_code == 0
+    first = _days(SPEC.demo_db_path)
+    assert len(first) == 30 and is_demo(SPEC, SPEC.demo_db_path)
+    assert runner.invoke(app, ["demo", "--seed", "3", "--days", "30"]).exit_code == 0
+    assert _days(SPEC.demo_db_path) == first
+
+
+def test_demo_never_writes_over_the_real_database(app_db):
+    result = runner.invoke(app, ["demo", "--out", str(app_db)])
+    assert result.exit_code == 1 and "is your database" in result.output
+    assert not is_demo(SPEC, app_db)

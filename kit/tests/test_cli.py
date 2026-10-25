@@ -162,3 +162,10 @@ def test_status_says_how_to_bring_stale_views_up_to_date(cli, closed_db, spec):
         con.execute("DROP VIEW v_items")
     out = runner.invoke(cli, ["status"]).output
     assert "1 problems for the app → `shop ingest` recreates the views" in out and "  ✗ v_items: missing" in out
+
+
+def test_status_says_a_demo_database_is_made_up(cli, closed_db, spec):
+    assert "Demo:" not in runner.invoke(cli, ["status"]).output
+    with duckdb.connect(str(spec.db_path)) as con:
+        con.execute("CREATE TABLE demo_params (params VARCHAR)")
+    assert "Demo:         made-up data (`shop demo`), not your own" in runner.invoke(cli, ["status"]).output
