@@ -1,6 +1,7 @@
 # duckviz-scaffold
 
-A starting point, and a way to keep it current, for small personal data apps. Each app:
+A starting point, and a way to keep it current, for personal apps centred on data analysis and data
+visualisation. Each app:
 
 1. **ingests** data with Python (files, an API, a device) into **one DuckDB file** on your machine;
 2. offers it through a **versioned SQL contract**: a few `v_*` views, with a reference schema and a conformance

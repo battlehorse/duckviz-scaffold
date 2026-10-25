@@ -252,7 +252,7 @@ The pre-commit hook runs this as `<cli> privacy-check`.
 ## `duckkit.cli`
 
 **What it is for:** the command-line commands that run an app's shared functions, so every app is used the
-same way. The app's `cli.py` makes its Typer app, adds its own commands such as `ingest`, then calls:
+same way. The app's `cli.py` makes its [Typer](https://typer.tiangolo.com) app, adds its own commands such as `ingest`, then calls:
 
 ```python
 add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_terms=terms,

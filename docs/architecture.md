@@ -134,8 +134,10 @@ local-only: it may read the whole database (`database_snapshot`), and the browse
 
 ## The command line
 
-`src/<package>/cli.py` is a Typer app. It holds the app's own commands, such as `ingest`, and then calls
-`duckkit.cli.add_standard_commands`, which adds the commands every app has:
+`src/<package>/cli.py` is a [Typer](https://typer.tiangolo.com) app. Typer is a Python library that builds a
+command line from plain functions: each function becomes a command, its parameters become arguments and options,
+and its docstring becomes the `--help` text. `cli.py` holds the app's own commands, such as `ingest`, and then
+calls `duckkit.cli.add_standard_commands`, which adds the commands every app has:
 
 | Command | What it does |
 |---|---|
