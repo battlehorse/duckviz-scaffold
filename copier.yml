@@ -15,7 +15,7 @@ _answers_file: .copier-answers.yml
 # brings in the release it updates to.
 kit_ref:
   type: str
-  default: v0.3.4
+  default: v0.4.0
   when: false
 scaffold_repo:
   type: str
