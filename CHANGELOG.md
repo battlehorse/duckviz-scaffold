@@ -3,6 +3,11 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- CI and the template's workflows: `actions/checkout@v7` and `astral-sh/setup-uv@v10.3.2`, which run on Node 24
+  (GitHub is retiring Node 20 for actions).
+
 ## v0.3.1
 
 - Template: the landing page is `app/views/dashboard.py` (was the example `overview.py`), as in the apps; its spec
