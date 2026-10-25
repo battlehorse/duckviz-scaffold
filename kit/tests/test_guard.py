@@ -39,3 +39,20 @@ def test_doc_problems(spec, tmp_path):
     assert guard.doc_problems(spec, doc) == [
         "v_items: contract.md lists ['item'], the schema has ['item', 'kind', 'price']"]
     assert isinstance(spec.contract, Contract) and Path(doc).exists()
+
+
+def test_loading_skips_page_modules(tmp_path, monkeypatch):
+    """A module that runs only in a Streamlit session (spec.page_modules) isn't imported by the loading check."""
+    from duckkit import AppEntry, AppSpec
+
+    app = tmp_path / "src" / "pagepkg" / "app"
+    app.mkdir(parents=True)
+    (app.parent / "__init__.py").write_text("")
+    (app / "__init__.py").write_text("")
+    (app / "helper.py").write_text("X = 1\n")
+    (app / "widget.py").write_text("raise RuntimeError('only inside Streamlit')\n")
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path / "src"))
+    spec = AppSpec(package="pagepkg", root=tmp_path, contract=make_contract(), apps=[AppEntry("app", 8600)],
+                   app_code=("app",), page_modules=("app.widget",))
+    loaded, problems = guard.loaded_problems(spec, extra=())
+    assert "pagepkg.app.helper" in loaded and "pagepkg.app.widget" not in loaded and not problems

@@ -3,6 +3,14 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## v0.3.4
+
+- duckkit: `AppSpec.page_modules` names the browser app's modules that run only inside a Streamlit session (a
+  helper that declares a component when imported), beyond `views/` and `main.py`. The guard's loading check skips
+  them, as it does the pages.
+
+**Steps:** none.
+
 ## v0.3.3
 
 - duckkit: clearer messages.

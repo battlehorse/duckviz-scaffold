@@ -57,6 +57,9 @@ class AppSpec:
     forbidden: tuple[str, ...] = ("ingest", "db", "cli")
     # Test modules the browser app's tests (tests/app) must not import either: the ingestion's fixtures, full names
     forbidden_in_tests: tuple[str, ...] = ()
+    # Modules of the browser app that run only inside a Streamlit session (they declare a component when imported),
+    # beyond each app's views/ and main.py, relative to src/<package>: the guard doesn't import them outside one
+    page_modules: tuple[str, ...] = ()
     refresh_hint: str = ""  # what to tell the user when the database doesn't offer the contract
     idle_minutes: int = 15  # a hosted app pauses an idle tab after this long (0: never)
     backup_prefix: str = ""  # the start of each backup snapshot's folder name, default "<package>-"
