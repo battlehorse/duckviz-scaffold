@@ -1,4 +1,4 @@
-"""Paths and settings: the environment wins over .env, which wins over config.toml; empty values are unset."""
+"""Paths and settings: the environment wins over config.toml; empty values are unset."""
 
 from duckkit import AppEntry, AppSpec
 from tests.conftest import make_contract
@@ -18,8 +18,8 @@ def test_setting_precedence(spec, monkeypatch):
     spec.config_path.write_text('[shop]\naccount = "from-toml"\nempty = ""\n[backup]\ndir = "snaps"\nkeep = 3\n')
     assert spec.setting("shop", "account", "SHOP_ACCOUNT") == "from-toml"
     assert spec.setting("shop", "empty", default="d") == "d"
-    spec.env_file.write_text('# comment\nexport SHOP_ACCOUNT="from-dotenv"\n')
-    assert spec.setting("shop", "account", "SHOP_ACCOUNT") == "from-dotenv"
+    (spec.root / ".env").write_text('SHOP_ACCOUNT="from-dotenv"\n')  # not read: settings are in config.toml only
+    assert spec.setting("shop", "account", "SHOP_ACCOUNT") == "from-toml"
     monkeypatch.setenv("SHOP_ACCOUNT", "from-env")
     assert spec.setting("shop", "account", "SHOP_ACCOUNT") == "from-env"
     assert spec.backup_dir() == spec.root / "snaps" and spec.backup_keep() == 3

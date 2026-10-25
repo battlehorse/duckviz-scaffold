@@ -29,7 +29,7 @@ SPEC = AppSpec(
     contract=CONTRACT,                      # duckkit.Contract: name, version, reference schema, rules
     env_prefix="SHOPVIZ",                   # SHOPVIZ_DB, _APP_DB, _CONFIG, _VERSION, _BACKUP_DIR, …
     db_file="shop.duckdb", timezone="Europe/London",
-    motherduck_target="md:shop", config_style="toml",
+    motherduck_target="md:shop",
     apps=[AppEntry("app", port=8501, title="Shop")],
     private_settings=(("shop", "api_key", "SHOP_API_KEY", "shop API key"), …),
     forbidden=("ingest", "db", "cli"),
@@ -89,7 +89,6 @@ The fields you set:
 | `db_file` / `demo_file` | `app.duckdb` / none | the database file, and the demo one, in `data/` |
 | `timezone` | none | the `TimeZone` setting of every connection duckkit opens |
 | `motherduck_target` | none | where `publish` writes (`md:<name>`). None turns publishing off. |
-| `config_style` | `env` | where the user keeps settings: `.env` or `config.toml` |
 | `private_settings` | `()` | `(section, key, env, what)` of the personal settings that `privacy-check` refuses in git |
 | `app_code` | `app`, `query`, `analysis.py` | the browser app's code, which the guard checks |
 | `forbidden` | `ingest`, `db`, `cli` | the app's ingestion modules, which the browser app must not import |
@@ -107,12 +106,12 @@ The fields resolved when the spec is made, which can be overridden from the envi
 | `demo_db_path` | | `data/<demo_file>` |
 | `app_db` | `<PREFIX>_APP_DB` | none. When set, the app reads this (a file or `md:<name>`) instead: a hosted app. |
 | `config_path` | `<PREFIX>_CONFIG` | `<root>/config.toml` |
-| `env_file` | | `<root>/.env` |
 | `version` | `<PREFIX>_VERSION` | none. The deployed commit, which a hosted app shows. |
 
 Methods:
-- `setting(section, key, env, default)` returns one setting. The first value found wins: the variable `env`, `env`
-  in `.env`, `[section] key` in `config.toml`, then `default`. Empty values count as unset.
+- `setting(section, key, env, default)` returns one setting: the environment variable `env` when it is set,
+  else `[section] key` in `config.toml`, else `default`. Empty values count as unset. Settings live in
+  `config.toml` only. The variable is for CI, tests and Cloud Run, which passes secrets as variables.
 - `motherduck_token()` and `where_token()`: the token, and a sentence that says where the user puts it.
 - `backup_dir()` and `backup_keep()`: from `[backup] dir` / `<PREFIX>_BACKUP_DIR` (default `backups/`) and
   `[backup] keep` (default 30).
@@ -274,8 +273,8 @@ The hooks:
 - `status` returns the app's summary lines.
 - `privacy_terms` returns the app's own personal terms.
 
-`backups`, `publishing` and `privacy` follow the template's feature flags: when one is False, its commands are
-left out.
+`backups` and `publishing` follow the template's `backup` and `motherduck` options: when one is False, its
+commands are left out. `privacy-check` is a capability every app has.
 
 The module also exports helpers for the app's own commands:
 - `fail(message)` prints the message and exits with status 1.
@@ -290,7 +289,7 @@ The module also exports helpers for the app's own commands:
 make `doctor` fail; notes don't. It checks that:
 - the files come from the same release as the installed duckkit;
 - with `--remote`, whether a newer release exists (`git ls-remote --tags` on the scaffold);
-- every file in `EXPECTED` is present, unless a flag turns it off or `opt_out` lists it;
+- every file in `EXPECTED` is present, unless an option turns it off or `opt_out` lists it;
 - every opted-out file is explained in `docs/deviations.md`.
 
 CI runs `doctor` on every PR. `/catch-up` runs it with `--remote`.
@@ -327,7 +326,7 @@ its own.
 
 **What it is for:** tests that can't touch real data, and tests for the browser app that need no ingestion.
 - `isolate(spec, tmp_path, monkeypatch, env=())` points every path of the spec into `tmp_path`: the database,
-  `data/`, `config.toml`, `.env` and the backups. It also unsets `MOTHERDUCK_TOKEN`, `<PREFIX>_APP_DB`, the
+  `data/`, `config.toml` and the backups. It also unsets `MOTHERDUCK_TOKEN`, `<PREFIX>_APP_DB`, the
   privacy terms, and any `env` you name. Call it from an autouse fixture in `tests/conftest.py`.
 - `contract_db(spec, path)` creates a database with the contract's exact shape and its `v_contract` row, still
   open so the test can fill it. The browser app's tests build their data this way.

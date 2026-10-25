@@ -16,9 +16,9 @@ render() {
   echo "✓ $name"
 }
 
-render all-on -d cloud_run=true -d demo_data=true -d config_style=toml \
+render all-on -d cloud_run=true -d demo_data=true \
   -d 'extra_apps=[{name: catalog, port: 8503, title: Catalog, hosted: false}]'
-render all-off -d motherduck=false -d tailnet=false -d backup=false -d privacy_hook=false
+render all-off -d motherduck=false -d backup=false
 
 # Not checked here: `docker build` of the all-on image. The samples use the local kit (kit_path), which is outside
 # the image's build context; a released app fetches duckkit from GitHub instead. Build a real app's image to check it.

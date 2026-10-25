@@ -44,16 +44,13 @@ author_name:
 author_email:
   type: str
   default: battlehorse@gmail.com
-github_owner:
-  type: str
-  default: battlehorse
 env_prefix:
   type: str
   help: The prefix of the app's environment variables (<PREFIX>_DB, <PREFIX>_APP_DB, …)
   default: "{{ package | upper }}"
 contract_name:
   type: str
-  help: The contract's name, in v_contract (e.g. heating, groceries, cards)
+  help: The contract's name, in v_contract (e.g. shop, weather)
 db_file:
   type: str
   default: "{{ project_name }}.duckdb"
@@ -73,15 +70,9 @@ extra_apps:
     database and never goes to Cloud Run (a curation app, say). Their code is yours to write: the scaffold lists
     them in spec.py, the app skill and the docs.
   default: "[]"
-config_style:
-  type: str
-  help: Where the user keeps settings and secrets
-  choices:
-    ".env (KEY=value)": env
-    "config.toml ([section] key)": toml
-  default: env
 
-# ─── Features: each one adds files, commands and skills; turn one on later with `copier update -d <flag>=true` ───
+# ─── Options: where apps truly differ (docs/template.md). Each adds files, commands and skills; turn one on later
+# with `copier update -d <option>=true`. Everything else is a capability every app has. ───
 motherduck:
   type: bool
   help: Publish the contract views to MotherDuck (`publish`, /publish)?
@@ -103,17 +94,9 @@ gcp_region:
   type: str
   default: europe-west2
   when: "{{ cloud_run }}"
-tailnet:
-  type: bool
-  help: Serve the app to your Tailscale devices (`app --tailnet`)?
-  default: true
 backup:
   type: bool
   help: Verified Parquet backups (`backup`, `backups`, `restore`, /backup)?
-  default: true
-privacy_hook:
-  type: bool
-  help: A pre-commit hook that refuses personal data (`privacy-check`)?
   default: true
 demo_data:
   type: bool
@@ -159,13 +142,10 @@ _skip_if_exists:
   - tests/app/test_app.py
   - tests/app/contract_data.py
   - config.example.toml
-  - .env.example
 
 _message_after_copy: |
   Made {{ project_name }}. Next:
     cd {{ _copier_conf.dst_path }}
     git init -b main && uv sync && uv run pytest -q
-  {%- if privacy_hook %}
     git config core.hooksPath .githooks
-  {%- endif %}
   Then read docs/getting-started.md, and docs/scaffold.md for how updates work.

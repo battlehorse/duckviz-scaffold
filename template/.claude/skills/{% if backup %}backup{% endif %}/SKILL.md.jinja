@@ -13,7 +13,7 @@ Action: $ARGUMENTS (default: list)
 
 ## How the backups work
 
-- Each snapshot is a folder `<prefix><UTC time>` in the backup folder ({{ '`[backup] dir` in config.toml' if config_style == 'toml' else '`' ~ env_prefix ~ '_BACKUP_DIR`' }}; default
+- Each snapshot is a folder `<prefix><UTC time>` in the backup folder (`[backup] dir` in config.toml; default
   `backups/`, gitignored).
 - DuckDB's `EXPORT DATABASE` writes it: Parquet files, `schema.sql` and `load.sql`, readable without this code.
 - Each new snapshot is imported again and every table's rows and content hash must match the database.

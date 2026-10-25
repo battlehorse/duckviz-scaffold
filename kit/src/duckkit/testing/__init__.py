@@ -16,7 +16,6 @@ def isolate(spec: AppSpec, tmp_path: Path, monkeypatch, env: tuple[str, ...] = (
     monkeypatch.setattr(spec, "db_path", tmp_path / "test.duckdb")
     monkeypatch.setattr(spec, "data_dir", tmp_path / "data")
     monkeypatch.setattr(spec, "config_path", tmp_path / "config.toml")
-    monkeypatch.setattr(spec, "env_file", tmp_path / ".env")
     monkeypatch.setattr(spec, "app_db", None)
     monkeypatch.setattr(spec, "version", None)
     monkeypatch.setenv(f"{spec.env_prefix}_BACKUP_DIR", str(tmp_path / "backups"))

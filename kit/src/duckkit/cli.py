@@ -64,14 +64,13 @@ def add_standard_commands(
     privacy_terms: Callable[[AppSpec], dict[str, str]] | None = None,
     backups: bool = True,
     publishing: bool = True,
-    privacy: bool = True,
 ) -> None:
     """Add the standard commands to `app`.
 
     - `connect`: opens the database for writing (the app's db/store.py), for `backup`.
     - `status`: the app's own summary lines for `status`, from a snapshot of the whole database.
     - `privacy_terms`: the app's own personal terms for `privacy-check` (names in its database, say).
-    - `backups`, `publishing`, `privacy`: False leaves those commands out (the scaffold's feature flags).
+    - `backups`, `publishing`: False leaves those commands out (the scaffold's `backup` and `motherduck` options).
     """
 
     @app.command("status")
@@ -211,18 +210,17 @@ def add_standard_commands(
             fail(str(e).strip("'\""))
         raise typer.Exit(code)
 
-    if privacy:
-        @app.command("privacy-check")
-        def privacy_command() -> None:
-            """Fail if any file git would commit contains personal data (the pre-commit hook runs this)."""
-            from duckkit.privacy import check
+    @app.command("privacy-check")
+    def privacy_command() -> None:
+        """Fail if any file git would commit contains personal data (the pre-commit hook runs this)."""
+        from duckkit.privacy import check
 
-            findings = check(spec, privacy_terms)
-            for f in findings:
-                typer.echo(f"  ✗ {f.path}:{f.line}: {f.what}", err=True)  # never print the value itself
-            if findings:
-                fail(f"{len(findings)} lines with personal data: remove them before committing")
-            typer.echo("✓ no personal data in the files git would commit")
+        findings = check(spec, privacy_terms)
+        for f in findings:
+            typer.echo(f"  ✗ {f.path}:{f.line}: {f.what}", err=True)  # never print the value itself
+        if findings:
+            fail(f"{len(findings)} lines with personal data: remove them before committing")
+        typer.echo("✓ no personal data in the files git would commit")
 
     @app.command("doctor")
     def doctor_command(

@@ -9,7 +9,7 @@ Read these first:
 - README.md
 - docs/architecture.md: how an app made from the scaffold works.
 - docs/kit.md: duckkit, module by module.
-- docs/template.md: the template, the files it manages, flags and deviations.
+- docs/template.md: the template: answers, options and capabilities, the files it manages, deviations.
 - docs/upgrading.md: the cycle (discover → upstream → release → apply), and adopting the scaffold in an existing repo.
 - CHANGELOG.md
 
@@ -24,7 +24,15 @@ Read these first:
   - Each change has a CHANGELOG entry under "Unreleased", or under the next version.
   - Never move or delete a pushed tag.
 - **Code that every app has goes in duckkit**, made general through `AppSpec` or a hook. **Files that every app has
-  go in the template**, behind a flag if not every app wants them. Domain code stays in the apps.
+  go in the template.** Domain code stays in the apps.
+- **Capabilities by default, options rarely.** Something new is a capability that every app gets. It becomes an
+  option (a `copier.yml` question, an `AppSpec` field or a duckkit switch) only when some apps should refuse it for
+  a real cost or risk, and turning it off removes something real (docs/template.md, "Options or capabilities").
+  - Never offer two ways of doing the same thing: pick one for every app and migrate the apps that do it the other
+    way. Settings, for example, are in `config.toml` only; `.env` is not supported.
+  - In duckkit, an `AppSpec` field or a parameter of `add_standard_commands` exists only when apps truly differ: a
+    name, a hook for domain code, or the switch behind an option. A behaviour every app should have gets no switch.
+  - When you add a question or a switch, say in the PR which kind it is and why.
 - **The browser app imports only** duckkit's `spec`, `contract`, `snapshot` and `app.*` modules. The other modules
   are for the ingestion side (`duckkit.testing.guard.KIT_SERVICE`).
 - **Template files:** files that end in `.jinja` are rendered. Files in `_skip_if_exists` are seeded once and the
@@ -42,7 +50,7 @@ Read these first:
 
 - `cd kit && uv run pytest -q && uv run ruff check .` must pass.
 - `scripts/render.sh` must pass after a change to the template, `copier.yml` or duckkit. It renders a sample app
-  with every flag on and one with every flag off, then runs their ruff, tests and `doctor`. CI runs both.
+  with every option on and one with every option off, then runs their ruff, tests and `doctor`. CI runs both.
 - Run the tests after a significant change. When a test fails, find the cause and fix it before you continue.
 
 ## Notifications

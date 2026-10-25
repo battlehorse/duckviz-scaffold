@@ -18,7 +18,7 @@ Run this skill only when the user asks. It sends personal data to a third party.
    contract view with its rows and columns. Say that nothing else goes out: no raw tables, no settings or tokens.
 3. Ask the user (AskUserQuestion) if you can publish. If the answer is no, stop.
 4. Run `uv run {{ project_name }} publish` (or `--to md:<name>`).
-   - No MotherDuck token: make one in MotherDuck (Settings → Access tokens), then set {{ '`[motherduck] token` in config.toml' if config_style == 'toml' else '`MOTHERDUCK_TOKEN=…` in .env' }}.
+   - No MotherDuck token: make one in MotherDuck (Settings → Access tokens), then set `[motherduck] token` in config.toml.
    - The first run downloads DuckDB's `motherduck` extension.
 5. Report the counts. Later, `uv run {{ project_name }} publish --check` tells whether the copy is up to date.
 {%- if cloud_run %}

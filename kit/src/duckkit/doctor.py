@@ -1,11 +1,11 @@
 """`doctor`: how an app's repo compares with the scaffold it was made from.
 
 It reads `.copier-answers.yml` (written by `copier copy` / `copier update`: the scaffold version and the answers,
-including the feature flags and `opt_out`) and checks:
+including the options and `opt_out`) and checks:
 
 - the scaffold version the files come from, against the installed duckkit (they should be the same release);
 - with `--remote`, the newest release of the scaffold (`git ls-remote --tags`);
-- that the files every app has are there, unless a flag turns them off or `opt_out` lists them;
+- that the files every app has are there, unless an option turns them off or `opt_out` lists them;
 - that every opted-out file is explained in docs/deviations.md (the app's own list of where it differs).
 
 Problems make `doctor` fail; notes don't.
@@ -23,7 +23,7 @@ from duckkit.spec import AppSpec
 
 ANSWERS = ".copier-answers.yml"
 
-# Files every app has: (path, the flag that must be on for it, or None)
+# Files every app has: (path, the option that must be on for it, or None)
 EXPECTED = [
     ("CLAUDE.md", None),
     ("README.md", None),
@@ -45,7 +45,8 @@ EXPECTED = [
     ("docs/hosting.md", "cloud_run"),
     ("Dockerfile", "cloud_run"),
     (".gcloudignore", "cloud_run"),
-    (".githooks/pre-commit", "privacy_hook"),
+    (".githooks/pre-commit", None),
+    ("config.example.toml", None),
 ]
 
 

@@ -21,7 +21,6 @@ SPEC = AppSpec(
     {%- endif %}
     timezone="{{ timezone }}",
     motherduck_target={{ ('"md:' ~ motherduck_db ~ '"') if motherduck else 'None' }},
-    config_style="{{ config_style }}",
     apps=[
         AppEntry("app", port={{ app_port }}, title="{{ title }}"),
         {%- for a in extra_apps %}
