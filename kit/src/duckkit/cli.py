@@ -32,10 +32,13 @@ def fail(message: str) -> None:
 
 
 def contract_line(spec: AppSpec, problems: list[str], pad: str = "") -> None:
-    """Print the contract check: one line, then one per problem."""
+    """Print the contract check: one line, then one per problem. Views older than the code (a missing view or
+    column, an older version) get a hint: any write connection recreates them from db/schema.sql."""
     contract = spec.contract
+    stale = any(p.endswith("missing") or "expected" in p for p in problems)
     typer.echo(f"Contract:{pad} {contract.name} {contract.version}, "
-               + (f"{len(problems)} problems" if problems else "the app's views conform"))
+               + (f"{len(problems)} problems for the app" if problems else "the app's views conform")
+               + (f" → `{spec.cli} ingest` recreates the views" if stale else ""))
     for problem in problems:
         typer.echo(f"  ✗ {problem}")
 
@@ -145,10 +148,14 @@ def add_standard_commands(
                 return
             stale = {view: r for view, r in result.items() if not r[2]}
             if not stale:
-                typer.echo(f"✓ {target} is up to date")
+                typer.echo(f"✓ {target} is up to date: "
+                           + ", ".join(f"{view} {n:,} rows" for view, (n, _, _) in result.items()))
                 return
+            typer.echo(f"✗ {target} differs from this database (run `{spec.cli} publish` or /publish):")
             for view, (here, there, _) in stale.items():
-                typer.echo(f"  {view}: " + ("missing there" if there is None else f"{here:,} rows here, {there:,} published"))
+                typer.echo(f"  {view}: " + ("missing there" if there is None else
+                                            f"{here:,} rows here, {there:,} published" if here != there else
+                                            f"{here:,} rows on both sides, with different contents"))
             raise typer.Exit(1)
 
     if backups and connect:

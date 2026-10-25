@@ -127,7 +127,7 @@ class AppSpec:
 
     def where_token(self) -> str:
         """Where the user puts the MotherDuck token, for messages."""
-        return "[motherduck] token in config.toml"
+        return "[motherduck] token in config.toml (or the MOTHERDUCK_TOKEN environment variable)"
 
     def backup_dir(self) -> Path:
         """The folder of backup snapshots. A relative `[backup] dir` (or <PREFIX>_BACKUP_DIR) is relative to the root."""
