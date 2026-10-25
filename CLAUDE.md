@@ -27,9 +27,12 @@ Read these first:
   go in the template.** Domain code stays in the apps.
 - **Capabilities by default, options rarely.** Something new is a capability that every app gets. It becomes an
   option (a `copier.yml` question, an `AppSpec` field or a duckkit switch) only when some apps should refuse it for
-  a real cost or risk, and turning it off removes something real. Never offer two ways of doing the same thing:
-  pick one and migrate the apps (settings are in `config.toml` only). When you add a question, say which kind it is
-  and why (docs/template.md, "Options or capabilities").
+  a real cost or risk, and turning it off removes something real (docs/template.md, "Options or capabilities").
+  - Never offer two ways of doing the same thing: pick one for every app and migrate the apps that do it the other
+    way. Settings, for example, are in `config.toml` only; `.env` is not supported.
+  - In duckkit, an `AppSpec` field or a parameter of `add_standard_commands` exists only when apps truly differ: a
+    name, a hook for domain code, or the switch behind an option. A behaviour every app should have gets no switch.
+  - When you add a question or a switch, say in the PR which kind it is and why.
 - **The browser app imports only** duckkit's `spec`, `contract`, `snapshot` and `app.*` modules. The other modules
   are for the ingestion side (`duckkit.testing.guard.KIT_SERVICE`).
 - **Template files:** files that end in `.jinja` are rendered. Files in `_skip_if_exists` are seeded once and the

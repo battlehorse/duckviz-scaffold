@@ -34,13 +34,6 @@ it can.
 **Otherwise it is a capability,** and every app gets it. A capability can still be unused: `app --tailnet` does
 nothing until you pass it.
 
-**Two ways of doing the same thing are never an option.** Pick one for every app, and migrate the apps that do it
-the other way. The settings format is an example: settings are in `config.toml` only, and `.env` is not supported.
-
-The same rule applies to duckkit. An `AppSpec` field or a parameter of `add_standard_commands` exists when apps
-truly differ: a name, a hook for domain code, or the switch behind an option. A behaviour every app should have
-gets no switch.
-
 When a pull request adds a question, it says which kind it is and why (see [Adding a question](#adding-a-question)).
 
 ## Answers: the app's names and values
