@@ -151,8 +151,9 @@ An app differs from the scaffold in one of three ways, and lists each one in its
 
 1. **An option off**, such as an app that isn't hosted (`cloud_run: false`).
 2. **An opted-out file**, such as `opt_out: [.claude/skills/catch-up/SKILL.md]`. The paths in `opt_out` are never
-   rendered: they are Copier's `_exclude`. `doctor` fails when `docs/deviations.md` doesn't name a path. An app
-   that deletes a seeded example file must opt out of it too, or the next update brings it back.
+   rendered: they are Copier's `_exclude`. `doctor` fails when `docs/deviations.md` doesn't name a path. Opt out only
+   of template-managed files: a seeded file is the app's own, so the app can delete it, and no update brings it
+   back.
 3. **A local edit to a template-managed file**, such as an app skill that knows the app's two apps. The merge keeps
    it. When the scaffold changes the same lines, `docs/deviations.md` tells `/scaffold-update` which side wins.
 
@@ -169,7 +170,7 @@ Hidden answers are never asked:
 | Kind | Examples | On `copier update` |
 |---|---|---|
 | **Template-managed** | CLAUDE.md, pyproject.toml, CI, Dockerfile, .streamlit/, .githooks/, generic skills, docs/scaffold.md, docs/cli.md, docs/hosting.md, tests/app/test_contract_only.py | The template's change is merged in, and the app's edits stay. |
-| **Seeded once** (`_skip_if_exists`) | src/<package>/, contract/schema.sql, README.md, config.example.toml, docs/architecture, contract, dashboard, getting-started, deviations, .claude/project-rules.md, the ingest and ask skills, the tests other than the guard | Never touched again. |
+| **Seeded once** (`_skip_if_exists`, and excluded from updates) | src/<package>/, contract/schema.sql, README.md, config.example.toml, docs/architecture, contract, dashboard, getting-started, deviations, .claude/project-rules.md, the ingest and ask skills, the tests other than the guard | Never touched again. |
 | **Shared code** | duckkit | Not in the app at all. It is a version in pyproject.toml. |
 
 **How the merge works:** Copier renders the template twice with the same answers, once at the app's recorded

@@ -5,7 +5,7 @@
 #   Update an app:    copier update --trust            (or /scaffold-update in Claude Code)
 #   Turn a feature on: copier update --trust -d cloud_run=true
 
-_min_copier_version: "9.4"
+_min_copier_version: "9.19"  # `_copier_operation` in _exclude (seeded files)
 _subdirectory: template
 _templates_suffix: .jinja
 _answers_file: .copier-answers.yml
@@ -122,9 +122,33 @@ kit_path:
 # destination path). The placeholder keeps the pattern non-empty when nothing is opted out.
 _exclude:
   - "{{ (opt_out or ['.no-opt-out']) | join('\n') }}"
+  # Seeded files (the _skip_if_exists list below; keep the two in step) are written by `copier copy` only. An update
+  # renders neither side of its diff with them, so it never changes one, and never brings back one the app deleted.
+  - |-
+    {%- if _copier_operation == 'update' -%}
+    README.md
+    .claude/project-rules.md
+    docs/architecture.md
+    docs/contract.md
+    docs/dashboard.md
+    docs/getting-started.md
+    docs/deviations.md
+    docs/browser-checks.md
+    .claude/skills/ingest/SKILL.md
+    .claude/skills/ask/SKILL.md
+    src/{{ package }}/**
+    tests/conftest.py
+    tests/test_*.py
+    tests/app/test_app.py
+    tests/app/contract_data.py
+    config.example.toml
+    {%- else -%}
+    .no-seeded-exclude
+    {%- endif -%}
 
-# Written once, then the app's own: updates never touch them. Everything else is template-managed: `copier update`
-# merges the template's changes into it, keeping local edits (a clash shows as a merge conflict).
+# Written once, then the app's own: updates never touch them (the _exclude above), and `copier copy` over an
+# existing repo keeps the app's version. Everything else is template-managed: `copier update` merges the template's
+# changes into it, keeping local edits (a clash shows as a merge conflict).
 _skip_if_exists:
   - README.md
   - .claude/project-rules.md

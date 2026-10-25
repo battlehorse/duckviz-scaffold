@@ -25,8 +25,6 @@ Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app 
    - otherwise → take the scaffold's side, and keep this app's lines that are clearly its own (its dependencies in
      pyproject.toml, its names).
    - Never edit the duckkit version by hand. Delete any `*.rej` file once handled.
-   - A file the app had deleted on purpose came back (`git status` shows it new): delete it again, and add it to
-     `opt_out` (`-d 'opt_out=[…]'`, keeping the paths already there) with a line in docs/deviations.md.
 5. **Lock and check.** `uv lock`, `uv sync`, then `uv run ruff check .`, `uv run pytest -q`,
    `uv run {{ project_name }} doctor`. Fix what this app's code needs for the new duckkit (the CHANGELOG says).
 6. **Show the user** the diff summary (`git diff --stat main`), every conflict and how you resolved it, and any
