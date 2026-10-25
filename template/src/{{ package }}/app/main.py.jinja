@@ -9,5 +9,5 @@ PAGES = Path(__file__).parent / "views"
 
 st.set_page_config(page_title="{{ title }}", page_icon=":material/monitoring:", layout="wide")
 st.navigation([
-    st.Page(PAGES / "overview.py", title="Overview", icon=":material/monitoring:", default=True),
+    st.Page(PAGES / "dashboard.py", title="Dashboard", icon=":material/monitoring:", default=True),
 ]).run()

@@ -12,14 +12,14 @@ def page(name: str) -> AppTest:
     return AppTest.from_file(str(SPEC.main_script().parent / "views" / f"{name}.py"), default_timeout=30).run()
 
 
-def test_overview_renders_from_the_contract_alone():
+def test_dashboard_renders_from_the_contract_alone():
     contract_data.write(SPEC.db_path)
-    at = page("overview")
+    at = page("dashboard")
     assert not at.exception
-    assert at.title[0].value == "Overview"
+    assert at.title[0].value == "Dashboard"
 
 
 def test_no_database_says_so():
-    at = page("overview")
+    at = page("dashboard")
     assert not at.exception
     assert "No data to show yet" in at.info[0].value
