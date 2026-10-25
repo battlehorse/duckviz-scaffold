@@ -3,7 +3,7 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.3.1
 
 - Template: the landing page is `app/views/dashboard.py` (was the example `overview.py`), as in the apps; its spec
   is docs/dashboard.md. An app keeps the conventional file names (`views/dashboard.py`, `tests/test_cli.py`), so the
