@@ -11,7 +11,10 @@ The user sets the project up once: see the first-time setup in the `/publish` sk
 - The MotherDuck database **`{{ motherduck_db }}`** holds the app's data contract (docs/contract.md): one table per
   contract view, `v_contract` among them (the contract's name and version).
 - It is a snapshot, as new as the user's last `/publish`. The newest date in the data says how new.
-- **The database describes itself.** Before the first query of a conversation, read the descriptions:
+- **Read the contract first.** The project's files hold `contract.md` (docs/contract.md): what each view holds,
+  the meaning of each column, and the rules the data keeps (keys, allowed values, what to sum and what not to).
+  `schema.sql` (`src/{{ package }}/contract/schema.sql`) is the same contract as SQL: the exact columns and types.
+- **The database describes itself too.** Before the first query of a conversation, read its descriptions:
 
   ```sql
   SELECT table_name, comment FROM duckdb_tables() WHERE database_name = '{{ motherduck_db }}';
@@ -19,13 +22,14 @@ The user sets the project up once: see the first-time setup in the `/publish` sk
   WHERE database_name = '{{ motherduck_db }}' ORDER BY table_name, column_index;
   ```
 
-  They say what each table and column means. `contract/schema.sql`, in the project's files, has the same
-  descriptions.
+  They are the descriptions of `schema.sql`, as they were at the last `/publish`. If they differ from the project's
+  files, the files are newer than the data: say so, and go by the database.
 - The data is read-only. Run SELECT queries only. Never create, change or drop anything.
 
 ## Answering
 
 Follow the `/ask` skill (`SKILL.md` in the project's files) for the rules and the shape of the answer, with one
 difference: where the skill says `uv run {{ project_name }} sql "<query>"`, run the same SQL through the MotherDuck
-connector. If the connector's current database is not `{{ motherduck_db }}`, write each table as
-`{{ motherduck_db }}.main.<table>`.
+connector. Always write each table in full, as `{{ motherduck_db }}.main.<table>`: the connector's queries run in
+the user's default MotherDuck database, which can be another one, and other apps publish tables with the same names
+(`v_contract`, say).
