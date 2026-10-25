@@ -86,7 +86,11 @@ def add_standard_commands(
         except FileNotFoundError as e:
             typer.echo(str(e))
             return
+        from duckkit.demo import has_marker
+
         lines = status(con) if status else [f"Database:     {spec.db_path}"]
+        if has_marker(con):
+            lines.append(f"Demo:         made-up data (`{spec.cli} demo`), not your own")
         for line in lines:
             typer.echo(line)
         if backups and connect:

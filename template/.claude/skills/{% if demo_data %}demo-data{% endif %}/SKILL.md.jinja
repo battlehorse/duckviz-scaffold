@@ -1,0 +1,24 @@
+---
+name: demo-data
+description: Build the demo database of {{ project_name }}, made-up data for screenshots, demos and browser checks, with `{{ project_name }} demo`. The same parameters always build the same data. Use to show the app without real data, or to test it on realistic data.
+when_to_use: >-
+  Use when the user says things like "generate demo data", "build a demo database", "show the app with fake data", "regenerate the demo".
+argument-hint: "[--seed N] [--days N]"
+allowed-tools: Bash(uv run {{ project_name }} demo *) Bash(uv run {{ project_name }} demo)
+---
+
+# Build the demo database
+
+Request: $ARGUMENTS
+
+1. Run `uv run {{ project_name }} demo` with the parameters the user gave (`--seed`, `--days`; see
+   `uv run {{ project_name }} demo --help`). It writes `data/demo.duckdb`. It replaces an earlier demo database only,
+   never the real one or any other file.
+2. Report what it wrote: the days and the seed.
+3. To show it, start the app on it: `/app start demo` (`{{ project_name }} app --demo`).
+
+The demo database holds a `demo_params` table: the parameters it was built from. `publish` refuses a database
+that holds it, so made-up data never goes where the real data goes.
+
+This skill is the app's own (the scaffold writes it once): describe here the parameters of this app's generator
+(`src/{{ package }}/demo.py`), and what to ask the user before a build.

@@ -6,6 +6,9 @@ come first; the rest are duckkit's standard commands (the same in every app made
 | Command | What it does |
 |---|---|
 | `ingest <files>` | load data into the database (this app's own) |
+{%- if demo_data %}
+| `demo [--seed N] [--days N] [--out <file>]` | build the demo database, `data/demo.duckdb`, from made-up data (this app's own) |
+{%- endif %}
 | `status` | what the database holds, and the contract check |
 | `sql "<SELECT>"` | one read-only SELECT on a snapshot (prefer the contract views) |
 | `app [name] [--tailnet]{% if demo_data %} [--demo]{% endif %}` | serve an app on localhost: `app` (:{{ app_port }}){% for a in extra_apps %}, `{{ a.name }}` (:{{ a.port }}){% endfor %} |

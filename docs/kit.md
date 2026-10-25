@@ -58,7 +58,7 @@ module belongs to one of them:
 | [`serve`](#duckkitserve) | ingestion | run a Streamlit app on localhost, optionally on the tailnet |
 | [`cli`](#duckkitcli) | ingestion | the command-line commands every app has |
 | [`doctor`](#duckkitdoctor) | ingestion | compare the repo with the scaffold release it comes from |
-| [`demo`](#duckkitdemo) | ingestion | tell a demo database apart from the real one |
+| [`demo`](#duckkitdemo) | ingestion | build a demo database, and tell one apart from the real one |
 | [`testing`](#duckkittesting) | tests | isolate tests from real data; build contract databases |
 | [`testing.guard`](#duckkittestingguard) | tests | keep the browser app on the contract |
 
@@ -262,7 +262,7 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 
 | Command | Does | Built on |
 |---|---|---|
-| `status` | prints the app's `status(con)` lines, the backups line, and the contract check | `snapshot.database_snapshot`, `Contract.check` |
+| `status` | prints the app's `status(con)` lines, a "Demo:" line for a demo database, the backups line, and the contract check | `snapshot.database_snapshot`, `Contract.check` |
 | `sql "SELECT …" [--limit]` | runs exactly one `SELECT` on a snapshot of the whole database and prints a table | `snapshot.database_snapshot` |
 | `publish [--to] [--dry-run] [--check]` | sends the views (refusing a demo database), shows what would go, or compares | `publish`, `demo.is_demo` |
 | `backup` / `backups` / `restore <snapshot> [--to]` | makes a verified snapshot, lists them, or rebuilds a new file from one | `backup` |
@@ -285,16 +285,25 @@ The module also exports helpers for the app's own commands:
 
 ## `duckkit.demo`
 
-**What it is for:** making sure synthetic data never goes where the user's own data goes. A demo database holds the
-marker table `demo_params` (the parameters it was built from), wherever its file is.
+**What it is for:** building a demo database safely, and making sure synthetic data never goes where the user's own
+data goes. A demo database holds the marker table `demo_params` (the parameters it was built from), wherever its
+file is.
 
-- `is_demo(spec, path=None)`: whether the database at `path` (default `spec.db_path`) is a demo one. That is true if
-  it holds the marker, or if it is the file at `spec.demo_db_path`. A missing file, or one that isn't a database, is
-  not a demo database.
+- `build_demo(spec, connect, fill, params, path=None)`: builds a demo database at `path` (default
+  `spec.demo_db_path`) and returns its path. `connect(path)` opens a new database with the app's schema (its
+  `db/store.py` connect); `fill(con)` writes the made-up data; `params` (text, TOML say) is what rebuilds it, stored
+  in the marker. It refuses `spec.db_path`, and replaces an existing file only if it is a demo database. If
+  anything fails, it deletes the half-built file (and its `.wal`).
+- `params(con)`: the parameters text of an open demo database, or None for one without the marker.
+
+- `is_demo(spec, path=None)`: whether the database at `path` (default `spec.db_path`) holds the marker. The marker
+  is the only test: a file at `spec.demo_db_path` without it is not a demo database. A missing file, or one that
+  isn't a database, is not one either.
 - `has_marker(con)`: the same check on an open connection.
 - `MARKER`: `"demo_params"`. An app's demo builder creates this table.
 
-`publish` refuses a demo database. An app's own commands that send or curate data should refuse one too.
+`publish` refuses a demo database, and `status` says "Demo: made-up data" for one. An app's own commands that send or
+curate data should refuse one too.
 
 ## `duckkit.doctor`
 

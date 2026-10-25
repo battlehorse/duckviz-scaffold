@@ -111,12 +111,6 @@ def test_status_sql_publish_and_backups(cli, closed_db, spec, tmp_path, monkeypa
     assert "Backups:      1, the newest 0 hours old" in runner.invoke(cli, ["status"]).output
 
 
-def test_publish_refuses_the_demo_database(cli, spec, monkeypatch):
-    monkeypatch.setattr(spec, "db_path", spec.demo_db_path)
-    result = runner.invoke(cli, ["publish", "--to", "x.duckdb"])
-    assert result.exit_code == 1 and "is a demo database" in result.output
-
-
 def test_publish_refuses_a_demo_database_anywhere(cli, spec, monkeypatch, tmp_path):
     """A database holding the demo marker table is a demo one, whatever its path."""
     path = tmp_path / "elsewhere.duckdb"
@@ -134,6 +128,12 @@ def test_is_demo(spec, tmp_path):
     assert not is_demo(spec, tmp_path / "missing.duckdb")
     (tmp_path / "junk.duckdb").write_text("not a database")
     assert not is_demo(spec, tmp_path / "junk.duckdb")
+    spec.demo_db_path.parent.mkdir(parents=True, exist_ok=True)
+    with duckdb.connect(str(spec.demo_db_path)) as con:  # the demo path without the marker: not a demo database
+        con.execute("CREATE TABLE items (name VARCHAR)")
+    assert not is_demo(spec, spec.demo_db_path)
+    with duckdb.connect(str(spec.demo_db_path)) as con:
+        con.execute("CREATE TABLE demo_params (params VARCHAR)")
     assert is_demo(spec, spec.demo_db_path)
 
 
@@ -162,3 +162,10 @@ def test_status_says_how_to_bring_stale_views_up_to_date(cli, closed_db, spec):
         con.execute("DROP VIEW v_items")
     out = runner.invoke(cli, ["status"]).output
     assert "1 problems for the app → `shop ingest` recreates the views" in out and "  ✗ v_items: missing" in out
+
+
+def test_status_says_a_demo_database_is_made_up(cli, closed_db, spec):
+    assert "Demo:" not in runner.invoke(cli, ["status"]).output
+    with duckdb.connect(str(spec.db_path)) as con:
+        con.execute("CREATE TABLE demo_params (params VARCHAR)")
+    assert "Demo:         made-up data (`shop demo`), not your own" in runner.invoke(cli, ["status"]).output

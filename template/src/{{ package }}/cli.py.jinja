@@ -29,6 +29,29 @@ def ingest(
     contract_line(SPEC, problems)
     if summary["errors"] or problems:
         raise typer.Exit(1)
+{%- if demo_data %}
+
+
+@app.command()
+def demo(
+    seed: int = typer.Option(1, help="Random seed: the same seed gives the same database."),
+    days: int = typer.Option(90, help="Days of made-up readings."),
+    out: Annotated[Path | None, typer.Option(
+        help="Database to write (default: data/demo.duckdb). Only ever replaces a demo database.")] = None,
+) -> None:
+    """Build the demo database: made-up data for screenshots and demos. Open it with `{{ project_name }} app --demo`."""
+    from duckkit.demo import build_demo
+
+    from {{ package }}.demo import fill, params_toml
+
+    try:
+        path = build_demo(SPEC, connect, lambda con: fill(con, seed, days), params_toml(seed, days),
+                          path=out)
+    except ValueError as e:
+        typer.echo(f"✗ {e}", err=True)
+        raise typer.Exit(1) from None
+    typer.echo(f"Wrote {path} ({days} days, seed {seed})")
+{%- endif %}
 
 
 def status_lines(con: duckdb.DuckDBPyConnection) -> list[str]:
