@@ -168,12 +168,14 @@ def import_problems(spec: AppSpec, path: Path) -> set[str]:
 def loaded_problems(spec: AppSpec, extra: tuple[str, ...] = ("tests.conftest",),
                     page_only: tuple[str, ...] = ()) -> tuple[list[str], list[str]]:
     """(modules loaded, forbidden ones among them) when a fresh interpreter imports the app's code, its tests and
-    `extra`. Pages (`<app>.views`, `<app>.main`, and `page_only`) are left out: they run in a Streamlit session."""
+    `extra`. Pages (`<app>.views`, `<app>.main`, spec.page_modules and `page_only`) are left out: they run in a
+    Streamlit session."""
     root = spec.root
     modules = [*(".".join(p.relative_to(root / "src").with_suffix("").parts) for p in app_files(spec)),
                *(".".join(p.relative_to(root).with_suffix("").parts) for p in app_tests(spec)),
                *extra]
-    pages = tuple(f"{spec.package}.{a.name}.{p}" for a in spec.apps for p in ("views", "main")) + page_only
+    pages = (tuple(f"{spec.package}.{a.name}.{p}" for a in spec.apps for p in ("views", "main"))
+             + tuple(f"{spec.package}.{m}" for m in spec.page_modules) + page_only)
     modules = [m.removesuffix(".__init__") for m in modules if not m.startswith(pages)]
     prefixes = (spec.package, "tests", "duckkit")
     script = (f"import importlib, sys\nfor m in {modules!r}: importlib.import_module(m)\n"

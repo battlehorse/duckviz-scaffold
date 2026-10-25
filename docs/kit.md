@@ -94,6 +94,7 @@ The fields you set:
 | `app_code` | `app`, `query`, `analysis.py` | the browser app's code, which the guard checks |
 | `forbidden` | `ingest`, `db`, `cli` | the app's ingestion modules, which the browser app must not import |
 | `forbidden_in_tests` | `()` | test modules that `tests/app` must not import, such as the ingestion's fixtures |
+| `page_modules` | `()` | modules of the browser app that run only inside Streamlit (they declare a component when imported), beyond `views/` and `main.py`; the guard's loading check skips them |
 | `refresh_hint` | "Run `<cli> ingest`…" | what to tell the user when the database doesn't offer the contract |
 | `idle_minutes` | 15 | how long before a hosted app pauses an idle tab (0: never) |
 | `backup_prefix` | `<package>-` | the start of each backup folder's name |
