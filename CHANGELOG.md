@@ -3,6 +3,16 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## v0.3.3
+
+- duckkit: clearer messages.
+  - `status`: "N problems for the app", and for views older than the code, "→ `<cli> ingest` recreates the views".
+  - `publish --check`: an up-to-date copy lists its rows per view. A stale copy gets a header that says how to fix it,
+    and "N rows on both sides, with different contents" when only values changed.
+  - A missing MotherDuck token names both `[motherduck] token` in config.toml and the `MOTHERDUCK_TOKEN` variable.
+
+**Steps:** none.
+
 ## v0.3.2
 
 - duckkit: `demo.is_demo(spec, path)` tells a demo database by its marker table `demo_params`, wherever its file is,

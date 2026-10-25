@@ -29,5 +29,5 @@ def test_check_sees_a_change(db, spec, tmp_path):
 
 
 def test_motherduck_needs_a_token(closed_db, spec):
-    with pytest.raises(ValueError, match=r"\[motherduck\] token in config.toml"):
+    with pytest.raises(ValueError, match=r"\[motherduck\] token in config.toml \(or the MOTHERDUCK_TOKEN environment variable\)"):
         publish(spec)

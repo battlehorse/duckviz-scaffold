@@ -98,7 +98,13 @@ def test_status_sql_publish_and_backups(cli, closed_db, spec, tmp_path, monkeypa
     assert "v_items: 3 rows" in runner.invoke(cli, ["publish", "--dry-run"]).output
     target = str(tmp_path / "p.duckdb")
     assert runner.invoke(cli, ["publish", "--to", target]).exit_code == 0
-    assert "up to date" in runner.invoke(cli, ["publish", "--to", target, "--check"]).output
+    assert "up to date: v_contract 1 rows, v_items 3 rows" in runner.invoke(cli, ["publish", "--to", target, "--check"]).output
+    with duckdb.connect(target) as con:
+        con.execute("UPDATE v_items SET price = price + 1 WHERE item = 'apple'")  # same rows, new price
+    stale = runner.invoke(cli, ["publish", "--to", target, "--check"])
+    assert stale.exit_code == 1 and "differs from this database (run `shop publish`" in stale.output
+    assert "v_items: 3 rows on both sides, with different contents" in stale.output
+    assert "v_contract" not in stale.output  # unchanged tables aren't listed
     assert "Backups:      none yet" in runner.invoke(cli, ["status"]).output
     assert runner.invoke(cli, ["backup"]).exit_code == 0
     assert "1 snapshots" in runner.invoke(cli, ["backups"]).output
@@ -149,3 +155,10 @@ def test_doctor_versions(cli, spec, monkeypatch):
     assert "but duckkit is" not in runner.invoke(cli, ["doctor"]).output
     answers.write_text("_commit: 31bae11\n")
     assert "not a release" in runner.invoke(cli, ["doctor"]).output
+
+
+def test_status_says_how_to_bring_stale_views_up_to_date(cli, closed_db, spec):
+    with duckdb.connect(str(spec.db_path)) as con:  # as if made by an older version
+        con.execute("DROP VIEW v_items")
+    out = runner.invoke(cli, ["status"]).output
+    assert "1 problems for the app → `shop ingest` recreates the views" in out and "  ✗ v_items: missing" in out
