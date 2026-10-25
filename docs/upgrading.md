@@ -19,9 +19,15 @@ In this repo, run `/upstream <app path> <what>` (the skill in `.claude/skills/up
 
 ## 3. Release
 
+Through a PR, like every change here:
+
 ```sh
-uv run --project kit scripts/release.py 0.2.0   # sets the versions, commits, tags v0.2.0
-git push origin main v0.2.0
+git switch -c release/v0.3.0
+uv run --project kit scripts/release.py 0.3.0          # sets the versions and commits
+git push -u origin release/v0.3.0 && gh pr create     # review, then merge
+git switch main && git pull
+uv run --project kit scripts/release.py --tag 0.3.0    # tags the merged commit
+git push origin v0.3.0
 ```
 
 ## 4. Apply
@@ -35,7 +41,7 @@ To turn on a feature an app lacks: `/scaffold-update -d cloud_run=true`, then th
 
 ## Adopting the scaffold in an existing repo
 
-For a repo that predates the scaffold (heatmiserviz, amex-parser, sainsburysviz):
+For a repo that predates the scaffold:
 
 1. **Move the shared code to duckkit first**, on a branch: add `spec.py`; replace the app's copies of the snapshot,
    contract check, publish, backup, privacy, serving and standard commands with duckkit calls; keep the domain

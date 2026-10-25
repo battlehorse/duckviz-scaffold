@@ -6,6 +6,10 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 ## Unreleased
 
 - `/scaffold-update` and docs/upgrading.md: a seeded file an app deleted comes back on update unless opted out.
+- Template: CLAUDE.md asks for a branch and a PR for every change (never `main`), stacked PRs for a change in
+  parts, a phone notification after a long task, test data in files, and a talk before a new language or library.
+- `scripts/release.py` works through a PR: it commits the release on a branch; `--tag` tags it on main after the
+  merge.
 
 ## v0.2.0
 
@@ -16,7 +20,7 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## v0.1.0
 
-The first release, drawn from heatmiserviz, sainsburysviz and amex-parser.
+The first release, drawn from several existing apps of this kind.
 
 - duckkit: `AppSpec`, `Contract` (rules, `enum_rule`, `relation_rule`, custom checks), `snapshot`
   (`contract_snapshot`, `contract_copy`, `database_snapshot`, MotherDuck sign-in), `store` (schema version and

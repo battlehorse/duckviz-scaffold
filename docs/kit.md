@@ -12,14 +12,14 @@ duckkit has no settings of its own. Each app describes itself once, in `src/<pac
 
 ```python
 SPEC = AppSpec(
-    package="heatmiserviz", cli="heatmiserviz", root=Path(__file__).resolve().parents[2],
+    package="shopviz", cli="shopviz", root=Path(__file__).resolve().parents[2],
     contract=CONTRACT,                      # duckkit.Contract: name, version, reference schema, rules
-    env_prefix="HEATMISERVIZ",              # HEATMISERVIZ_DB, _APP_DB, _CONFIG, _VERSION, _BACKUP_DIR, …
-    db_file="heatmiser.duckdb", timezone="Europe/London",
-    motherduck_target="md:heating", config_style="toml",
-    apps=[AppEntry("app", port=8508, title="Heating")],
-    private_settings=(("hub", "token", "NEOHUB_TOKEN", "hub token"), …),
-    forbidden=("ingest", "db", "neohub", "weather", "cli"),
+    env_prefix="SHOPVIZ",                   # SHOPVIZ_DB, _APP_DB, _CONFIG, _VERSION, _BACKUP_DIR, …
+    db_file="shop.duckdb", timezone="Europe/London",
+    motherduck_target="md:shop", config_style="toml",
+    apps=[AppEntry("app", port=8501, title="Shop")],
+    private_settings=(("shop", "api_key", "SHOP_API_KEY", "shop API key"), …),
+    forbidden=("ingest", "db", "cli"),
 )
 ```
 

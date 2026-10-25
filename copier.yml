@@ -25,7 +25,7 @@ scaffold_repo:
 # ─── The app ───
 project_name:
   type: str
-  help: The project's name (the repo and the command), e.g. heatmiserviz
+  help: The project's name (the repo and the command), e.g. shopviz
   validator: "{% if not (project_name | regex_search('^[a-z][a-z0-9-]*$')) %}lowercase letters, digits and dashes{% endif %}"
 package:
   type: str
