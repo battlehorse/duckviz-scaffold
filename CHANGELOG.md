@@ -5,6 +5,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Docs: docs/architecture.md (how an app made from the scaffold works), docs/kit.md module by module, a longer
+  README.
 - `/scaffold-update` and docs/upgrading.md: a seeded file an app deleted comes back on update unless opted out.
 - Template: CLAUDE.md asks for a branch and a PR for every change (never `main`), stacked PRs for a change in
   parts, a phone notification after a long task, test data in files, and a talk before a new language or library.

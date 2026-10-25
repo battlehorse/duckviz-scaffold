@@ -7,6 +7,7 @@ it in a Streamlit app that reads only the contract. Two parts release together u
 
 Read these first:
 - README.md
+- docs/architecture.md: how an app made from the scaffold works.
 - docs/kit.md: duckkit, module by module.
 - docs/template.md: the template, the files it manages, flags and deviations.
 - docs/upgrading.md: the cycle (discover → upstream → release → apply), and adopting the scaffold in an existing repo.
