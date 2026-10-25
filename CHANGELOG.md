@@ -3,6 +3,11 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- Template: CLAUDE.md says what its `@.claude/project-rules.md` line does; docs/scaffold.md says "options", not
+  "feature flags".
+
 ## v0.3.0
 
 - **Options vs capabilities** (docs/template.md). A question is an answer (a name or value), an option (where apps
