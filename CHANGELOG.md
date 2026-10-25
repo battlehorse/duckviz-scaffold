@@ -3,6 +3,31 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## v0.4.0
+
+- duckkit: `demo.build_demo(spec, connect, fill, params, path=None)` builds a demo database. The app's `connect`
+  makes the schema, its `fill` writes the made-up data, and the parameters go into the `demo_params` marker table.
+  It refuses the real database, replaces an existing file only if that is a demo database, and deletes a half-built
+  file. `demo.params(con)` reads the parameters back.
+- duckkit: **the marker is the only test of a demo database.** A file at `spec.demo_db_path` without the
+  `demo_params` table is no longer one, for `is_demo`, `publish` or `build_demo`.
+- duckkit: `status` prints a "Demo: made-up data" line for a demo database.
+- Template, `demo_data`: a new app gets a `demo` command, an example generator (`src/<package>/demo.py`), its test
+  and a `/demo-data` skill. All four are seeded: the app's own once written.
+- Template, `motherduck`: `docs/claude-chat.md` (template-managed), the instructions for a claude.ai project that
+  asks the published copy through the MotherDuck connector. `/publish` gains the first-time setup of that project,
+  and a reminder to press Sync in it when its files change.
+- Template: `docs/deviations.md` says "Options", not "Feature flags" (new apps only: the file is seeded).
+
+**Steps:**
+- With `demo_data` on: seeded files never arrive with an update, so an existing app gets no `demo` command from
+  it. Write one that calls `duckkit.demo.build_demo` (the template's `cli.py` and `demo.py` show how), or move the
+  app's own builder onto it. Make sure every demo database the app builds holds the `demo_params` table: without
+  it, `publish` no longer refuses the file.
+- If the app's `status` hook printed its own demo line, remove it: `status` prints one now.
+- With `motherduck` on: if the app had its own claude.ai instructions, move what only this app needs into its
+  `/ask` skill, delete the old file, and point the claude.ai project's files at `docs/claude-chat.md`.
+
 ## v0.3.4
 
 - duckkit: `AppSpec.page_modules` names the browser app's modules that run only inside a Streamlit session (a
