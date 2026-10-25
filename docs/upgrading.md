@@ -50,9 +50,7 @@ For a repo that predates the scaffold:
    with the app's answers (`-d project_name=… -d app_port=…`, the options). Copier asks before overwriting each
    existing file: say **no** to the app's own files (seeded ones are skipped anyway) and **yes** to template-managed
    ones, then review the diff file by file with `git diff`, putting back what the app needs.
-3. Delete the seeded examples the app doesn't use (the template's `overview.py` page, `tests/test_cli.py`, …) and
-   list them in `opt_out` (`copier update -d 'opt_out=[…]'`): a seeded file that is missing is created again by the
-   next update, unless it is opted out.
-4. Move CLAUDE.md's domain rules to `.claude/project-rules.md`; list the deviations (and each opt-out) in
-   docs/deviations.md.
+3. Delete the seeded examples the app doesn't use, such as the template's `overview.py` page or
+   `tests/test_cli.py`. Updates never bring a seeded file back.
+4. Move CLAUDE.md's domain rules to `.claude/project-rules.md`; list the deviations in docs/deviations.md.
 5. `uv run <cli> doctor` must pass. From now on, `copier update` works.

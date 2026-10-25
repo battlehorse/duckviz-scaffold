@@ -5,8 +5,14 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Seeded files are written by `copier copy` only: an update never changes one, and never brings back one the app
+  deleted (Copier's `_copier_operation` in `_exclude`; needs Copier 9.19). An app no longer opts out of the seeded
+  examples it deleted.
 - Template: CLAUDE.md says what its `@.claude/project-rules.md` line does; docs/scaffold.md says "options", not
   "feature flags".
+
+**Steps:** an app that opted out of seeded files it deleted (its `src/` examples, `tests/test_*.py`, …) can drop
+them from `opt_out` (`copier update -d 'opt_out=[…]'`) and from docs/deviations.md.
 
 ## v0.3.0
 
