@@ -5,6 +5,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: `demo.is_demo(spec, path)` tells a demo database by its marker table `demo_params`, wherever its file is,
+  or by being `spec.demo_db_path`. `publish` refuses one ("… is a demo database"); before, it only compared paths.
 - CI and the template's workflows: `actions/checkout@v7` and `astral-sh/setup-uv@v10.3.2`, which run on Node 24
   (GitHub is retiring Node 20 for actions).
 
