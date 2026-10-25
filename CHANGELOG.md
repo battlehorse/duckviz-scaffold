@@ -5,6 +5,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: the landing page is `app/views/dashboard.py` (was the example `overview.py`), as in the apps; its spec
+  is docs/dashboard.md. An app keeps the conventional file names (`views/dashboard.py`, `tests/test_cli.py`), so the
+  seeded examples it replaces are its own files, with nothing to opt out of.
 - Seeded files are written by `copier copy` only: an update never changes one, and never brings back one the app
   deleted (Copier's `_copier_operation` in `_exclude`; needs Copier 9.19). An app no longer opts out of the seeded
   examples it deleted.

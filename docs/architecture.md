@@ -226,7 +226,7 @@ src/<package>/
   contract/__init__.py CONTRACT: name, version, rules
   query/               the app's queries, on the views only
   app/main.py          the Streamlit entry point and navigation
-  app/views/           one file per page
+  app/views/           one file per page; dashboard.py is the landing page
   app/common.py        duckkit's snapshot and sidebar, bound to this spec
   app/static/          paused.html (hosted apps)
 tests/                 the ingestion's tests (synthetic data in tests/data/)

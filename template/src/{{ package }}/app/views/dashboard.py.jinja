@@ -1,4 +1,5 @@
-"""Overview: the daily values, as a chart and a table. (An example page: replace it with the app's own.)"""
+"""Dashboard, the landing page: the daily values, as a chart and a table. (An example: replace it with the app's
+own landing page, keeping the file name.)"""
 
 import streamlit as st
 from duckkit.app import theme
@@ -8,7 +9,7 @@ from {{ package }}.app.common import DATA_ERRORS, con, no_data, sidebar, table
 from {{ package }}.query.dashboard import load_daily
 
 sidebar()
-st.title("Overview")
+st.title("Dashboard")
 try:
     daily = load_daily(con())
 except DATA_ERRORS as e:
