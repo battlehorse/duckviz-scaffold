@@ -1,6 +1,6 @@
 ---
 name: publish
-description: Publish the contract views of the {{ project_name }} database to MotherDuck (md:{{ motherduck_db }}){% if cloud_run %}, which the hosted app reads{% endif %}. Shows the data that will leave this computer, and asks first.
+description: Publish the contract views of the {{ project_name }} database to MotherDuck (md:{{ motherduck_db }}){% if cloud_run %}, which the hosted app reads{% endif %}. Then Claude in claude.ai chat, with the MotherDuck connector, can answer questions about the data from any device. Shows the data that will leave this computer, and asks first.
 disable-model-invocation: true
 argument-hint: "[md:<name>]"
 allowed-tools: Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} publish --dry-run*) Bash(uv run {{ project_name }} publish) Bash(uv run {{ project_name }} publish --to md:*) Bash(uv run {{ project_name }} publish --check*)
@@ -21,6 +21,22 @@ Run this skill only when the user asks. It sends personal data to a third party.
    - No MotherDuck token: make one in MotherDuck (Settings → Access tokens), then set `[motherduck] token` in config.toml.
    - The first run downloads DuckDB's `motherduck` extension.
 5. Report the counts. Later, `uv run {{ project_name }} publish --check` tells whether the copy is up to date.
+   If `docs/claude-chat.md`, `src/{{ package }}/contract/schema.sql`, `docs/contract.md` or the `/ask` skill changed
+   since the last publish, tell the user to press **Sync** in their claude.ai project.
 {%- if cloud_run %}
 6. The hosted app reads the new copy after *Reload data* (or its next start).
 {%- endif %}
+
+## First-time setup (the user does this)
+
+1. Create a MotherDuck account at https://motherduck.com (pick the region where the data may live). Make an access
+   token (Settings → Access tokens) and put it in `config.toml` under `[motherduck]` as `token = "…"`. Git never
+   commits `config.toml`.
+2. Run `/publish`.
+3. To ask the data in claude.ai chat:
+   - In claude.ai → Settings → Connectors, add **MotherDuck** and sign in.
+   - Create a claude.ai project. Add these files from GitHub (the Claude GitHub app needs access to this repo):
+     `docs/claude-chat.md`, `.claude/skills/ask/SKILL.md`, `src/{{ package }}/contract/schema.sql` and
+     `docs/contract.md`.
+   - As the project's instructions, use: "Answer questions about my {{ project_name }} data. Follow claude-chat.md."
+

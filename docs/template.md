@@ -77,6 +77,9 @@ Each option adds files, commands and skills. Turn one on later with `/scaffold-u
 - `[motherduck] token` in `config.example.toml`.
 - The MotherDuck sections of the docs, and the publish steps in `/catch-up` and `/ingest`.
 - `SPEC.motherduck_target`.
+- `docs/claude-chat.md` (template-managed): the instructions for a claude.ai project that asks the published copy
+  through the MotherDuck connector. It follows the app's `/ask` skill, where the app's domain hints belong. The
+  one-time setup of that project is in `/publish`.
 
 A hosted app, Claude, or any DuckDB client can then read the views from anywhere. Nothing is ever sent unless
 someone runs `publish`.
