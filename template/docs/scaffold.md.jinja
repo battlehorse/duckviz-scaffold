@@ -21,7 +21,7 @@ Template-managed files:
 {%- if cloud_run %}
 - `Dockerfile`, `.dockerignore`, `.gcloudignore`, `docs/hosting.md`
 {%- endif %}
-- `docs/scaffold.md`, `docs/cli.md`
+- `docs/scaffold.md`, `docs/cli.md`{% if motherduck %}, `docs/claude-chat.md`{% endif %}
 - `tests/app/test_contract_only.py`
 - the skills: `app`, `app-check`, `catch-up`, `scaffold-update`{% if motherduck %}, `publish`{% endif %}{% if backup %}, `backup`{% endif %}{% if cloud_run %}, `hosting`{% endif %}
 
@@ -34,7 +34,7 @@ and the pre-commit hook, `app --tailnet`, settings in `config.toml`. These optio
 
 | Option | On here | What it adds |
 |---|---|---|
-| `motherduck` | {{ 'yes' if motherduck else 'no' }} | `publish [--dry-run] [--check]`, `/publish` |
+| `motherduck` | {{ 'yes' if motherduck else 'no' }} | `publish [--dry-run] [--check]`, `/publish`, docs/claude-chat.md (asking the data in claude.ai) |
 | `cloud_run` | {{ 'yes' if cloud_run else 'no' }} | Dockerfile, `/hosting`, docs/hosting.md, the idle pause |
 | `backup` | {{ 'yes' if backup else 'no' }} | `backup`, `backups`, `restore`, `/backup` |
 | `demo_data` | {{ 'yes' if demo_data else 'no' }} | `app --demo` reads `data/demo.duckdb` |

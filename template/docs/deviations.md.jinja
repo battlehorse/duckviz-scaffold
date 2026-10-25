@@ -3,7 +3,7 @@
 The scaffold (docs/scaffold.md) is the default. List here every deliberate difference, and why, so that
 `/scaffold-update` keeps it and `doctor` accepts it:
 
-- **Feature flags** (`.copier-answers.yml`): which ones are off, and why.
+- **Options** (`.copier-answers.yml`): which ones are off, and why.
 - **Opted-out files** (`opt_out`): each path, and why. `doctor` fails on an opted-out path not named here.
 - **Changed template-managed files**: what this app changed in them, and why. `copier update` keeps the change;
   a conflict means the scaffold changed the same lines, and this list says which side to keep.

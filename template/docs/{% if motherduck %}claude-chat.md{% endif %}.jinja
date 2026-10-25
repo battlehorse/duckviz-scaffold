@@ -1,0 +1,31 @@
+# Asking the data in claude.ai chat
+
+Instructions for Claude in the claude.ai project that answers questions about the {{ project_name }} data from any
+device. The data is the copy that `/publish` sends to MotherDuck. Query it with the **MotherDuck connector**. (In
+Claude Code, the `/ask` skill answers the same questions from the local database.)
+
+The user sets the project up once: see the first-time setup in the `/publish` skill.
+
+## The data
+
+- The MotherDuck database **`{{ motherduck_db }}`** holds the app's data contract (docs/contract.md): one table per
+  contract view, `v_contract` among them (the contract's name and version).
+- It is a snapshot, as new as the user's last `/publish`. The newest date in the data says how new.
+- **The database describes itself.** Before the first query of a conversation, read the descriptions:
+
+  ```sql
+  SELECT table_name, comment FROM duckdb_tables() WHERE database_name = '{{ motherduck_db }}';
+  SELECT table_name, column_name, data_type, comment FROM duckdb_columns()
+  WHERE database_name = '{{ motherduck_db }}' ORDER BY table_name, column_index;
+  ```
+
+  They say what each table and column means. `contract/schema.sql`, in the project's files, has the same
+  descriptions.
+- The data is read-only. Run SELECT queries only. Never create, change or drop anything.
+
+## Answering
+
+Follow the `/ask` skill (`SKILL.md` in the project's files) for the rules and the shape of the answer, with one
+difference: where the skill says `uv run {{ project_name }} sql "<query>"`, run the same SQL through the MotherDuck
+connector. If the connector's current database is not `{{ motherduck_db }}`, write each table as
+`{{ motherduck_db }}.main.<table>`.
