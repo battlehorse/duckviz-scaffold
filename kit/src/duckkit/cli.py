@@ -123,12 +123,13 @@ def add_standard_commands(
             check: bool = typer.Option(False, "--check", help="Only compare the published copy with the database."),
         ) -> None:
             """Publish the contract views to MotherDuck. Never automatic: only this command (or /publish) does."""
+            from duckkit.demo import is_demo
             from duckkit.publish import compare, plan
             from duckkit.publish import publish as publish_contract
             from duckkit.snapshot import ContractError
 
-            if spec.demo_db_path and spec.db_path.resolve() == spec.demo_db_path.resolve():
-                fail("this is the demo database: publishing it would replace the real copy")
+            if is_demo(spec):
+                fail(f"{spec.db_path} is a demo database: publish sends your own database only")
             target = to or spec.motherduck_target
             try:
                 if dry_run:

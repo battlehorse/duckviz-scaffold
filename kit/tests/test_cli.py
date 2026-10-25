@@ -3,6 +3,7 @@
 import json
 import subprocess
 
+import duckdb
 import pytest
 import typer
 from typer.testing import CliRunner
@@ -107,7 +108,27 @@ def test_status_sql_publish_and_backups(cli, closed_db, spec, tmp_path, monkeypa
 def test_publish_refuses_the_demo_database(cli, spec, monkeypatch):
     monkeypatch.setattr(spec, "db_path", spec.demo_db_path)
     result = runner.invoke(cli, ["publish", "--to", "x.duckdb"])
-    assert result.exit_code == 1 and "demo" in result.output
+    assert result.exit_code == 1 and "is a demo database" in result.output
+
+
+def test_publish_refuses_a_demo_database_anywhere(cli, spec, monkeypatch, tmp_path):
+    """A database holding the demo marker table is a demo one, whatever its path."""
+    path = tmp_path / "elsewhere.duckdb"
+    with duckdb.connect(str(path)) as con:
+        con.execute("CREATE TABLE demo_params (seed INTEGER)")
+    monkeypatch.setattr(spec, "db_path", path)
+    result = runner.invoke(cli, ["publish", "--to", str(tmp_path / "published.duckdb")])
+    assert result.exit_code == 1 and "is a demo database" in result.output
+    assert not (tmp_path / "published.duckdb").exists()
+
+
+def test_is_demo(spec, tmp_path):
+    from duckkit.demo import is_demo
+
+    assert not is_demo(spec, tmp_path / "missing.duckdb")
+    (tmp_path / "junk.duckdb").write_text("not a database")
+    assert not is_demo(spec, tmp_path / "junk.duckdb")
+    assert is_demo(spec, spec.demo_db_path)
 
 
 def test_doctor(cli, spec):
