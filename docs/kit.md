@@ -292,13 +292,13 @@ file is.
 - `build_demo(spec, connect, fill, params, path=None)`: builds a demo database at `path` (default
   `spec.demo_db_path`) and returns its path. `connect(path)` opens a new database with the app's schema (its
   `db/store.py` connect); `fill(con)` writes the made-up data; `params` (text, TOML say) is what rebuilds it, stored
-  in the marker. It refuses `spec.db_path`, and replaces an existing file only if that holds the marker. If
+  in the marker. It refuses `spec.db_path`, and replaces an existing file only if it is a demo database. If
   anything fails, it deletes the half-built file (and its `.wal`).
 - `params(con)`: the parameters text of an open demo database, or None for one without the marker.
 
-- `is_demo(spec, path=None)`: whether the database at `path` (default `spec.db_path`) is a demo one. That is true if
-  it holds the marker, or if it is the file at `spec.demo_db_path`. A missing file, or one that isn't a database, is
-  not a demo database.
+- `is_demo(spec, path=None)`: whether the database at `path` (default `spec.db_path`) holds the marker. The marker
+  is the only test: a file at `spec.demo_db_path` without it is not a demo database. A missing file, or one that
+  isn't a database, is not one either.
 - `has_marker(con)`: the same check on an open connection.
 - `MARKER`: `"demo_params"`. An app's demo builder creates this table.
 

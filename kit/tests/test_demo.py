@@ -50,7 +50,7 @@ def test_build_demo_never_writes_over_another_file(spec, tmp_path):
 
 
 def test_build_demo_never_replaces_a_file_without_the_marker_at_the_demo_path(spec):
-    """is_demo trusts the demo path, but replacing a file needs the marker."""
+    """The demo path alone doesn't make a file a demo database: replacing one needs the marker."""
     spec.demo_db_path.parent.mkdir(parents=True, exist_ok=True)
     spec.demo_db_path.write_text("not a database")
     with pytest.raises(ValueError, match="isn't a demo database"):

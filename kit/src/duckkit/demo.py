@@ -1,8 +1,8 @@
 """Demo databases: building one, and telling one apart from the real database, wherever its file is.
 
 A demo database (synthetic data, for screenshots and demos) holds the marker table `demo_params`: the parameters
-it was built from. Commands that send or curate the user's own data refuse one (`publish` does). The file at
-`spec.demo_db_path` counts as a demo database too, marker or not.
+it was built from. The marker is the only test: where the file is doesn't count. Commands that send or curate the
+user's own data refuse a demo database (`publish` does).
 
 `build_demo` writes one: the app's `connect` creates the schema, the app's `fill` writes the made-up data, and
 `build_demo` adds the marker. It only ever replaces an earlier demo database, and deletes a half-built file.
@@ -24,12 +24,9 @@ def has_marker(con: duckdb.DuckDBPyConnection) -> bool:
 
 
 def is_demo(spec: AppSpec, path: Path | None = None) -> bool:
-    """Whether the database at `path` (default: spec.db_path) is a demo one. False for a missing file or one that
-    isn't a database."""
-    path = path or spec.db_path
-    if spec.demo_db_path and path.resolve() == spec.demo_db_path.resolve():
-        return True
-    return _holds_marker(path)
+    """Whether the database at `path` (default: spec.db_path) holds the demo marker. False for a missing file or one
+    that isn't a database."""
+    return _holds_marker(path or spec.db_path)
 
 
 def params(con: duckdb.DuckDBPyConnection) -> str | None:
@@ -46,7 +43,7 @@ def build_demo(spec: AppSpec, connect: Callable[[Path], duckdb.DuckDBPyConnectio
 
     `connect(path)` opens a new database with the app's schema (its db/store.py); `fill(con)` writes the made-up
     data; `params` is the text that rebuilds it (TOML, say), stored in the marker table. An existing file at `path`
-    is replaced only if it holds the marker: never the real database, nor any other file. If anything fails, the
+    is replaced only if it is a demo database: never the real database, nor any other file. If anything fails, the
     half-built file is deleted.
     """
     path = path or spec.demo_db_path
@@ -55,7 +52,7 @@ def build_demo(spec: AppSpec, connect: Callable[[Path], duckdb.DuckDBPyConnectio
     if path.resolve() == spec.db_path.resolve():
         raise ValueError(f"{path} is your database: choose another path for the demo")
     if path.exists():
-        if not _holds_marker(path):
+        if not is_demo(spec, path):
             raise ValueError(f"{path} exists and isn't a demo database: choose another path")
         _delete(path)
     path.parent.mkdir(parents=True, exist_ok=True)
