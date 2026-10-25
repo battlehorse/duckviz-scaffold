@@ -20,7 +20,7 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## v0.1.0
 
-The first release, drawn from three existing apps of this kind.
+The first release, drawn from several existing apps of this kind.
 
 - duckkit: `AppSpec`, `Contract` (rules, `enum_rule`, `relation_rule`, custom checks), `snapshot`
   (`contract_snapshot`, `contract_copy`, `database_snapshot`, MotherDuck sign-in), `store` (schema version and
