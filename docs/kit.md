@@ -16,7 +16,8 @@ see where the modules fit in an app, read docs/architecture.md first.
 - [Which side may import what](#which-side-may-import-what)
 - Modules: [spec](#duckkitspec) · [contract](#duckkitcontract) · [snapshot](#duckkitsnapshot) ·
   [store](#duckkitstore) · [publish](#duckkitpublish) · [backup](#duckkitbackup) · [privacy](#duckkitprivacy) ·
-  [serve](#duckkitserve) · [cli](#duckkitcli) · [demo](#duckkitdemo) · [curated](#duckkitcurated) · [llm](#duckkitllm) ·
+  [serve](#duckkitserve) · [cli](#duckkitcli) · [demo](#duckkitdemo) · [curated](#duckkitcurated) ·
+  [llm](#duckkitllm) ·
   [doctor](#duckkitdoctor) · [specdiff](#duckkitspecdiff) · [app.common](#duckkitappcommon) ·
   [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
 - [Hooks](#hooks-where-an-apps-domain-goes-in)

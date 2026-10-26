@@ -5,6 +5,13 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`,
+  one structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`;
+  `Usage` and `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which runs a paid command only with
+  `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
+- duckkit: `[anthropic] api_key` (`ANTHROPIC_API_KEY`) is a standard private setting: `spec.anthropic_api_key()`,
+  `privacy-check` refuses its value in git, and `testing.isolate` unsets it. The guard keeps `duckkit.llm` out of
+  the browser app.
 - duckkit: the guard (`testing.guard.KIT_SERVICE`) also keeps `duckkit.curated` and `duckkit.specdiff` out of the
   browser app, as docs/kit.md already says (both are ingestion-side).
 - Template: `/app-check` and the seeded browser checks switch the theme with the Light and Dark buttons of the ⋮
