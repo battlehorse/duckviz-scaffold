@@ -49,7 +49,7 @@ def ingest(
         for error in summary["errors"]:
             typer.echo(f"  ✗ {error}", err=True)
 {%- if curations %}
-        if restored := restore(con):  # a rebuilt database: the decisions come back from curated/
+        if restored := restore(con):  # what curated/ holds and the database lacks: a rebuilt database
             typer.echo("  restored from curated/: " + ", ".join(f"{n} {table}" for table, n in restored.items()))
 {%- endif %}
         problems = SPEC.contract.check(con)
