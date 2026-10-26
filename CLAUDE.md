@@ -33,7 +33,7 @@ building on top of it, in stacked PRs. docs/how-we-work.md is the canonical desc
   When a check fails, fix the code. Never weaken a check so that it passes.
 - **Merge a PR that leaves the spec unchanged or extends it** (`gh pr merge --merge`). An extension adds to the spec
   and keeps each promise that it already makes (docs/spec.md, "Extensions and revisions here"). It goes in the PR
-  of its feature, and follows the merge rule of docs/how-we-work.md ("Extensions and revisions").
+  of its feature, and follows the merge rule of docs/how-we-work.md ("The merge rule").
 - **Never merge a PR that revises the spec**: one that alters or removes a promise, or edits the Guardrails. The
   user merges it, or tells you to. Keep it in a PR of its own. When you are not sure, it is a revision.
 - **Name each spec file the PR touches** in its *Spec changes* section, marked *extends* or *revises*.

@@ -26,7 +26,7 @@ changes, goes, or loses its mark is.
 
 `spec-diff` tells what a branch changes in the spec. It is a standard command of every app (`uv run <app>
 spec-diff`). In the scaffold repo, run `uv run --project kit python -m duckkit.specdiff`. CI runs it on every PR and
-adds the `spec-change` label when the spec changes.
+adds the `spec-change` label when the PR touches a spec file.
 
 `spec-diff` counts a spec test's code with the module-level names it uses, and `conftest.py` is spec as a whole. It
 does not follow a helper imported from another module: if a spec test relies on one, add that module to
@@ -71,14 +71,17 @@ A PR that touches a spec file makes a **spec change** of one of two kinds.
 Claude merges an extension on its own, in the same PR as the feature that needs it. The report lists it. The user
 can undo it later with a revert, which removes the feature too.
 
-**The merge rule.** Claude merges a PR that touches a spec file only when:
-1. each file that `spec-diff` lists is marked *extends* in the PR's *Spec changes* section;
+### The merge rule
+
+Claude merges a PR that touches a spec file only when:
+1. each file that `spec-diff` lists under "Spec changes" is marked *extends* in the PR's *Spec changes* section, and
+   none of them is in the `[guardrails]` group;
 2. a review of the PR's current head commit has no blocking finding, and has an `Extension agreed: <path>` line for
    each of those files;
 3. the PR's *Evidence* section records each of those lines, with the commit that the review read.
 
-A commit after the review needs a new review. Claude does not ask new reviewers until one agrees: when a reviewer
-does not agree, the file is a revision, or Claude fixes the finding.
+Claude does not ask new reviewers until one agrees. A file that a reviewer does not agree is an extension stays a
+revision, unless a later commit changes that file. The PR text then lists the finding and the fix.
 
 **A revision** alters or removes a promise: it edits or removes a browser check, a question, a test or a rule,
 renames or removes a view or column (a major version), changes what a command does, or changes the architecture.
@@ -124,8 +127,10 @@ When an edit does both, it is a revision. When Claude is not sure, it is a revis
 The reviewer agent (`.claude/agents/reviewer.md`) reviews each PR against `docs/review.md`. It starts with a fresh
 context, and gets the PR and the spec, never Claude's reasoning. It looks for bugs, for code and text a reader cannot
 follow, for simpler solutions, for brittle ones, for code that no longer does what the spec says, and for spec
-changes the PR does not declare. Each finding is *blocking*, *should* or *nit*. For each spec file that the PR marks
-*extends*, its answer ends with a line that agrees, or it has a blocking finding.
+changes the PR does not declare. Each finding is *blocking*, *should* or *nit*. Its answer names the commit that it
+read. For each spec file that the PR marks *extends*, the answer has a line that agrees, or a blocking finding.
+
+A commit after the review needs a new review, in every PR.
 
 Claude fixes the blocking findings, and asks a new reviewer to look again. When Claude and the reviewer still do
 not agree on a blocking finding after a few rounds, Claude asks the user. The PR text lists the findings Claude did

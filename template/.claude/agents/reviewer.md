@@ -29,7 +29,8 @@ rules. Do not change any file, branch or PR, and do not post anything to GitHub.
 3. **The spec** (docs/how-we-work.md, "Each PR keeps the spec", "Extensions and revisions"):
    - code that no longer does what a spec doc says, behaviour that changed without its spec doc, and a check or a
      test made weaker so that it passes;
-   - evidence that the PR's *Evidence* section does not show, such as the browser checks of a page it changes;
+   - evidence that the PR's *Evidence* section does not show, such as the browser checks of a page it changes. The
+     `Extension agreed` lines come after your review: their absence is not a finding;
    - spec files the PR touches but does not declare in its *Spec changes* section, and a spec test whose docstring
      does not state the rule that it enforces;
    - for each spec file marked *extends*: whether it only adds, and keeps each promise that the spec already makes.
@@ -50,9 +51,11 @@ A list, most severe first, at most 15 findings:
 - **<blocking|should|nit>** `path:line`: the problem, in one or two sentences. **Standard:** the section of
   docs/review.md (or "bug"). **Fix:** the change, concrete.
 
+Then the commit you reviewed, in one line: `Reviewed: <commit>`. Read it (`gh pr view <number> --json
+headRefOid`) before the diff, and again at the end. If it changed, review again.
+
 Then one line for each spec file that the PR marks *extends* and that you agree is an extension:
-`Extension agreed: <path>`. Write the lines only when you have no blocking finding. Name the commit you reviewed
-(`gh pr view <number> --json headRefOid`) in one line before them: `Reviewed: <commit>`.
+`Extension agreed: <path>`. Write the lines only when you have no blocking finding.
 
 End with one line: the count at each level. With no findings, answer "No findings.", the commit line, the extension
 lines, and the count line.
