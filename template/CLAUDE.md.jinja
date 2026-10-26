@@ -15,6 +15,23 @@ Read these first:
 - docs/contract.md: the views the app reads.
 - docs/dashboard.md: the app's pages, and the questions that they answer.
 - docs/scaffold.md and docs/deviations.md: what comes from the scaffold, and where this app differs.
+- docs/how-we-work.md, docs/spec.md and docs/review.md: how we work, what the spec is, and the review standards.
+
+## How we work
+
+The user sets outcomes (GitHub issues with the label `outcome`, run with `/deliver-outcome`). Inside the spec
+(docs/spec.md), you work on your own: long sessions, PRs you merge yourself. A change to the spec waits for the
+user's approval, but you go on building on top of it, in stacked PRs. docs/how-we-work.md is the canonical description.
+- **Every change is a PR.** Each PR passes CI, `uv run {{ project_name }} spec-diff` and the `reviewer` agent.
+- **Merge a PR that leaves the spec unchanged** (`gh pr merge --merge`). **Never merge a PR that changes the
+  spec** (CI labels it `spec-change`): the user merges it, or tells you to.
+- **Name each spec change** in the PR's *Spec changes* section, and keep it in a PR of its own.
+- **Report** dependency changes and new tags in the PR and in the outcome report.
+- **The hard stops** (docs/how-we-work.md, "What waits for the user"): an action that cannot be undone needs the
+  user's yes in the chat first, for that action. These are: publishing, deploying, changing who can open the hosted
+  app, a command that costs money, anything sent to another person; deleting `data/`{% if backup %} or `backups/`{% endif %},
+  `git clean`, a force-push, deleting a pushed tag. `.claude/settings.json` makes Claude Code prompt before the usual
+  commands. Never write a command another way to avoid the prompt.
 
 ## Rules
 
@@ -51,8 +68,9 @@ Read these first:
 
 ## Running
 
-- Run the commands with `uv run {{ project_name }} …` (see docs/cli.md). Use `uv` for all Python work. Ask the user
-  before you add a dependency. Discuss a choice of language or library with the user before you build on it.
+- Run the commands with `uv run {{ project_name }} …` (see docs/cli.md). Use `uv` for all Python work. Report a
+  dependency you add or remove in the PR. Discuss a choice of language or library with the user before you build on
+  it.
 - Keep DuckDB at 1.5.x. MotherDuck does not support DuckDB 2.0 yet. DuckDB 2.0 writes a file that 1.x cannot open.
 - A command that connects to the internet needs the sandbox off in Claude Code.
 
@@ -64,6 +82,7 @@ Read these first:
   variants stays in builder code (`tests/app/contract_data.py`).
 - `uv run ruff check .` must pass before a commit.
 - `uv run {{ project_name }} doctor` must pass: the repo is in step with the scaffold.
+- `uv run pytest -m spec` runs the spec tests: the key rules of the logic (docs/spec.md).
 
 ## Notifications
 
@@ -71,7 +90,7 @@ Read these first:
 
 ## Git
 
-- Commit only when the user asks.
-- Never commit or push to `main`. Make a branch, push it, and open a PR (`gh pr create`) for the user to review and
-  merge. When a change has several parts, send them as stacked PRs, each on the one before.
-- Do not merge a PR, force-push or delete a branch unless the user asks.
+- Never commit or push to `main`. Make a branch, push it, and open a PR (`gh pr create`). When a change has several
+  parts, send them as stacked PRs, each on the one before.
+- Merge with a merge commit, so that each merge reverts on its own. Delete a branch once its PR is merged.
+- Never force-push, and never move or delete a pushed tag.

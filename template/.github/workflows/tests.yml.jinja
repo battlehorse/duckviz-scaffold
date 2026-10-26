@@ -6,9 +6,12 @@ on:
   push:
     branches: [main]
   pull_request:
+    # edited: a PR's base can change (a stacked PR retargeted to main), and the spec job must look again
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   test:
+    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -21,3 +24,45 @@ jobs:
         run: uv run pytest -q --cov={{ package }} --cov-report=term
       - name: Scaffold
         run: uv run {{ project_name }} doctor
+
+  # Labels a PR that changes the spec (docs/spec.md) with spec-change: only the user merges those
+  # (docs/how-we-work.md). Claude reads the label before it merges.
+  spec:
+    if: github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base)
+    runs-on: ubuntu-latest
+    concurrency:  # one run per PR: an older run must not set the label after a newer one
+      group: spec-${{ '{{' }} github.event.pull_request.number {{ '}}' }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10.3.2
+      - name: Install
+        run: uv sync --locked
+      - name: Spec diff
+        id: diff
+        run: |
+          set +e
+          uv run {{ project_name }} spec-diff --base "origin/${{ '{{' }} github.base_ref {{ '}}' }}"
+          code=$?
+          set -e
+          case $code in
+            0) echo "changed=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "changed=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$code" ;;  # spec-diff could not tell: fail, so the PR does not look safe to merge
+          esac
+      - name: Label
+        env:
+          GH_TOKEN: ${{ '{{' }} github.token {{ '}}' }}
+          PR: ${{ '{{' }} github.event.pull_request.number {{ '}}' }}
+        run: |
+          gh label create spec-change --color D93F0B --description "Changes the spec: the user merges it" --force
+          if [ "${{ '{{' }} steps.diff.outputs.changed {{ '}}' }}" = true ]; then
+            gh pr edit "$PR" --add-label spec-change
+          else
+            gh pr edit "$PR" --remove-label spec-change || true
+          fi

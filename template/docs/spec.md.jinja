@@ -1,0 +1,36 @@
+# The spec
+
+The spec of {{ project_name }} is what changes only with the user's approval. Inside it, Claude works on its own and
+merges its PRs (docs/how-we-work.md). A PR that changes it waits for the user. `.claude/spec-paths` holds the same list
+as patterns, for `spec-diff` and CI: keep the two in step.
+
+| Group | What it defines | Its canonical docs and files |
+|---|---|---|
+| **Purpose** | what the app is for: the questions it answers, and the scenarios | `docs/dashboard.md` |
+| **Shape** | how the app is built: its parts, how data flows, the commands | `docs/architecture.md`, `docs/cli.md`{% if cloud_run %}, `docs/hosting.md`{% endif %} |
+| **Data** | the shape of the data: the contract the app reads, the database and its migrations{% if curations %}, the curated tables{% endif %} | `docs/contract.md`, `src/{{ package }}/contract/`, `src/{{ package }}/db/schema.sql` and `store.py`{% if curations %}, `src/{{ package }}/curated.py`{% endif %} |
+| **Behaviour** | what the app does: in the browser, on the real data, and the key rules of its logic | `docs/browser-checks.md`, `tests/test_real_data.py`, the spec tests (`@pytest.mark.spec`) and the fixtures they use (`conftest.py`), `tests/app/test_contract_only.py`, the pytest settings |
+| **Guardrails** | how the work is done, and what it must not do | `src/{{ package }}/spec.py` (the guard's rules), CLAUDE.md, `.claude/project-rules.md`, `.claude/settings.json`, `.claude/agents/`, `docs/how-we-work.md`, `docs/review.md`, `docs/deviations.md`, CI and the git hooks, this file |
+
+## The spec tests
+
+A spec test is a functional test of a key rule of the business logic, marked `@pytest.mark.spec`: about one for each
+rule. Its docstring states the rule that it enforces, in one sentence. `uv run pytest -m spec` runs them. A new spec test is not a spec change. A spec test that changes, goes, or
+loses its mark is. The rest of the suite is not spec: it changes with the code.
+
+Mark a test as spec when its rule is one the user would name: the totals reconcile, ingesting twice adds nothing, a
+decision by hand is never overwritten, the browser app reads only the contract.
+
+## Outside the spec, and reported
+
+- Dependency changes (`pyproject.toml`, `uv.lock`) and new release tags: the PR text and the outcome report list
+  them.
+- Not files, but always the user's call (the hard stops of docs/how-we-work.md): what is published, what is deployed,
+  and who can open the hosted app.
+{%- if curations %}
+- `curated/*.csv` is not spec but the user's decisions. Only the commands write it.
+{%- endif %}
+
+## This app's additions
+
+(List here the sub-docs and files this app adds to the spec, and add them to `.claude/spec-paths`.)

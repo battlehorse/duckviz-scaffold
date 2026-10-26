@@ -16,14 +16,16 @@ Template-managed files:
 - `CLAUDE.md` (this app's rules are in `.claude/project-rules.md`, which it imports)
 - `pyproject.toml` (keep this app's dependencies; the merge keeps them)
 - `.gitignore`, `.python-version`, `.streamlit/config.toml`
-- `.github/workflows/tests.yml`, `.github/workflows/scaffold-update.yml`
+- `.github/workflows/tests.yml`, `.github/workflows/scaffold-update.yml`, `.github/pull_request_template.md`
 - `.githooks/pre-commit`
+- how we work: `docs/how-we-work.md`, `docs/review.md`, `.claude/settings.json` (the prompts before a hard stop),
+  `.claude/agents/reviewer.md`
 {%- if cloud_run %}
 - `Dockerfile`, `.dockerignore`, `.gcloudignore`, `docs/hosting.md`
 {%- endif %}
 - `docs/scaffold.md`, `docs/cli.md`{% if motherduck %}, `docs/claude-chat.md`{% endif %}
 - `tests/app/test_contract_only.py`
-- the skills: `app`, `app-check`, `catch-up`, `scaffold-update`{% if motherduck %}, `publish`{% endif %}{% if backup %}, `backup`{% endif %}{% if cloud_run %}, `hosting`{% endif %}{% if curations %}, `rebuild-database`{% endif %}
+- the skills: `app`, `app-check`, `catch-up`, `deliver-outcome`, `scaffold-update`{% if motherduck %}, `publish`{% endif %}{% if backup %}, `backup`{% endif %}{% if cloud_run %}, `hosting`{% endif %}{% if curations %}, `rebuild-database`{% endif %}
 
 The answers this repo was made with (its name, port, and options) are in `.copier-answers.yml`.
 

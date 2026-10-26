@@ -140,6 +140,8 @@ _exclude:
     docs/getting-started.md
     docs/deviations.md
     docs/browser-checks.md
+    docs/spec.md
+    .claude/spec-paths
     .claude/skills/ingest/SKILL.md
     .claude/skills/ask/SKILL.md
     .claude/skills/demo-data/SKILL.md
@@ -167,6 +169,8 @@ _skip_if_exists:
   - docs/getting-started.md
   - docs/deviations.md
   - docs/browser-checks.md
+  - docs/spec.md
+  - .claude/spec-paths
   - .claude/skills/ingest/SKILL.md
   - .claude/skills/ask/SKILL.md
   - .claude/skills/demo-data/SKILL.md

@@ -271,6 +271,7 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 | `app [name] [--tailnet] [--demo]` | serves an app | `serve.run_app` |
 | `privacy-check` | fails when a committable file holds personal data | `privacy.check` |
 | `doctor [--remote]` | compares the repo with the scaffold | `doctor.diagnose` |
+| `spec-diff [--base]` | lists what a branch changes in the spec, and exits 1 if anything | `specdiff.spec_diff` |
 | `curated-check [--base]` | what a commit (or a branch) does to the curated files; fails on a large loss | `curated.file_changes` |
 
 The hooks:
@@ -362,6 +363,26 @@ make `doctor` fail; notes don't. It checks that:
 - every opted-out file is explained in `docs/deviations.md`.
 
 CI runs `doctor` on every PR. `/catch-up` runs it with `--remote`.
+
+## `duckkit.specdiff`
+
+**What it is for:** telling whether a branch changes the app's spec, the part that only the user approves
+(docs/how-we-work.md).
+
+`spec_diff(root, base="origin/main")` compares the working tree with its merge base with `base`: commits,
+uncommitted changes and untracked files. It returns a `SpecDiff`:
+- `files`: the changed files that `.claude/spec-paths` matches, by group (`[data]`, `[guardrails]`, …);
+- `spec_tests`: the spec tests (`@pytest.mark.spec`, on a test, its class or the module's `pytestmark`) that
+  changed, were removed or lost their mark. It compares their code with `ast`, so a test that only moves does not
+  count;
+- `new_spec_tests`: new ones, which are not a spec change;
+- `dependencies`: the dependencies added, removed or changed in `pyproject.toml`, reported and not counted.
+
+`changed` is True when `files` or `spec_tests` holds anything. The `spec-diff` command prints it and exits 1 when the
+spec changed. CI uses the exit code to set the PR's `spec-change` label. In the scaffold repo, which has no app
+command, run `uv run --project kit python -m duckkit.specdiff [base]`.
+
+`.claude/spec-paths` holds `[group]` lines, then one glob pattern per line (`**` for any depth), and `#` comments.
 
 ## `duckkit.app.common`
 

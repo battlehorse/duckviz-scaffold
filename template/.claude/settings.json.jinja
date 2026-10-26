@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(uv run {{ project_name }} publish)",
+      "Bash(uv run {{ project_name }} publish --to *)",
+      "Bash(gcloud run deploy *)",
+      "Bash(gcloud run services update *)",
+      "Bash(gcloud run services update-traffic *)",
+      "Bash(gcloud run services replace *)",
+      "Bash(gcloud run services delete *)",
+      "Bash(gcloud * add-iam-policy-binding *)",
+      "Bash(gcloud * remove-iam-policy-binding *)",
+      "Bash(gcloud * set-iam-policy *)",
+      "Bash(git push *--force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * -f*)",
+      "Bash(git push *--delete*)",
+      "Bash(git push * :*)",
+      "Bash(git clean *)",
+      "Bash(rm *data)",
+      "Bash(rm *data/*)",
+      "Bash(rm *backups*)"
+    ]
+  }
+}

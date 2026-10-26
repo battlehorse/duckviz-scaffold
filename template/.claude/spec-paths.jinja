@@ -1,0 +1,42 @@
+# The spec of {{ project_name }}: what changes only with the user's approval (docs/spec.md explains each group).
+# `[group]`, then one glob pattern per line, from the repo root (`**` for any depth). `uv run {{ project_name }}
+# spec-diff` and CI read it. Add this app's own sub-docs and files to their group.
+
+[purpose]
+docs/dashboard.md
+
+[shape]
+docs/architecture.md
+docs/cli.md
+{%- if cloud_run %}
+docs/hosting.md
+{%- endif %}
+
+[data]
+docs/contract.md
+src/{{ package }}/contract/**
+src/{{ package }}/db/schema.sql
+src/{{ package }}/db/store.py
+{%- if curations %}
+src/{{ package }}/curated.py
+{%- endif %}
+
+[behaviour]
+docs/browser-checks.md
+tests/test_real_data.py
+tests/app/test_contract_only.py
+tests/**/conftest.py   # the fixtures the spec tests use
+
+[guardrails]
+src/{{ package }}/spec.py   # the guard's rules: what the browser app may import and read
+CLAUDE.md
+.claude/project-rules.md
+.claude/settings.json
+.claude/agents/**
+.claude/spec-paths
+docs/spec.md
+docs/how-we-work.md
+docs/review.md
+docs/deviations.md
+.github/workflows/**
+.githooks/**

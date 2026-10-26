@@ -1,19 +1,27 @@
 """Ingesting is idempotent, and the views it builds conform to the contract."""
 
+import pytest
+
 from {{ package }}.ingest.pipeline import run
 from {{ package }}.spec import SPEC
 
 
+@pytest.mark.spec
 def test_the_views_conform(ingested):
+    """The views that ingest builds hold the shape that docs/contract.md promises."""
     assert SPEC.contract.check(ingested) == []
     assert ingested.execute("SELECT count(*) FROM v_daily").fetchone()[0] == 3
 
 
+@pytest.mark.spec
 def test_ingesting_again_adds_nothing(ingested, tmp_path):
+    """Ingesting a file again adds no row: a re-run is always safe."""
     assert run(ingested, [tmp_path / "sample.csv"])["new"] == 0
 
 
+@pytest.mark.spec
 def test_a_bad_file_is_reported_and_skipped(db, tmp_path):
+    """A file that does not parse adds no row, and the ingest log records the failure."""
     bad = tmp_path / "bad.csv"
     bad.write_text("day,value\nnot-a-day,1\n")
     summary = run(db, [bad])

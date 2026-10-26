@@ -13,6 +13,7 @@
 | `app [name] [--tailnet] [--demo]` | serve a Streamlit app on localhost, optionally on the tailnet |
 | `privacy-check` | fail if a committable file holds personal data (the pre-commit hook) |
 | `doctor` | how this repo compares with the scaffold it was made from |
+| `spec-diff [--base]` | the parts of the spec a change touches (`.claude/spec-paths`); exits 1 if any |
 | `curated-check [--base]` | what a commit (or a branch) does to curated/*.csv; fails when a file loses many rows (`curations=True`) |
 """
 
@@ -57,6 +58,22 @@ def backups_line(spec: AppSpec) -> str:
     hours = (datetime.now(UTC) - stamp).total_seconds() / 3600
     age = f"{hours:.0f} hours" if hours < 48 else f"{hours / 24:.0f} days"
     return f"Backups:      {len(found)}, the newest {age} old ({spec.backup_dir()})"
+
+
+def print_spec_diff(root: Path, base: str) -> None:
+    """Print `spec-diff` for the repo at `root`. Exit 1 when the spec changed, and 2 when it can't tell (CI must not
+    take an error for a change)."""
+    from duckkit.specdiff import spec_diff
+
+    try:
+        diff = spec_diff(root, base)
+    except ValueError as e:
+        typer.echo(f"✗ {e}", err=True)
+        raise typer.Exit(2) from e
+    for line in diff.lines():
+        typer.echo(line)
+    if diff.changed:
+        raise typer.Exit(1)
 
 
 def add_standard_commands(
@@ -274,3 +291,10 @@ def add_standard_commands(
             typer.echo(line)
         if report.problems:
             raise typer.Exit(1)
+
+    @app.command("spec-diff")
+    def spec_diff_command(
+        base: str = typer.Option("origin/main", help="The branch to compare with (from its merge base)."),
+    ) -> None:
+        """List the parts of the spec that this branch changes, committed or not. Exit 1 if it changes any."""
+        print_spec_diff(spec.root, base)

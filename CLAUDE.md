@@ -12,6 +12,24 @@ Read these first:
 - docs/template.md: the template: answers, options and capabilities, the files it manages, deviations.
 - docs/upgrading.md: the cycle (discover → upstream → release → apply), and adopting the scaffold in an existing repo.
 - CHANGELOG.md
+- docs/how-we-work.md and docs/review.md: how we work, and the review standards. They are the template's files
+  (`template/docs/`): this repo works the same way as the apps.
+
+## How we work
+
+The user sets outcomes (GitHub issues with the label `outcome`). Inside the spec, you work on your own: long
+sessions, and PRs you merge yourself. docs/how-we-work.md is the canonical description. In this repo:
+- **The spec** is `.claude/spec-paths`: the docs, duckkit's public API (`__init__.py`, `spec.py`), the `copier.yml`
+  questions, and the guardrails (CLAUDE.md, the template's CLAUDE.md, how-we-work.md, review.md, settings, agents, CI,
+  `render.sh`). Run `uv run --project kit python -m duckkit.specdiff` to see what a branch changes in it.
+- **A release is part of an outcome.** It ships to every app, so its PR names the apps' **Steps**. You may make the
+  release PR and the tag once its changes are merged.
+- **Every change is a PR** that passes CI and the `reviewer` agent. Merge one that leaves the spec unchanged. A PR
+  that changes the spec waits for the user, and you go on building on top of it.
+- **The hard stops** (docs/how-we-work.md, "What waits for the user"): an action that cannot be undone needs the
+  user's yes in the chat first. In this repo: a force-push, deleting or moving a pushed tag, and `git clean`.
+  `.claude/settings.json` makes Claude Code prompt before the usual commands. Never write a command another way to
+  avoid the prompt.
 
 ## Rules
 
@@ -37,11 +55,11 @@ Read these first:
   are for the ingestion side (`duckkit.testing.guard.KIT_SERVICE`).
 - **Template files:** files that end in `.jinja` are rendered. Files in `_skip_if_exists` are seeded once and the
   app owns them; a change to them reaches only new apps. The `/upstream` skill brings a change from an app into here.
-- **Releases** happen only when the user asks, through a PR (`scripts/release.py`, docs/upgrading.md).
+- **Releases** go through a PR (`scripts/release.py`, docs/upgrading.md), as part of an outcome the user set.
 
 ## Dependencies and tools
 
-- Ask the user before you add a dependency to duckkit or to the template: every app gets it.
+- Report a dependency you add to duckkit or to the template in the PR: every app gets it.
 - Discuss a choice of language or library with the user before you build on it.
 - Use `uv` for all Python work, and `uv run` for tests and scripts.
 - Keep DuckDB at 1.5.x (`duckdb>=1.5.6,<2`). MotherDuck does not support DuckDB 2.0 yet.
@@ -59,7 +77,7 @@ Read these first:
 
 ## Git
 
-- Commit only when the user asks.
-- Never commit or push to `main`. Make a branch, push it, and open a PR (`gh pr create`) for the user to review and
-  merge. When a change has several parts, send them as stacked PRs, each on the one before.
-- Do not merge a PR, force-push or delete a branch unless the user asks.
+- Never commit or push to `main`. Make a branch, push it, and open a PR (`gh pr create`). When a change has several
+  parts, send them as stacked PRs, each on the one before.
+- Merge with a merge commit, so that each merge reverts on its own. Branches are deleted on merge.
+- Never force-push, and never move or delete a pushed tag.
