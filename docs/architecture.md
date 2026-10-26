@@ -161,7 +161,7 @@ The template writes `docs/cli.md` for each app, and the Claude Code skills (docs
   variables) set them. Then comes the default.
 - **Personal data never goes into git.** That covers secrets, addresses, names, readings and screenshots of real
   data. `privacy-check` scans every file git would commit for:
-  - the values of `spec.private_settings` and the MotherDuck token;
+  - the values of `spec.private_settings`, the MotherDuck token and the Anthropic API key;
   - the terms under `[privacy] terms`;
   - the app's own terms, such as names found in its database.
 
