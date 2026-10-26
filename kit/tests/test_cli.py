@@ -186,3 +186,21 @@ def test_status_says_a_demo_database_is_made_up(cli, closed_db, spec):
     with duckdb.connect(str(spec.db_path)) as con:
         con.execute("CREATE TABLE demo_params (params VARCHAR)")
     assert "Demo:         made-up data (`shop demo`), not your own" in runner.invoke(cli, ["status"]).output
+
+
+def test_curated_check_refuses_an_emptied_file_unless_confirmed(cli, spec, monkeypatch):
+    def git(*args):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *args], cwd=spec.root,
+                       check=True, capture_output=True)
+
+    spec.curated_dir.mkdir()
+    (spec.curated_dir / "labels.csv").write_text("day,label\n2026-01-01,away\n2026-01-02,home\n")
+    git("init", "-q", "-b", "main")
+    git("add", "curated")
+    git("commit", "-q", "-m", "decisions")
+    (spec.curated_dir / "labels.csv").write_text("day,label\n")
+    git("add", "curated")
+    result = runner.invoke(cli, ["curated-check"])
+    assert result.exit_code == 1 and "labels.csv: 2 → 0 rows" in result.output
+    monkeypatch.setenv("ALLOW_CURATED_LOSS", "1")
+    assert runner.invoke(cli, ["curated-check"]).exit_code == 0

@@ -13,6 +13,7 @@
 | `app [name] [--tailnet] [--demo]` | serve a Streamlit app on localhost, optionally on the tailnet |
 | `privacy-check` | fail if a committable file holds personal data (the pre-commit hook) |
 | `doctor` | how this repo compares with the scaffold it was made from |
+| `curated-check [--base]` | what a commit (or a branch) does to curated/*.csv; fails when a file loses many rows |
 """
 
 from collections.abc import Callable
@@ -233,6 +234,26 @@ def add_standard_commands(
         if findings:
             fail(f"{len(findings)} lines with personal data: remove them before committing")
         typer.echo("✓ no personal data in the files git would commit")
+
+    @app.command("curated-check")
+    def curated_check_command(
+        base: str = typer.Option(None, help="Compare the working tree with this branch, instead of the commit."),
+    ) -> None:
+        """Show what the next commit (or, with --base, this branch) does to the curated decisions. Fail when a file is
+        emptied or loses many rows, unless ALLOW_CURATED_LOSS=1: the pre-commit hook runs it."""
+        import os
+
+        from duckkit.curated import file_changes
+
+        changes = file_changes(spec, base)
+        for change in changes:
+            typer.echo(f"  {'✗' if change.loses_many else '·'} {change.line()}")
+        many = [c for c in changes if c.loses_many]
+        if many and os.environ.get("ALLOW_CURATED_LOSS") != "1":
+            fail(f"{', '.join(c.name for c in many)} would lose many decisions. Check `git diff --cached curated/`."
+                 " If you meant it, commit again with ALLOW_CURATED_LOSS=1. If not, `git checkout HEAD -- curated/`"
+                 " brings them back")
+        typer.echo("✓ curated decisions: " + (f"{len(changes)} files change" if changes else "no change"))
 
     @app.command("doctor")
     def doctor_command(

@@ -15,6 +15,8 @@ A curated table is one of two kinds:
   database doesn't have yet (its source file isn't ingested) is skipped.
 """
 
+import subprocess
+from collections import Counter
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -170,3 +172,66 @@ def _load(con: duckdb.DuckDBPyConnection, table: CuratedTable, path: Path) -> in
         sets = ", ".join(f"{c} = {value(c)}" for c in table.columns if c != table.key)
         sql = f"UPDATE {table.name} t SET {sets} FROM {source} c WHERE t.{table.key} = {value(table.key)}"
     return con.execute(sql).fetchone()[0]
+
+
+# ─── The git guard: what a commit does to the curated files ───
+
+@dataclass(frozen=True)
+class FileChange:
+    """What a change does to one curated file: its rows (without the header) before and after, and the rows added
+    and removed. A changed row counts as one removed and one added."""
+
+    name: str
+    before: int
+    after: int
+    added: int
+    removed: int
+
+    @property
+    def loses_many(self) -> bool:
+        """The file is emptied, or loses more than 5 rows and more than a tenth of them: that is rarely a decision."""
+        lost = self.before - self.after
+        return (self.before > 0 and self.after == 0) or (lost > 5 and lost > self.before / 10)
+
+    def line(self) -> str:
+        return f"{self.name}: {self.before} → {self.after} rows (+{self.added}, −{self.removed})"
+
+
+def file_changes(spec: AppSpec, base: str | None = None) -> list[FileChange]:
+    """The curated files that a change touches, with their rows before and after.
+
+    Without `base`, it compares the staged files with HEAD: what the next commit does (the pre-commit hook). With
+    `base` (a branch, say), it compares the working tree with `base`: what a PR does."""
+    folder = spec.curated_dir.relative_to(spec.root).as_posix()
+    before_ref = base or "HEAD"
+    names = set(_git_lines(spec, "ls-tree", "--name-only", before_ref, f"{folder}/"))
+    names |= set(_git_lines(spec, "ls-files", f"{folder}/")) if base is None else {
+        f"{folder}/{p.name}" for p in spec.curated_dir.glob("*.csv")}
+    changes = []
+    for path in sorted(n for n in names if n.endswith(".csv")):
+        old = _rows(_git_text(spec, f"{before_ref}:{path}"))
+        new = _rows(_git_text(spec, f":{path}") if base is None else _file_text(spec.root / path))
+        if old == new:
+            continue
+        added, removed = Counter(new) - Counter(old), Counter(old) - Counter(new)
+        changes.append(FileChange(Path(path).name, len(old), len(new), sum(added.values()), sum(removed.values())))
+    return changes
+
+
+def _rows(text: str | None) -> list[str]:
+    """The data lines of a CSV's text, without its header."""
+    return text.splitlines()[1:] if text else []
+
+
+def _git_lines(spec: AppSpec, *args: str) -> list[str]:
+    done = subprocess.run(["git", *args], cwd=spec.root, capture_output=True, text=True, check=False)
+    return done.stdout.splitlines() if done.returncode == 0 else []
+
+
+def _git_text(spec: AppSpec, object_name: str) -> str | None:
+    done = subprocess.run(["git", "show", object_name], cwd=spec.root, capture_output=True, text=True, check=False)
+    return done.stdout if done.returncode == 0 else None
+
+
+def _file_text(path: Path) -> str | None:
+    return path.read_text() if path.exists() else None

@@ -1,12 +1,23 @@
 """Curated decisions: exported sorted and atomically, restored into a rebuilt database in one transaction, never
 wiped by a database without decisions, and kept apart from a demo database."""
 
+import subprocess
 from datetime import date
 
 import duckdb
 import pytest
 
-from duckkit.curated import CuratedTable, Refused, curating, export, holds_decisions, not_manual, restore
+from duckkit.curated import (
+    CuratedTable,
+    FileChange,
+    Refused,
+    curating,
+    export,
+    file_changes,
+    holds_decisions,
+    not_manual,
+    restore,
+)
 from duckkit.demo import build_demo
 from duckkit.store import connect
 from tests.conftest import DB_SCHEMA
@@ -189,3 +200,50 @@ def test_not_manual():
     with duckdb.connect() as c:
         rows = c.execute(f"SELECT x FROM (VALUES ('llm'), ('manual'), (NULL)) t(x) WHERE {not_manual('x')}").fetchall()
     assert sorted(rows, key=str) == [("llm",), (None,)]
+
+
+# ─── The git guard ───
+
+def git(root, *args):
+    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *args], cwd=root, check=True,
+                   capture_output=True)
+
+
+@pytest.fixture
+def committed(con, spec):
+    """The decisions exported and committed: 2 labels, 2 items."""
+    export(con, spec.curated_dir, TABLES)
+    git(spec.root, "init", "-q", "-b", "main")
+    git(spec.root, "add", "curated")
+    git(spec.root, "commit", "-q", "-m", "decisions")
+    return con
+
+
+def test_the_guard_lists_what_the_next_commit_does_to_each_file(committed, spec):
+    committed.execute("UPDATE items SET kind = 'veg' WHERE name = 'pear'")
+    committed.execute("INSERT INTO labels VALUES ('2026-04-01', 'new', 'manual', NULL)")
+    export(committed, spec.curated_dir, TABLES)
+    git(spec.root, "add", "curated")
+    changes = {c.name: c for c in file_changes(spec)}
+    assert changes["items.csv"] == FileChange("items.csv", 2, 2, added=1, removed=1)  # a changed row
+    assert changes["labels.csv"] == FileChange("labels.csv", 2, 3, added=1, removed=0)
+    assert not any(c.loses_many for c in changes.values())
+
+
+def test_an_emptied_file_is_a_loss_to_confirm(committed, spec):
+    (spec.curated_dir / "labels.csv").write_text("day,label,classified_by,classified_at\n")
+    git(spec.root, "add", "curated")
+    (change,) = file_changes(spec)
+    assert change.loses_many and change.line() == "labels.csv: 2 → 0 rows (+0, −2)"
+
+
+def test_losing_a_few_rows_of_many_is_not_flagged():
+    assert not FileChange("skus.csv", 2000, 1995, added=0, removed=5).loses_many
+    assert FileChange("skus.csv", 2000, 1700, added=0, removed=300).loses_many
+    assert not FileChange("skus.csv", 2000, 2000, added=300, removed=300).loses_many  # a reclassification
+
+
+def test_against_a_branch_the_guard_reads_the_working_tree(committed, spec):
+    (spec.curated_dir / "items.csv").write_text("name,kind\n")  # not staged
+    assert file_changes(spec) == []
+    assert [c.line() for c in file_changes(spec, base="main")] == ["items.csv: 2 → 0 rows (+0, −2)"]

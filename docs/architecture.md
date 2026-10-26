@@ -176,6 +176,43 @@ is then imported into memory and compared with the source, table by table, by ro
 contents. Only the newest 30 are kept. `restore` builds a new database file from a snapshot and never overwrites
 an existing one. `status` shows how old the newest backup is.
 
+## Curated decisions (the `curations` option)
+
+Some data can't come again from the sources: the **decisions** that people, or a model, make about it. A product's
+category, a merchant's name and a day's label are examples. A decision costs time or money to make, so it must
+survive the loss of the database.
+
+**Where they live.** In the database, in the curated tables, next to the data they describe. The app, the commands
+and every query read them there. `curated/*.csv` is a copy of those tables, committed to git.
+
+**When the files are written: after the database.** A command that changes a decision (a fix by hand, a model's
+classification) changes the database first. Then `curating()` copies the curated tables into the files. So the
+files are downstream of the database. Don't edit them by hand: the next command would overwrite the edit.
+
+**When the files are read: only to rebuild a database.** This happens when the database file is deleted or lost,
+on a new clone of the repo, or after a schema change that has no migration (`/rebuild-database`). At the end of
+that `ingest`, `restore` loads the files into the empty curated tables. In normal work, nothing reads the files:
+not new data, not a re-ingest, not a command.
+
+**How new data meets old decisions: through keys, in the database.** The ingestion computes a key for each row
+from the raw data, for example a SKU key from a product's name. A new row whose key already has a decision gets it
+at once, because the views join on the key. A row with a new key has no decision until a command, or a model,
+makes one.
+
+**What keeps them safe:**
+- `curating()` refuses a command while the database holds no decisions and the files hold some. That is a rebuilt
+  database before `ingest` has restored it, so the command's export would keep only its own decisions. `ingest`
+  may still run, because it restores the files first.
+- Git keeps every earlier version of the files. A decision can still be lost from the database: a rebuild with some
+  sources missing doesn't restore their decisions, so the next export leaves them out of the file. The pre-commit
+  hook runs `curated-check`, which lists what a commit does to each file. It stops a commit that empties a file or
+  loses many rows, until the user confirms it (`ALLOW_CURATED_LOSS=1`). `git checkout HEAD -- curated/` brings
+  the files back.
+- A demo database is refused: its made-up decisions must never reach the files.
+- The files are the user's decisions, so a repo with curations stays private. `doctor --remote` checks this.
+
+duckkit's functions are in docs/kit.md (`duckkit.curated`).
+
 ## Code: duckkit, the template, the app
 
 ```mermaid
