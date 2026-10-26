@@ -22,6 +22,7 @@ from duckkit.spec import AppSpec
 # duckkit's ingestion side: the browser app never needs it
 KIT_SERVICE = {f"duckkit.{m}" for m in (
     "store", "backup", "privacy", "publish", "cli", "doctor", "serve", "demo", "curated", "specdiff",
+    "hosting",
 )}
 
 

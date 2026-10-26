@@ -3,7 +3,7 @@ name: catch-up
 description: Start-of-session briefing for {{ project_name }}. Pulls main, lists open PRs and issues, syncs dependencies, shows the database status and contract check{% if motherduck %}, whether the published copy is current{% endif %}{% if cloud_run %}, whether Cloud Run runs the latest commit{% endif %}, whether the app runs, and whether the scaffold has a newer release.
 when_to_use: >-
   Use when the user says things like "catch up", "where were we", "what's the state", "start of session".
-allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bash(git log *) Bash(git branch *) Bash(gh pr list *) Bash(gh issue list *) Bash(uv sync) Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} doctor *) Bash(curl -s localhost:*/_stcore/health){% if motherduck %} Bash(uv run {{ project_name }} publish --check){% endif %}{% if cloud_run %} Bash(gcloud run services describe {{ project_name }} *) Bash(git rev-list *){% endif %}
+allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bash(git log *) Bash(git branch *) Bash(gh pr list *) Bash(gh issue list *) Bash(uv sync) Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} status --remote) Bash(uv run {{ project_name }} doctor *) Bash(curl -s localhost:*/_stcore/health)
 ---
 
 # Catch up
@@ -12,15 +12,18 @@ allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bas
    List local branches not merged (`git branch --no-merged main`).
 2. **GitHub.** `gh pr list` and `gh issue list --limit 10`.
 3. **Dependencies.** `uv sync`.
-4. **Data.** `uv run {{ project_name }} status`. Say how fresh the data is, and any contract problem.
+4. **Data.** `uv run {{ project_name }} status{% if motherduck or cloud_run %} --remote{% endif %}`. Say how fresh the data is,
+   and any contract problem.
 {%- if motherduck %}
-5. **Published copy.** `uv run {{ project_name }} publish --check`. If it is stale, say so (do not publish: only on request).
+   - "Published:" says whether the published copy is current. If it is not, say so (do not publish: only on
+     request).
 {%- endif %}
 {%- if cloud_run %}
-6. **Hosted app.** The deployed commit (`gcloud run services describe {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --format="value(spec.template.metadata.labels.commit)"`) against `origin/main` (`git rev-list --count <commit>..origin/main`).
+   - "Deployed:" says whether the hosted app runs the latest commit. If not, suggest `/hosting deploy` (do not
+     deploy: only on request).
 {%- endif %}
-7. **The app.** Health of http://localhost:{{ app_port }}: running or not.
-8. **Scaffold.** `uv run {{ project_name }} doctor --remote`. If a newer release is out, suggest `/scaffold-update`.
+5. **The app.** Health of http://localhost:{{ app_port }}: running or not.
+6. **Scaffold.** `uv run {{ project_name }} doctor --remote`. If a newer release is out, suggest `/scaffold-update`.
 
 Report in a short list: what changed, what needs attention, and a suggested next step. Change nothing beyond the
 pull and `uv sync`.

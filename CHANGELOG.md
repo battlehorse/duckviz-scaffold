@@ -5,6 +5,10 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: **`status --remote`** says whether the published copy is current ("Published:", from `publish.compare`)
+  and, with `cloud_run`, whether the hosted app runs the latest commit ("Deployed:", from the service's `commit`
+  label against `origin/main`). A check that can't run says why in its line. `duckkit.hosting` reads the label.
+- Template: `/catch-up` runs `status --remote` in place of `publish --check` and its own `gcloud` lines.
 - duckkit: the guard (`testing.guard.KIT_SERVICE`) also keeps `duckkit.curated` and `duckkit.specdiff` out of the
   browser app, as docs/kit.md already says (both are ingestion-side).
 - Template: `/app-check` and the seeded browser checks switch the theme with the Light and Dark buttons of the ⋮

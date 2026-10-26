@@ -17,7 +17,8 @@ see where the modules fit in an app, read docs/architecture.md first.
 - Modules: [spec](#duckkitspec) · [contract](#duckkitcontract) · [snapshot](#duckkitsnapshot) ·
   [store](#duckkitstore) · [publish](#duckkitpublish) · [backup](#duckkitbackup) · [privacy](#duckkitprivacy) ·
   [serve](#duckkitserve) · [cli](#duckkitcli) · [demo](#duckkitdemo) · [curated](#duckkitcurated) ·
-  [doctor](#duckkitdoctor) · [specdiff](#duckkitspecdiff) · [app.common](#duckkitappcommon) ·
+  [doctor](#duckkitdoctor) · [hosting](#duckkithosting) · [specdiff](#duckkitspecdiff) ·
+  [app.common](#duckkitappcommon) ·
   [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
 - [Hooks](#hooks-where-an-apps-domain-goes-in)
 - [Compatibility](#compatibility)
@@ -57,6 +58,7 @@ module belongs to one of them:
 | [`serve`](#duckkitserve) | ingestion | run a Streamlit app on localhost, optionally on the tailnet |
 | [`cli`](#duckkitcli) | ingestion | the command-line commands every app has |
 | [`doctor`](#duckkitdoctor) | ingestion | compare the repo with the scaffold release it comes from |
+| [`hosting`](#duckkithosting) | ingestion | what the hosted app runs: its commit against `origin/main` |
 | [`specdiff`](#duckkitspecdiff) | ingestion | list what a branch changes in the app's spec |
 | [`demo`](#duckkitdemo) | ingestion | build a demo database, and tell one apart from the real one |
 | [`curated`](#duckkitcurated) | ingestion | keep curated decisions in `curated/*.csv`, and restore them into a rebuilt database |
@@ -269,7 +271,7 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 
 | Command | Does | Built on |
 |---|---|---|
-| `status` | prints the app's `status(con)` lines, a "Demo:" line for a demo database, the backups line, and the contract check | `snapshot.database_snapshot`, `Contract.check` |
+| `status [--remote]` | prints the app's `status(con)` lines, a "Demo:" line for a demo database, the backups line, and the contract check. `--remote` adds whether the published copy is current ("Published:", with `publishing`) and whether the hosted app runs the latest commit ("Deployed:", with `cloud_run`) | `snapshot.database_snapshot`, `Contract.check`, `publish.compare`, `hosting.deployed` |
 | `sql "SELECT …" [--limit]` | runs exactly one `SELECT` on a snapshot of the whole database and prints a table | `snapshot.database_snapshot` |
 | `publish [--to] [--dry-run] [--check]` | sends the views (refusing a demo database), shows what would go, or compares | `publish`, `demo.is_demo` |
 | `backup` / `backups` / `restore <snapshot> [--to]` | makes a verified snapshot, lists them, or rebuilds a new file from one | `backup` |
@@ -369,6 +371,17 @@ make `doctor` fail; notes don't. It checks that:
 - every opted-out file is explained in `docs/deviations.md`.
 
 CI runs `doctor` on every PR. `/catch-up` runs it with `--remote`.
+
+## `duckkit.hosting`
+
+**What it is for:** telling whether the hosted app (the `cloud_run` option) runs the latest code, for
+`status --remote` and `/catch-up`. The deploy of `/hosting` labels the Cloud Run service with the commit it built.
+
+- `service(spec)`: (service, project, region) from `.copier-answers.yml`, or None without `cloud_run`.
+- `deployed(spec)` reads the service's `commit` label with `gcloud`, and counts the commits of `origin/main` that it
+  lacks (`git rev-list`, as of the last fetch). It returns a `Deployed(commit, behind)`, or None without
+  `cloud_run`. `behind` is None when the commit is not in this clone. A failure (no `gcloud`, no access, no label)
+  is a `HostingError` with a message. Nothing here changes the service or the repo.
 
 ## `duckkit.specdiff`
 

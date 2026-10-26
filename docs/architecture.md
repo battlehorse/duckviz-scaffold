@@ -142,7 +142,7 @@ calls `duckkit.cli.add_standard_commands`, which adds the commands every app has
 
 | Command | What it does |
 |---|---|
-| `status` | the app's own summary lines, the backups line, then the contract check |
+| `status [--remote]` | the app's own summary lines, the backups line, then the contract check. `--remote` adds whether the published copy and the hosted app are current |
 | `sql "SELECT …"` | one read-only query on a snapshot of the whole database |
 | `publish [--to] [--dry-run] [--check]` | send the contract's views to MotherDuck; show what would go; compare the published copy |
 | `backup`, `backups`, `restore` | verified Parquet snapshots of the whole database |
