@@ -12,9 +12,9 @@ only sends them, with the settings every app wants:
 - the tokens of every call in `Claude.usage`, and their cost.
 
 A run that costs money is a hard stop (docs/how-we-work.md): the user says yes in the chat first. `cost_gate` keeps a
-run from starting by accident: without `--yes`, the command shows the estimate and sends nothing. The app's
-`.claude/settings.json` makes Claude Code ask before the `--yes` command. Tests use `duckkit.testing.FakeAnthropic`:
-no network and no key.
+run from starting by accident: without `--yes`, the command shows the estimate and sends nothing. The app adds the
+`--yes` command to the `ask` rules of its `.claude/settings.json` (docs/how-we-work.md). Tests use
+`duckkit.testing.FakeAnthropic`: no network and no key.
 """
 
 import json
@@ -87,7 +87,6 @@ class Usage:
         return f"API: {self.calls} calls, {tokens_in} input / {self.output_tokens} output tokens, ≈ ${self.cost:.2f}"
 
 
-
 @dataclass
 class Claude:
     """Claude, for one run of an app's command. `client` is the anthropic client (a fake one in tests)."""
@@ -128,9 +127,14 @@ class Claude:
             raise LLMError(f"API error {e.status_code}: {e.message}") from e
         except anthropic.APIConnectionError as e:
             raise LLMError("could not reach the Anthropic API") from e
+        except anthropic.APIError as e:  # an answer the SDK could not read, say
+            raise LLMError(f"API error: {e}") from e
         self.usage.add(response.usage)
         if response.stop_reason == "refusal":
-            raise LLMError(f"the request was declined: {response.stop_details}")
+            details = response.stop_details
+            category = getattr(details, "category", None) or "no category"
+            explanation = getattr(details, "explanation", None) or "no explanation"
+            raise LLMError(f"the request was declined ({category}): {explanation}")
         if response.stop_reason == "max_tokens":
             raise LLMError("the answer was cut off (max_tokens): send a smaller batch")
         text = next((block.text for block in response.content if block.type == "text"), None)
@@ -154,11 +158,12 @@ def _anthropic():
 def cost_gate(spec: AppSpec, what: str, estimate: Decimal, yes: bool, command: str) -> bool:
     """Whether a paid run may start: only with `yes`. Without it, print what the run would send and cost, and the
     command that runs it. The flag keeps a run from starting by accident; the hard stop is still the user's yes in
-    the chat, and the app's `.claude/settings.json` makes Claude Code ask before the `--yes` command.
+    the chat, and the app adds the `--yes` command to the `ask` rules of its `.claude/settings.json`.
 
     `what` says what the run covers ("120 rows"); `command` is the command line to run it (`classify`)."""
     if yes:
         return True
-    typer.echo(f"This run would send {what} to Claude, for about ${estimate:.2f}. Nothing was sent.")
+    cost = "under $0.01" if estimate < Decimal("0.01") else f"about ${estimate:.2f}"
+    typer.echo(f"This run would send {what} to Claude, for {cost}. Nothing was sent.")
     typer.echo(f"To run it: uv run {spec.cli} {command} --yes")
     return False

@@ -81,12 +81,13 @@ def not_json():
 
 
 @pytest.mark.parametrize("reply, message", [
-    (claude_reply({}, stop_reason="refusal"), "declined"),
+    (claude_reply({}, stop_reason="refusal"), r"declined \(cyber\): declined"),
     (claude_reply({}, stop_reason="max_tokens"), "cut off"),
     (no_text(), "no text"),
     (not_json(), "not the JSON"),
     (anthropic.AuthenticationError("bad key", response=response(401), body=None), "rejected"),
     (anthropic.InternalServerError("boom", response=response(500), body=None), "API error 500"),
+    (anthropic.APIResponseValidationError(response=response(200), body=None), "API error"),
     (anthropic.APIConnectionError(request=httpx2.Request("POST", "https://api.anthropic.com")), "could not reach"),
 ])
 def test_a_failed_call_raises_one_error_with_a_message(spec, reply, message):
@@ -108,6 +109,8 @@ def test_without_a_key_claude_says_where_to_put_it(spec):
 def test_the_gate_runs_a_paid_command_only_with_yes(spec, capsys):
     assert cost_gate(spec, "12 rows", Decimal("0.0312"), yes=True, command="classify")
     assert capsys.readouterr().out == ""
+    assert not cost_gate(spec, "2 rows", Decimal("0.004"), yes=False, command="classify")
+    assert "for under $0.01" in capsys.readouterr().out
     assert not cost_gate(spec, "12 rows", Decimal("0.0312"), yes=False, command="classify --limit 12")
     out = capsys.readouterr().out
     assert "12 rows" in out and "$0.03" in out and "Nothing was sent" in out
