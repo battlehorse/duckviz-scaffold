@@ -3,20 +3,21 @@ name: scaffold-update
 description: Bring this repo up to a newer release of duckviz-scaffold (the template and the duckkit package together), or turn a scaffold feature on. Runs copier update, resolves conflicts keeping this app's declared deviations, then checks tests, ruff and doctor, and opens a PR.
 when_to_use: >-
   Use when the user says things like "update the scaffold", "pull in the new scaffold release", "turn on cloud run", "enable backups", or when /catch-up or a scaffold-update PR says a release is out.
-argument-hint: "[vX.Y.Z] [-d option=value …]"
+argument-hint: "[vX.Y.Z] [turn on <option> …]"
 ---
 
 # Update from the scaffold
 
-Arguments: $ARGUMENTS (default: the newest release, same answers)
+Arguments: $ARGUMENTS (default: the newest release, same answers). They are plain words: a release, and the options
+to turn on, such as "turn on cloud_run" (docs/scaffold.md lists the options).
 
 Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app differs) first.
 
 1. **Start clean.** `git status` must be clean, on an up-to-date `main`. Make a branch: `scaffold/<release>`.
    If a `scaffold/<release>` PR from the weekly workflow exists, check it out instead and go to step 3.
-2. **Update.** `uvx copier update --trust --defaults --conflict inline` (add `--vcs-ref <release>` and any
-   `-d option=value` from the arguments). Copier re-renders the template at the old and new release with this repo's
-   answers and merges the difference.
+2. **Update.** `uvx copier update --trust --defaults --conflict inline` (add `--vcs-ref <release>`, and
+   `-d <option>=true` for each option to turn on). Copier re-renders the template at the old and new release with
+   this repo's answers and merges the difference.
 3. **Read the release notes**: the scaffold's CHANGELOG.md entries between `_commit` before and after
    (`git diff .copier-answers.yml`). Do the steps they list by hand.
 4. **Resolve conflicts.** `git grep -n '^<<<<<<< '`. For each:

@@ -28,6 +28,8 @@ and the user reviews only the changes to the spec.
 - Fixes, `curations`:
   - `restore` keeps an empty text apart from a NULL. Before, a decision with an empty text came back as NULL.
   - `/rebuild-database` names the ingest command of `/ingest`, with the source files only when it takes them.
+- Template: `/scaffold-update` takes the options to turn on in plain words (`/scaffold-update turn on cloud_run`),
+  and docs/scaffold.md says so.
 
 **Steps:**
 - Seeded files don't arrive with an update. Write `docs/spec.md` and `.claude/spec-paths` (the template's show

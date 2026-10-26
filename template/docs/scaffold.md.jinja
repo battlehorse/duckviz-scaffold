@@ -42,7 +42,8 @@ and the pre-commit hook, `app --tailnet`, settings in `config.toml`. These optio
 | `demo_data` | {{ 'yes' if demo_data else 'no' }} | `demo` builds `data/demo.duckdb` (`src/{{ package }}/demo.py`), `app --demo` reads it, `/demo-data` |
 | `curations` | {{ 'yes' if curations else 'no' }} | decisions in `curated/*.csv`, committed (`src/{{ package }}/curated.py`), restored by `ingest`; `/rebuild-database`, `/fix-curation`; the repo stays private |
 
-To turn one on: `uvx copier update --trust -d <option>=true`, then review the diff like any update.
+To turn one on, ask `/scaffold-update`, such as `/scaffold-update turn on cloud_run`. Without Claude, run
+`uvx copier update --trust -d <option>=true`. Then review the diff like any update.
 
 ## Updating
 
