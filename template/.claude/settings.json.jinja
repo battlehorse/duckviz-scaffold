@@ -3,7 +3,7 @@
     "ask": [
       "Bash(uv run {{ project_name }} publish)",
       "Bash(uv run {{ project_name }} publish --to *)",
-{%- if llm %}
+{%- if curations and llm %}
       "Bash(uv run {{ project_name }} classify --yes*)",
       "Bash(uv run {{ project_name }} classify * --yes*)",
 {%- endif %}
