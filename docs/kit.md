@@ -314,32 +314,28 @@ classification) and that the source files can't give again. They live in curated
 committed to git: the database can be deleted and rebuilt without losing them. A repo with curations stays private.
 
 A `CuratedTable(name, columns, order_by, where=None, key=None)` is one of two kinds:
-- **its own rows** (no `key`): the decisions are the rows (a merchant and its category). `order_by` names the
-  columns of a unique key. `restore` inserts each row of the file whose key the table doesn't have.
+- **its own rows** (no `key`): the decisions are the rows (a merchant and its category). `restore` inserts them.
 - **decisions on the ingestion's rows** (`key`): the ingestion makes the rows, and a command fills in some columns
-  (a SKU's product). `where` picks the rows that hold a decision. `restore` puts each decision on the row with its
-  key, when that row holds none. A decision whose key the database doesn't have yet **waits in the file**: the
-  export keeps it, and the `ingest` that brings its source restores it.
-
-The rule behind the functions: nothing that curated/ holds is lost. A decision that the database lacks, and that
-curated/ could restore, is **restorable**.
+  (a SKU's product). `where` picks the rows that hold a decision, and `restore` updates rows by `key`, skipping keys
+  the database doesn't have yet.
 
 The functions:
 - `curating(spec, connect, tables, restores=False)`: the connection for every command that changes a decision. It
   exports the tables after the command, and after a failure too. On a failure it rolls back the half-finished
-  transaction, and exports what earlier batches committed. It raises `Refused` (a `ValueError`) for a demo
-  database. It also raises `Refused` while the database lacks restorable decisions, for example a rebuilt database
-  before `ingest`. `ingest` passes `restores=True`, because it calls `restore` before the export.
-- `restore(con, directory, tables, after=None)`: loads the restorable decisions, in one transaction. Run it at the
-  end of every ingestion. It returns the rows restored per table, or None when it restored nothing. A file written
-  before a column existed restores the column empty. A missing file is skipped. `after(con)` runs in the same
-  transaction when something was restored: what the app derives from the decisions.
-- `export(con, directory, tables, held_before=())`: writes `<name>.csv` per table, sorted by `order_by`, and
-  replaces each file atomically. A keyed table keeps the decisions that wait in its file. A table with restorable
-  decisions is not written, unless it is in `held_before`: it held decisions before the command, so the command
-  removed them. `curating` passes the tables that held decisions as the command began. It returns True when it
-  wrote every table.
-- `restorable(con, directory, tables)`: the restorable decisions, per table.
+  transaction, and exports what earlier batches committed. It raises `Refused` (a `ValueError`) in two cases:
+  - a demo database;
+  - a database that holds no decisions while the files hold some: a rebuilt database that `ingest` has not restored
+    yet. The export would replace the files with this command's decisions only. `ingest` passes `restores=True`,
+    because it calls `restore` before the export.
+- `export(con, directory, tables, held_decisions_before=False)`: writes `<name>.csv` per table, sorted by
+  `order_by`. It replaces each file atomically. A database with no decisions at all never replaces files that hold
+  some: it writes nothing and returns False. With `held_decisions_before=True` it writes anyway, because no
+  decisions now means that a command removed them. `curating` passes it when the database held decisions as the
+  command began.
+- `restore(con, directory, tables, after=None)`: loads the files into a database with no decisions yet, in one
+  transaction, and returns the rows per table (None when there was nothing to do). Run it at the end of the
+  ingestion. A file written before a column existed restores the column empty; a missing file is skipped.
+  `after(con)` runs in the same transaction: what the app derives from the decisions.
 - `holds_decisions(con, tables)`: whether the database holds any.
 - `not_manual(column="classified_by")`: SQL for "a model may redo this decision": not made by hand.
 

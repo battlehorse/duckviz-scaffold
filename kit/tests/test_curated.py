@@ -32,11 +32,6 @@ def con(spec):
     con.close()
 
 
-def command(spec, restores=False):
-    """The connection of a command that changes decisions (`restores`: of `ingest`)."""
-    return curating(spec, lambda: connect(spec, SCHEMA), TABLES, restores=restores)
-
-
 def rebuilt(spec):
     """A new database with the ingestion's rows and no decisions."""
     spec.db_path.unlink()
@@ -123,20 +118,20 @@ def test_a_database_without_decisions_never_wipes_the_files(con, spec):
 def test_a_table_emptied_on_purpose_is_written(con, spec):
     export(con, spec.curated_dir, TABLES)
     con.execute("DELETE FROM labels")
-    assert export(con, spec.curated_dir, TABLES, held_before={"labels"})
+    assert export(con, spec.curated_dir, TABLES)
     assert (spec.curated_dir / "labels.csv").read_text().splitlines() == ["day,label,classified_by,classified_at"]
 
 
 def test_curating_exports_after_the_command(con, spec):
     con.close()
-    with command(spec) as c:
+    with curating(spec, lambda: connect(spec, SCHEMA), TABLES) as c:
         c.execute("UPDATE items SET kind = 'veg' WHERE name = 'leek'")
     assert "leek,veg" in (spec.curated_dir / "items.csv").read_text()
 
 
 def test_curating_exports_what_was_committed_when_the_command_fails(con, spec):
     con.close()
-    with pytest.raises(RuntimeError), command(spec) as c:
+    with pytest.raises(RuntimeError), curating(spec, lambda: connect(spec, SCHEMA), TABLES) as c:
         c.execute("UPDATE items SET kind = 'veg' WHERE name = 'leek'")  # committed: a batch done
         c.begin()
         c.execute("DELETE FROM labels")  # the half-finished batch
@@ -149,7 +144,7 @@ def test_curating_writes_the_removal_of_the_last_decision(con, spec):
     con.execute("UPDATE items SET kind = NULL")
     export(con, spec.curated_dir, TABLES)
     con.close()
-    with command(spec) as c:
+    with curating(spec, lambda: connect(spec, SCHEMA), TABLES) as c:
         c.execute("DELETE FROM labels")
     assert (spec.curated_dir / "labels.csv").read_text().splitlines() == ["day,label,classified_by,classified_at"]
 
@@ -159,8 +154,9 @@ def test_curating_refuses_a_database_not_restored_yet(con, spec):
     saved = {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES}
     con.close()
     rebuilt(spec).close()
-    with pytest.raises(Refused, match="run `shop ingest` first"), command(spec) as c:
-        c.execute("INSERT INTO labels VALUES ('2026-04-01', 'new', 'manual', NULL)")  # would export only this
+    with pytest.raises(Refused, match="run `shop ingest` first"), curating(spec, lambda: connect(spec, SCHEMA),
+                                                                          TABLES) as c:
+        c.execute("INSERT INTO labels VALUES ('2026-04-01', 'new', 'manual', NULL)")  # would export this row only
     assert {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES} == saved
 
 
@@ -169,7 +165,7 @@ def test_ingest_curates_a_database_not_restored_yet_and_restores_it(con, spec):
     saved = {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES}
     con.close()
     rebuilt(spec).close()
-    with command(spec, restores=True) as c:
+    with curating(spec, lambda: connect(spec, SCHEMA), TABLES, restores=True) as c:
         assert restore(c, spec.curated_dir, TABLES)
     assert {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES} == saved
 
@@ -179,7 +175,7 @@ def test_curating_refuses_a_demo_database(con, spec):
     build_demo(spec, lambda path: connect(spec, SCHEMA, path=path), lambda c: None, "", path=spec.demo_db_path)
     spec.db_path.unlink()
     spec.demo_db_path.rename(spec.db_path)
-    with pytest.raises(Refused, match="is a demo database"), command(spec):
+    with pytest.raises(Refused, match="is a demo database"), curating(spec, lambda: connect(spec, SCHEMA), TABLES):
         pass
     assert not spec.curated_dir.exists()
 
@@ -193,54 +189,3 @@ def test_not_manual():
     with duckdb.connect() as c:
         rows = c.execute(f"SELECT x FROM (VALUES ('llm'), ('manual'), (NULL)) t(x) WHERE {not_manual('x')}").fetchall()
     assert sorted(rows, key=str) == [("llm",), (None,)]
-
-
-def files(spec):
-    return {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES}
-
-
-def test_a_decision_waits_in_its_file_until_its_source_is_ingested(con, spec):
-    con.execute("INSERT INTO items VALUES ('quince', 'fruit', 0.7, 'q')")
-    export(con, spec.curated_dir, TABLES)
-    con.close()
-    con = rebuilt(spec)  # apple, leek and pear: the source of quince is not ingested yet
-    con.close()
-    with command(spec, restores=True) as c:
-        assert restore(c, spec.curated_dir, TABLES) == {"labels": 2, "items": 2}
-    assert "quince,fruit" in (spec.curated_dir / "items.csv").read_text()  # kept by the export
-    with command(spec, restores=True) as c:  # quince's source arrives
-        c.execute("INSERT INTO items VALUES ('quince', NULL, 0.7, 'q')")
-        assert restore(c, spec.curated_dir, TABLES) == {"items": 1}
-        assert c.execute("SELECT kind FROM items WHERE name = 'quince'").fetchone() == ("fruit",)
-
-
-def test_only_waiting_decisions_do_not_block_the_commands(con, spec):
-    con.execute("DELETE FROM labels")
-    con.execute("UPDATE items SET kind = NULL")
-    export(con, spec.curated_dir, TABLES, held_before={"labels", "items"})
-    (spec.curated_dir / "items.csv").write_text("name,kind\nquince,fruit\n")  # its source is not ingested
-    con.close()
-    with command(spec) as c:
-        c.execute("INSERT INTO labels VALUES ('2026-04-01', 'new', 'manual', NULL)")
-    assert (spec.curated_dir / "items.csv").read_text() == "name,kind\nquince,fruit\n"
-
-
-def test_each_table_is_guarded_on_its_own(con, spec):
-    export(con, spec.curated_dir, TABLES)
-    saved = files(spec)
-    con.execute("DELETE FROM labels")  # labels lack their decisions, items keep theirs
-    con.close()
-    with pytest.raises(Refused, match="2 in labels"), command(spec) as c:
-        c.execute("INSERT INTO labels VALUES ('2026-04-01', 'new', 'manual', NULL)")
-    assert files(spec) == saved
-
-
-def test_an_ingest_that_fails_before_its_restore_keeps_the_files(con, spec):
-    export(con, spec.curated_dir, TABLES)
-    saved = files(spec)
-    con.close()
-    rebuilt(spec).close()
-    with pytest.raises(RuntimeError), command(spec, restores=True) as c:
-        c.execute("INSERT INTO labels VALUES ('2026-04-01', 'new', 'manual', NULL)")  # made by the ingestion
-        raise RuntimeError("a bad source file")
-    assert files(spec) == saved

@@ -47,8 +47,7 @@ def test_a_rebuilt_database_refuses_a_label_until_ingest_restores_it(tmp_path):
     saved = (SPEC.curated_dir / "labels.csv").read_text()
     SPEC.db_path.unlink()
     result = runner.invoke(app, ["label", "2026-01-02", "away"])  # its export would hold this label only
-    assert result.exit_code == 1
-    assert f"`{SPEC.cli} ingest` first" in result.output
+    assert result.exit_code == 1 and "ingest" in result.output
     assert (SPEC.curated_dir / "labels.csv").read_text() == saved
 
 

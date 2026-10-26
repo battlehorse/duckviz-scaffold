@@ -5,37 +5,22 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
-Fixes for two ways to lose curated decisions, found in review:
-- **A command on a rebuilt database before `ingest`** (`label`, say) replaced each file with that command's
-  decisions only. The next `ingest` did not restore the rest.
-- **A rebuild with some sources missing** dropped their keyed decisions from the file for good.
-
-The changes:
-- duckkit: **nothing that curated/ holds is lost.**
-  - `curating` raises `curated.Refused` while the database lacks decisions that curated/ could restore. Only
-    `ingest` passes `curating(..., restores=True)`, because it restores them before the export.
-  - A keyed decision whose key the database doesn't have waits in its file. `export` keeps it, and the `ingest` that
-    brings its source restores it.
-  - `restore` now runs on every `ingest`, and loads only what the database lacks: the file's rows whose unique key
-    (`order_by`) a table of its own rows doesn't have, and the decisions on keyed rows that hold none.
-  - `export` guards each table on its own. Its parameter `removed` is now `held_before`, the tables that held
-    decisions before the command.
-  - `restorable(con, directory, tables)` lists the decisions that `restore` would load.
-- duckkit: `CuratedTable` checks that `order_by` names columns, and that a keyed table has `where`.
-- duckkit: `curated.Refused` (a `ValueError`) is the error of both refusals. The demo refusal now names the `demo`
-  command.
-- Template, `curations`: `ingest` catches only `Refused`, so any other error keeps its traceback.
-  `/rebuild-database` is for the user to start only (`disable-model-invocation`). Its ingest step says not to run
-  the other steps of `/ingest`, such as a paid classification. Without `backup`, its step 2 warns that step 4
-  keeps the old database, instead of asking a second time (step 3 asks).
+- duckkit, **a fix for lost decisions**: `curating` now refuses a database that holds no decisions while curated/
+  holds some, such as a rebuilt database before `ingest`. Before this fix, a command on such a database (`label`,
+  say) replaced each file with that command's decisions only, and the next `ingest` did not restore the rest.
+  `curating(..., restores=True)` lets `ingest` run: it restores the decisions before the export.
+- duckkit: `curated.Refused` (a `ValueError`) is the error for both refusals: a demo database, and a database not
+  restored yet. The demo refusal now names the `demo` command.
+- duckkit: `export`'s parameter `removed` is now `held_decisions_before`.
+- Template, `curations`: `ingest` catches only `Refused`, so any other error keeps its traceback. `/rebuild-database`
+  is for the user to start only (`disable-model-invocation`). Its ingest step now says not to run the other steps
+  of `/ingest`, such as a paid classification.
 
 **Steps:**
 - With `curations` on: seeded files don't arrive with an update. In `src/<package>/curated.py`, give `curating` a
   `restores` parameter and pass it to `duckkit.curated.curating` (the template's file shows how). In `ingest`, call
-  `curating(restores=True)`, call `restore` at the end of every ingestion (not only into an empty database), and
-  catch `duckkit.curated.Refused` there instead of every `ValueError`.
-- If the app calls `export(..., removed=...)`, pass `held_before=` instead: the names of the tables that held
-  decisions.
+  `curating(restores=True)`, and catch `duckkit.curated.Refused` there instead of every `ValueError`.
+- If the app calls `export(..., removed=...)`, rename the argument to `held_decisions_before`.
 
 ## v0.5.1
 
