@@ -24,7 +24,7 @@ def make_contract(version: str = "1.0") -> Contract:
 
 @pytest.fixture
 def spec(tmp_path, monkeypatch) -> AppSpec:
-    for name in ("MOTHERDUCK_TOKEN", "SHOP_DB", "SHOP_APP_DB", "SHOP_BACKUP_DIR"):
+    for name in ("MOTHERDUCK_TOKEN", "ANTHROPIC_API_KEY", "SHOP_DB", "SHOP_APP_DB", "SHOP_BACKUP_DIR"):
         monkeypatch.delenv(name, raising=False)
     return AppSpec(package="shop", root=tmp_path, contract=make_contract(), apps=[AppEntry("app", port=8600)],
                    timezone="Europe/London", motherduck_target="md:shop", demo_file="demo.duckdb",

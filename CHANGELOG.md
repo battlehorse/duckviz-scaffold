@@ -5,6 +5,13 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`,
+  one structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`;
+  `Usage` and `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which runs a paid command only with
+  `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
+- duckkit: `[anthropic] api_key` (`ANTHROPIC_API_KEY`) is a standard private setting: `spec.anthropic_api_key()`,
+  `privacy-check` refuses its value in git, and `testing.isolate` unsets it. The guard keeps `duckkit.llm` out of
+  the browser app.
 - duckkit: **`status --remote`** says whether the published copy is current ("Published:", from `publish.compare`)
   and, with `cloud_run`, whether the hosted app runs the latest commit ("Deployed:", from the service's `commit`
   label against `origin/main`). A check that can't run says why in its line. `duckkit.hosting` reads the label.
