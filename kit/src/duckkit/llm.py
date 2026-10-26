@@ -30,12 +30,15 @@ EFFORT = "low"  # simple, well-specified judgments: low effort holds the quality
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
 # $ per million tokens: (input, output, cache read). A cache write (5 minutes) costs 1.25 times the input price.
-# Claude Haiku 5.5's prices hold for prompts up to 100K tokens; a longer prompt costs 5 times as much.
+# Claude Haiku 5.5's cache read is the usual tenth of its input price (the pricing page gives no separate figure).
 PRICES = {
     "claude-opus-5-5": (Decimal(4), Decimal(20), Decimal("0.20")),
     "claude-sonnet-5-5": (Decimal(2), Decimal(10), Decimal("0.20")),
     "claude-haiku-5-5": (Decimal("0.10"), Decimal("0.50"), Decimal("0.01")),
 }
+# The prices of a request whose prompt (input, cache writes and reads) is over LONG_PROMPT tokens, where they differ.
+LONG_PROMPT = 100_000
+LONG_PRICES = {"claude-haiku-5-5": (Decimal("0.50"), Decimal("2.50"), Decimal("0.05"))}
 CACHE_WRITE = Decimal("1.25")
 FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5"}  # Claude Haiku 5.5 has no server-side fallback
 
@@ -46,10 +49,11 @@ class LLMError(RuntimeError):
 
 def estimate_cost(model: str, input_tokens: int, output_tokens: int, cache_read_tokens: int = 0,
                   cache_write_tokens: int = 0) -> Decimal:
-    """The cost in $ of these tokens with `model`. Raises LLMError for a model that PRICES does not know."""
+    """The cost in $ of one request's tokens with `model`. Raises LLMError for a model that PRICES does not know."""
     if model not in PRICES:
         raise LLMError(f"no price for the model {model!r}: add it to duckkit.llm.PRICES")
-    price_in, price_out, price_read = PRICES[model]
+    prompt = input_tokens + cache_read_tokens + cache_write_tokens
+    price_in, price_out, price_read = LONG_PRICES.get(model, PRICES[model]) if prompt > LONG_PROMPT else PRICES[model]
     return (input_tokens * price_in + cache_write_tokens * price_in * CACHE_WRITE + cache_read_tokens * price_read
             + output_tokens * price_out) / 1_000_000
 
@@ -64,6 +68,7 @@ class Usage:
     cache_read_tokens: int = 0
     output_tokens: int = 0
     calls: int = 0
+    cost: Decimal = Decimal(0)  # each call priced by its own prompt size
 
     def add(self, usage) -> None:
         """Add the `usage` of one API response. After a server-side fallback, it counts only the attempt that
@@ -73,11 +78,8 @@ class Usage:
         self.cache_write_tokens += usage.cache_creation_input_tokens or 0
         self.cache_read_tokens += usage.cache_read_input_tokens or 0
         self.output_tokens += usage.output_tokens
-
-    @property
-    def cost(self) -> Decimal:
-        return estimate_cost(self.model, self.input_tokens, self.output_tokens, self.cache_read_tokens,
-                             self.cache_write_tokens)
+        self.cost += estimate_cost(self.model, usage.input_tokens, usage.output_tokens,
+                                   usage.cache_read_input_tokens or 0, usage.cache_creation_input_tokens or 0)
 
     def line(self) -> str:
         """One line for the command's output."""
@@ -131,8 +133,13 @@ class Claude:
             raise LLMError(f"the request was declined: {response.stop_details}")
         if response.stop_reason == "max_tokens":
             raise LLMError("the answer was cut off (max_tokens): send a smaller batch")
-        text = next(block.text for block in response.content if block.type == "text")
-        return json.loads(text)
+        text = next((block.text for block in response.content if block.type == "text"), None)
+        if text is None:
+            raise LLMError(f"the answer has no text (stop reason: {response.stop_reason})")
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            raise LLMError(f"the answer is not the JSON the schema asks for: {e}") from e
 
 
 def _anthropic():
