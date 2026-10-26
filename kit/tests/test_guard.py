@@ -36,9 +36,17 @@ def test_forbidden_modules(spec):
 
 def test_the_guard_refuses_every_ingestion_module_of_the_kit_docs():
     """docs/kit.md's "Which side may import what" is the list: each ingestion row is in KIT_SERVICE, and no other."""
-    table = (Path(__file__).parents[2] / "docs" / "kit.md").read_text().split("## Which side may import what")[1]
-    rows = re.findall(r"^\| \[`([\w.]+)`\]\(#[\w-]+\) \| (\w+) \|", table, re.MULTILINE)
-    assert rows, "no module rows found in docs/kit.md"
+    heading = "## Which side may import what"
+    text = (Path(__file__).parents[2] / "docs" / "kit.md").read_text()
+    assert heading in text, f"docs/kit.md has no {heading!r} section"
+    after = text.split(heading, 1)[1].lstrip("\n").split("\n\n", 1)[1]  # past the intro paragraph
+    table = [line for line in after.split("\n\n", 1)[0].splitlines() if line.startswith("|")][2:]  # no header rows
+    assert table, f"no table under {heading!r} in docs/kit.md"
+    rows = []
+    for line in table:
+        found = re.match(r"^\| \[`([\w.]+)`\]\(#[\w-]+\) \| (\w+) \|", line)
+        assert found, f"a row of docs/kit.md's module table that the test can't read: {line}"
+        rows.append(found.groups())
     assert {f"duckkit.{module}" for module, side in rows if side == "ingestion"} == guard.KIT_SERVICE
 
 
