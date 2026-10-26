@@ -5,30 +5,30 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
-**A new way of working** (docs/working.md): the user sets outcomes, Claude works on its own inside the app's spec,
+**A new way of working** (docs/how-we-work.md): the user sets outcomes, Claude works on its own inside the app's spec,
 and the user reviews only the changes to the spec.
 - duckkit: `spec-diff [--base]`, a standard command, lists what a branch changes in the spec, and exits 1 if
   anything (`duckkit.specdiff`). It reads `.claude/spec-paths`. It counts a spec test (`@pytest.mark.spec`) that
   changed, went, or lost its mark, and reports dependency changes without counting them.
 - Template, managed:
-  - `docs/working.md` (the cycle) and `docs/review.md` (the review standards);
-  - the `reviewer` agent (`.claude/agents/reviewer.md`) and the `/outcome` skill;
-  - the hard-stops hook: `.claude/settings.json` runs `.claude/hooks/hard_stops.py` before each shell command. It
-    refuses pushing to `main`, force-pushing and moving a tag. It asks the user before a publish, a deploy, an
-    access change, a paid classification, deleting or moving the data, and merging a PR that changes the spec;
+  - `docs/how-we-work.md` (the cycle) and `docs/review.md` (the review standards);
+  - the `reviewer` agent (`.claude/agents/reviewer.md`) and the `/deliver-outcome` skill;
+  - the hard stops: actions that cannot be undone (a publish, a deploy, an access change, deleting `data/` or
+    `backups/`, `git clean`, a force-push, deleting a pushed tag) need the user's yes. CLAUDE.md has the rule.
+    `.claude/settings.json` has Claude Code `ask` rules that prompt before the usual commands, in every mode;
   - the PR template, and a `spec` CI job that labels a PR that changes the spec (`spec-change`);
   - CLAUDE.md: a "How we work" section. Claude merges a PR that leaves the spec unchanged. Dependencies are reported,
     not asked for;
   - the `spec` pytest marker, and the template's guard test (`test_contract_only.py`) marked as spec.
 - Template, seeded: `docs/spec.md` and `.claude/spec-paths` (the app's spec), and the example's key tests marked
-  `@pytest.mark.spec`.
+  `@pytest.mark.spec`, each with a docstring that states its rule.
 - duckkit: `doctor` expects the new managed files, `docs/spec.md` and `.claude/spec-paths`.
 
 **Steps:**
 - Seeded files don't arrive with an update. Write `docs/spec.md` and `.claude/spec-paths` (the template's show
   how), with this app's own sub-docs and files. Mark this app's key functional tests `@pytest.mark.spec`.
-- Settings of your own in `.claude/settings.json` move to `.claude/settings.local.json`: the template now manages
-  the first.
+- `.claude/settings.json` is now managed. Settings of your own move to `.claude/settings.local.json`. Add the
+  app's own hard stops (a paid command, say) to its `ask` list, and list them in `docs/deviations.md`.
 - Create the `spec-change` label, or let the first PR's CI create it. The CI job needs `pull-requests: write`.
 
 ## v0.5.2

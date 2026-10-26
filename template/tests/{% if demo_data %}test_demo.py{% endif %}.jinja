@@ -26,6 +26,7 @@ def test_demo_builds_the_same_database_for_the_same_seed():
 
 @pytest.mark.spec
 def test_demo_never_writes_over_the_real_database(app_db):
+    """`demo` refuses to replace a database that is not a demo database."""
     result = runner.invoke(app, ["demo", "--out", str(app_db)])
     assert result.exit_code == 1 and "is your database" in result.output
     assert not is_demo(SPEC, app_db)

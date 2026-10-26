@@ -12,22 +12,24 @@ Read these first:
 - docs/template.md: the template: answers, options and capabilities, the files it manages, deviations.
 - docs/upgrading.md: the cycle (discover → upstream → release → apply), and adopting the scaffold in an existing repo.
 - CHANGELOG.md
-- docs/working.md and docs/review.md: how we work, and the review standards. They are the template's files
+- docs/how-we-work.md and docs/review.md: how we work, and the review standards. They are the template's files
   (`template/docs/`): this repo works the same way as the apps.
 
 ## How we work
 
 The user sets outcomes (GitHub issues with the label `outcome`). Inside the spec, you work on your own: long
-sessions, and PRs you merge yourself. docs/working.md is the canonical description. In this repo:
+sessions, and PRs you merge yourself. docs/how-we-work.md is the canonical description. In this repo:
 - **The spec** is `.claude/spec-paths`: the docs, duckkit's public API (`__init__.py`, `spec.py`), the `copier.yml`
-  questions, and the guardrails (CLAUDE.md, the template's CLAUDE.md, working.md, review.md, hooks, agents, CI,
+  questions, and the guardrails (CLAUDE.md, the template's CLAUDE.md, how-we-work.md, review.md, settings, agents, CI,
   `render.sh`). Run `uv run --project kit python -m duckkit.specdiff` to see what a branch changes in it.
 - **A release is part of an outcome.** It ships to every app, so its PR names the apps' **Steps**. You may make the
   release PR and the tag once its changes are merged.
 - **Every change is a PR** that passes CI and the `reviewer` agent. Merge one that leaves the spec unchanged. A PR
   that changes the spec waits for the user, and you go on building on top of it.
-- **The hard stops** (docs/working.md has the list): the hook `template/.claude/hooks/hard_stops.py` runs here too.
-  Never try to get around it.
+- **The hard stops** (docs/how-we-work.md, "What waits for the user"): an action that cannot be undone needs the
+  user's yes in the chat first. In this repo: a force-push, deleting or moving a pushed tag, and `git clean`.
+  `.claude/settings.json` makes Claude Code prompt before the usual commands. Never write a command another way to
+  avoid the prompt.
 
 ## Rules
 

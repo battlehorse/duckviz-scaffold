@@ -28,6 +28,7 @@ def test_a_label_is_kept_in_curated(tmp_path):
 
 @pytest.mark.spec
 def test_a_rebuilt_database_gets_its_labels_back(tmp_path):
+    """A database rebuilt from the sources gets every decision of curated/ back."""
     ingest(tmp_path)
     runner.invoke(app, ["label", "2026-01-01", "holiday"])
     SPEC.db_path.unlink()

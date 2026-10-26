@@ -9,7 +9,7 @@ from duckkit.testing import guard
 
 from {{ package }}.spec import SPEC
 
-pytestmark = pytest.mark.spec  # the guard rails are part of the spec (docs/spec.md)
+pytestmark = pytest.mark.spec  # the guard rails are part of the spec (docs/spec.md); the docstring above is the rule
 
 
 def test_the_app_reads_only_the_contracts_views():

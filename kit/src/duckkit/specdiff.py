@@ -1,4 +1,4 @@
-"""`spec-diff`: the parts of the spec that a change touches (docs/working.md).
+"""`spec-diff`: the parts of the spec that a change touches (docs/how-we-work.md).
 
 The spec is what changes only with the user's review: the docs that say what the app is for and how it is built,
 the contracts and schemas, the browser checks, the guardrails, and some of the tests. `.claude/spec-paths` lists it,

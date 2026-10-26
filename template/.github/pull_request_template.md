@@ -6,7 +6,13 @@
      only those, and waits for the user. -->
 
 ## Evidence
-<!-- The tests that pass (and the new ones), `pytest -m spec`, `-m realdata`, the browser checks walked, `doctor`. -->
+<!-- One line for each check, with a mark: ✅ passed, ❌ failed, ⚠️ passed with a note, ➖ not run (say why).
+✅ `pytest -q`: N passed, N new
+✅ `pytest -m spec`
+✅ `pytest -m realdata`
+✅ browser checks, light and dark
+✅ `doctor`
+-->
 
 ## Reported
 <!-- Dependency changes and new tags, or "None". The reviewer's findings not fixed, with the reason. -->

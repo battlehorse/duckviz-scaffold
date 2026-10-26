@@ -26,10 +26,13 @@ jobs:
         run: uv run {{ project_name }} doctor
 
   # Labels a PR that changes the spec (docs/spec.md) with spec-change: only the user merges those
-  # (docs/working.md). Claude's merge hook reads the label, and this job's result.
+  # (docs/how-we-work.md). Claude reads the label before it merges.
   spec:
     if: github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
+    concurrency:  # one run per PR: an older run must not set the label after a newer one
+      group: spec-${{ '{{' }} github.event.pull_request.number {{ '}}' }}
+      cancel-in-progress: true
     permissions:
       contents: read
       pull-requests: write
@@ -50,7 +53,7 @@ jobs:
           case $code in
             0) echo "changed=false" >> "$GITHUB_OUTPUT" ;;
             1) echo "changed=true" >> "$GITHUB_OUTPUT" ;;
-            *) exit "$code" ;;  # spec-diff could not tell: fail, so the hook's merge rule asks
+            *) exit "$code" ;;  # spec-diff could not tell: fail, so the PR does not look safe to merge
           esac
       - name: Label
         env:

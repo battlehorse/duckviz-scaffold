@@ -12,6 +12,9 @@ Each finding has a level:
 - **Should**: fix it in this PR, or say in the PR why not.
 - **Nit**: fix it if it is cheap.
 
+When the author and the reviewer still do not agree on a blocking finding after a few rounds, the author asks the
+user.
+
 Each standard below has a bad and a good example. The examples come from real changes, with the names made neutral.
 
 ## 1. Language

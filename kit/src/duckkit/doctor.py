@@ -51,13 +51,12 @@ EXPECTED = [
     (".githooks/pre-commit", None),
     (".github/pull_request_template.md", None),
     ("docs/spec.md", None),
-    ("docs/working.md", None),
+    ("docs/how-we-work.md", None),
     ("docs/review.md", None),
     (".claude/spec-paths", None),
     (".claude/settings.json", None),
-    (".claude/hooks/hard_stops.py", None),
     (".claude/agents/reviewer.md", None),
-    (".claude/skills/outcome/SKILL.md", None),
+    (".claude/skills/deliver-outcome/SKILL.md", None),
     ("config.example.toml", None),
 ]
 

@@ -15,20 +15,23 @@ Read these first:
 - docs/contract.md: the views the app reads.
 - docs/dashboard.md: the app's pages, and the questions that they answer.
 - docs/scaffold.md and docs/deviations.md: what comes from the scaffold, and where this app differs.
-- docs/working.md, docs/spec.md and docs/review.md: how we work, what the spec is, and the review standards.
+- docs/how-we-work.md, docs/spec.md and docs/review.md: how we work, what the spec is, and the review standards.
 
 ## How we work
 
-The user sets outcomes (GitHub issues with the label `outcome`, run with `/outcome`). Inside the spec
+The user sets outcomes (GitHub issues with the label `outcome`, run with `/deliver-outcome`). Inside the spec
 (docs/spec.md), you work on your own: long sessions, PRs you merge yourself. A change to the spec waits for the
-user's approval, but you go on building on top of it, in stacked PRs. docs/working.md is the canonical description.
+user's approval, but you go on building on top of it, in stacked PRs. docs/how-we-work.md is the canonical description.
 - **Every change is a PR.** Each PR passes CI, `uv run {{ project_name }} spec-diff` and the `reviewer` agent.
 - **Merge a PR that leaves the spec unchanged** (`gh pr merge --merge`). **Never merge a PR that changes the
-  spec:** the user does, or approves it in the hook's prompt.
+  spec** (CI labels it `spec-change`): the user merges it, or tells you to.
 - **Name each spec change** in the PR's *Spec changes* section, and keep it in a PR of its own.
 - **Report** dependency changes and new tags in the PR and in the outcome report.
-- **The hard stops** (docs/working.md has the list): the hook `.claude/hooks/hard_stops.py` refuses some commands,
-  and asks the user's yes for others. Never try to get around it.
+- **The hard stops** (docs/how-we-work.md, "What waits for the user"): an action that cannot be undone needs the
+  user's yes in the chat first, for that action. These are: publishing, deploying, changing who can open the hosted
+  app, a command that costs money, anything sent to another person; deleting `data/`{% if backup %} or `backups/`{% endif %},
+  `git clean`, a force-push, deleting a pushed tag. `.claude/settings.json` makes Claude Code prompt before the usual
+  commands. Never write a command another way to avoid the prompt.
 
 ## Rules
 

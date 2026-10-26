@@ -1,6 +1,6 @@
 ---
-name: outcome
-description: Work on an outcome the user set as a GitHub issue (label `outcome`), from the brief to the report, as docs/working.md describes. Posts a brief and waits for the user's approval, then works on its own in PRs, merges those that leave the spec unchanged, and ends with a report of the evidence and of each spec change.
+name: deliver-outcome
+description: Work on an outcome the user set as a GitHub issue (label `outcome`), from the brief to the report, as docs/how-we-work.md describes. Posts a brief and waits for the user's approval, then works on its own in PRs, merges those that leave the spec unchanged, and ends with a report of the evidence and of each spec change.
 when_to_use: >-
   Use when the user says things like "work on issue 12", "take the outcome in #12", "here is an outcome", or opens an
   issue with the label `outcome` and asks to start.
@@ -11,14 +11,14 @@ argument-hint: "<issue number>"
 
 Issue: $ARGUMENTS
 
-Read `docs/working.md` (the cycle), `docs/spec.md` (the spec) and `docs/review.md` (the standards) first. The rules
-of `docs/working.md` hold at every step.
+Read `docs/how-we-work.md` (the cycle), `docs/spec.md` (the spec) and `docs/review.md` (the standards) first. The rules
+of `docs/how-we-work.md` hold at every step.
 
 ## 1. The brief
 
 1. Read the issue: `gh issue view <number> --comments`. If it has no `outcome` label, ask the user whether it is one.
 2. Read the parts of the spec that the outcome touches, and the code behind them.
-3. Write the brief, with the parts that docs/working.md ("The cycle", step 2) lists. Post it as a comment on the
+3. Write the brief, with the parts that docs/how-we-work.md ("The cycle", step 2) lists. Post it as a comment on the
    issue: `gh issue comment <number> --body-file <file>`.
 4. Stop, and ask the user to approve the brief. Do not start the work before a yes, in a comment or in the chat.
 
@@ -31,7 +31,7 @@ For each PR of the plan:
    spec-diff`. Fix what fails.
 3. Open the PR, with the sections of `.github/pull_request_template.md`.
 4. Ask the `reviewer` agent to review the PR: give it the PR number only. Fix the blocking findings, then ask a new
-   reviewer. After 3 rounds with blocking findings left, stop and ask the user. Put the findings you don't fix in
+   reviewer. If you and the reviewer still disagree on a blocking finding after a few rounds, ask the user. Put the findings you don't fix in
    the PR text, with the reason.
 5. Wait for CI.
    - **No spec change:** merge it with a merge commit (`gh pr merge <number> --merge`), and go on.
@@ -44,12 +44,12 @@ database.
 {%- else -%}
 This app has no backups: before any command that changes the data, copy the database file (`data/{{ db_file }}`) to
 `data/{{ db_file }}.before`, and try risky changes on another copy.
-{%- endif %} When the hook asks for a hard stop, the user decides in the prompt.
+{%- endif %} A hard stop (docs/how-we-work.md, "What waits for the user") needs the user's yes in the chat first.
 
 ## 3. The report
 
 When every acceptance criterion holds:
-1. Collect the evidence that docs/working.md ("The cycle", step 4) lists: `uv run {{ project_name }} spec-diff` for each
+1. Collect the evidence that docs/how-we-work.md ("The cycle", step 4) lists: `uv run {{ project_name }} spec-diff` for each
    merged PR, `uv run pytest -q`, `uv run pytest -m spec`, `uv run pytest -m realdata`, `/app-check` in light and dark
    mode, `uv run {{ project_name }} doctor` and `uv run {{ project_name }} privacy-check`.
 2. Post the report as a comment on the issue, with the parts that step 4 lists, and what the outcome did not do.

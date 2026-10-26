@@ -170,9 +170,9 @@ There is no question for these. An app that truly can't have one lists it in `op
 | Serving on the tailnet | `app --tailnet`: `tailscale serve` to your own devices, for as long as the app runs |
 | CI | lint, tests and `doctor` on every PR, and the `spec` job that labels a PR that changes the spec (`.github/workflows/tests.yml`) |
 | Scaffold updates | the weekly `scaffold-update` workflow and `/scaffold-update` |
-| Claude Code | CLAUDE.md with the shared rules, and the skills `/app`, `/app-check`, `/catch-up`, `/outcome`, `/scaffold-update`, `/ingest`, `/ask` |
+| Claude Code | CLAUDE.md with the shared rules, and the skills `/app`, `/app-check`, `/catch-up`, `/deliver-outcome`, `/scaffold-update`, `/ingest`, `/ask` |
 | Docs | architecture, contract, dashboard, cli, getting-started, browser checks, scaffold, deviations |
-| How we work | docs/working.md (the cycle: outcomes, the spec, merges, the report), docs/spec.md and `.claude/spec-paths` (the app's spec, seeded), docs/review.md (the standards), the `reviewer` agent, the `/outcome` skill, the PR template, and the hard-stops hook (`.claude/settings.json`, `.claude/hooks/hard_stops.py`) |
+| How we work | docs/how-we-work.md (the cycle: outcomes, the spec, merges, the report), docs/spec.md and `.claude/spec-paths` (the app's spec, seeded), docs/review.md (the standards), the `reviewer` agent, the `/deliver-outcome` skill, the PR template, and `.claude/settings.json` (Claude Code prompts before a hard stop) |
 
 ## Deviations
 
@@ -198,7 +198,7 @@ Hidden answers are never asked:
 
 | Kind | Examples | On `copier update` |
 |---|---|---|
-| **Template-managed** | CLAUDE.md, pyproject.toml, CI, the PR template, Dockerfile, .streamlit/, .githooks/, generic skills, docs/scaffold.md, docs/cli.md, docs/hosting.md, docs/working.md, docs/review.md, .claude/settings.json, .claude/hooks/, .claude/agents/, tests/app/test_contract_only.py | The template's change is merged in, and the app's edits stay. |
+| **Template-managed** | CLAUDE.md, pyproject.toml, CI, the PR template, Dockerfile, .streamlit/, .githooks/, generic skills, docs/scaffold.md, docs/cli.md, docs/hosting.md, docs/how-we-work.md, docs/review.md, .claude/settings.json, .claude/agents/, tests/app/test_contract_only.py | The template's change is merged in, and the app's edits stay. |
 | **Seeded once** (`_skip_if_exists`, and excluded from updates) | src/<package>/, contract/schema.sql, README.md, config.example.toml, docs/architecture, contract, dashboard, getting-started, deviations, spec, .claude/project-rules.md, .claude/spec-paths, the ingest and ask skills, the tests other than the guard | Never touched again. |
 | **Shared code** | duckkit | Not in the app at all. It is a version in pyproject.toml. |
 
