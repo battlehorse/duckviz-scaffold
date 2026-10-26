@@ -7,8 +7,10 @@ reviewer gets the PR and this file, and nothing of the author's reasoning.
 
 Each finding has a level:
 
-- **Blocking**: the PR does not merge until the author fixes it. A bug, personal data, a spec change the PR does not
-  declare, or code or text that a reader cannot follow.
+- **Blocking**: the PR does not merge until the author fixes it. A bug, personal data, a spec file the PR touches but
+  does not declare, a spec file marked *extends* that is not an extension, a weakened check, missing evidence for a
+  check that applies, a file marked *revises* in a PR that holds more than the revision, or code or text that a
+  reader cannot follow.
 - **Should**: fix it in this PR, or say in the PR why not.
 - **Nit**: fix it if it is cheap.
 
@@ -163,9 +165,11 @@ module). Good: `lines_in_scope`, `receipts_in_period`, `weekly_spend`.
 - **Keep the PR to its purpose.** Put an unrelated fix in its own PR, or name it in the PR text.
 - **Explain each change the reader did not ask for,** above all a removal: "The comment changed, the file did
   not." Without it, the reviewer has to ask.
-- **Declare spec changes** (docs/spec.md) in the PR's *Spec changes* section, each with its reason.
+- **Declare each spec file that the PR touches** (docs/spec.md) in its *Spec changes* section, marked *extends* or
+  *revises*, each with its reason.
 - **Report dependency changes and new tags** in the PR text.
-- **Give the evidence:** the tests that pass, the checks in the browser, the commands on real data.
+- **Give the evidence that the PR keeps the spec** (docs/how-we-work.md): the tests that pass, the checks in the
+  browser, the commands on real data.
 
 ## 8. Privacy
 

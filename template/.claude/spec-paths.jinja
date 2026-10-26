@@ -1,4 +1,4 @@
-# The spec of {{ project_name }}: what changes only with the user's approval (docs/spec.md explains each group).
+# The spec of {{ project_name }}: what the app must keep doing (docs/spec.md explains each group).
 # `[group]`, then one glob pattern per line, from the repo root (`**` for any depth). `uv run {{ project_name }}
 # spec-diff` and CI read it. Add this app's own sub-docs and files to their group.
 
@@ -33,6 +33,8 @@ CLAUDE.md
 .claude/project-rules.md
 .claude/settings.json
 .claude/agents/**
+.claude/skills/deliver-outcome/**
+.github/pull_request_template.md
 .claude/spec-paths
 docs/spec.md
 docs/how-we-work.md

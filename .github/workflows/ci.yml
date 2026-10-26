@@ -36,8 +36,9 @@ jobs:
           git config --global init.defaultBranch main
       - run: scripts/render.sh
 
-  # Labels a PR that changes the scaffold's spec (.claude/spec-paths) with spec-change: only the user merges those
-  # (docs/how-we-work.md). Claude reads the label before it merges.
+  # Labels a PR that touches the scaffold's spec (.claude/spec-paths) with spec-change. The PR says whether it
+  # extends or revises the spec (docs/how-we-work.md). Before it merges, Claude reads the PR's *Spec changes*
+  # section and the reviewer's answer.
   spec:
     if: github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
@@ -71,7 +72,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          gh label create spec-change --color D93F0B --description "Changes the spec: the user merges it" --force
+          gh label create spec-change --color D93F0B --description "Touches the spec: an extension or a revision (the PR says which)" --force
           if [ "${{ steps.diff.outputs.changed }}" = true ]; then
             gh pr edit "$PR" --add-label spec-change
           else

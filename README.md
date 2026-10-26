@@ -42,7 +42,7 @@ only its own code: what it ingests, its tables, its contract views and its pages
 | [docs/template.md](docs/template.md) | the template: every answer and option and what it decides, options vs capabilities, which files it manages and which it seeds once, deviations |
 | [docs/skills.md](docs/skills.md) | the Claude Code skills of an app: what each one does, the option that adds it, managed or seeded |
 | [docs/upgrading.md](docs/upgrading.md) | the update cycle in detail, and adopting the scaffold in an existing repo |
-| [docs/spec.md](docs/spec.md) | this repo's spec: what changes only with the user's approval, and why |
+| [docs/spec.md](docs/spec.md) | this repo's spec: what the scaffold must keep doing, and why |
 | [docs/how-we-work.md](docs/how-we-work.md) | how apps and this repo are developed: outcomes, the spec, the PRs Claude merges, what waits for the user |
 | [docs/review.md](docs/review.md) | the review standards for every change, with a bad and a good example of each |
 | [CHANGELOG.md](CHANGELOG.md) | what each release adds, and the steps an app must take by hand |
@@ -116,9 +116,11 @@ description:
 - **Outcomes.** You open a GitHub issue with the label `outcome`, in one or two sentences ("replace the example with
   my bank's CSV exports", say). `/deliver-outcome` takes it from there: Claude posts a brief, you approve it, and
   Claude works on its own until it posts a report with the evidence.
-- **The spec.** Each app's `docs/spec.md` lists what only you approve: what the app is for, how it is built, its
-  data contract, its behaviour (browser checks, real-data tests, spec tests) and its guardrails. Claude merges a PR
-  that leaves the spec unchanged, after CI and an independent review. A PR that changes the spec waits for you.
+- **The spec.** Each app's `docs/spec.md` lists what the app must keep doing: what it is for, how it is built, its
+  data contract, its behaviour (browser checks, real-data tests, spec tests) and its guardrails. Each PR shows that
+  it keeps the spec. Claude merges a PR that leaves the spec unchanged or only extends it (a new feature with its
+  new browser check, say), after CI and an independent review. A PR that revises what the spec promises waits for
+  you.
 - **The hard stops.** An action that cannot be undone, such as publishing, deploying or deleting data, needs your
   yes first.
 

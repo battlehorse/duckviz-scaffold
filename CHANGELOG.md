@@ -3,6 +3,27 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- Template, how we work: **each PR keeps the spec, and Claude merges an extension with its feature when the
+  reviewer agrees.**
+  - docs/how-we-work.md, "Each PR keeps the spec": the one list of checks. A PR merges only when it shows that the
+    app still does all that the spec says: the tests with `-m spec` and `-m realdata`, the contract check,
+    `doctor`, `privacy-check`, the browser checks of the pages it changes, and (the reviewer) the architecture and
+    the dashboard questions. ➖ only when a check does not apply. A check that cannot run in the session waits.
+  - "Extensions and revisions": an extension adds to the spec and keeps each promise (a new browser check, a new
+    view with a minor version). Claude merges it with its feature when the reviewer's answer agrees
+    (`Extension agreed: <path>`). A revision alters or removes a promise, or edits the Guardrails, and waits for
+    the user as before.
+  - CLAUDE.md, `/deliver-outcome`, the reviewer agent, the PR template (*extends* or *revises*, and more evidence),
+    docs/review.md and docs/spec.md say the same. The `spec-change` label marks each PR that touches the spec.
+  - The PR template and `/deliver-outcome` join the Guardrails of the seeded `.claude/spec-paths`.
+
+**Steps:**
+- `docs/spec.md` and `.claude/spec-paths` are seeded. Change their first sentence by hand, as the template's do, and
+  add `.claude/skills/deliver-outcome/**` and `.github/pull_request_template.md` to the `[guardrails]` of
+  `.claude/spec-paths` and to the Guardrails row of `docs/spec.md`.
+
 ## v0.6.0
 
 **A new way of working** (docs/how-we-work.md): the user sets outcomes, Claude works on its own inside the app's spec,
