@@ -329,17 +329,23 @@ view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the an
   none. A model with no price in `PRICES` is refused at once.
 - `Claude.call(system, user, schema, max_tokens=16000)` sends one request and returns the answer as a dict:
   - structured output: the answer matches `schema`, so an enum keeps the model to the app's categories;
-  - the system prompt is cached, so the batches of one run pay for it once;
-  - the server-side fallback: a request that a safety classifier declines is retried on Anthropic's fallback model;
+  - the system prompt is marked for the cache: the first call writes it (at 1.25 times the input price), and the
+    calls of the next 5 minutes read it at a fraction of the input price. A short system prompt is not cached;
+  - the server-side fallback, on the models of `FALLBACK_MODELS` (Claude Opus 5.5 and Claude Sonnet 5.5; Claude Haiku
+    5.5 has none): a request that a safety classifier declines is retried on Anthropic's fallback model;
   - every failure is an `LLMError` with a message for the user: a rejected key, an API error, no connection, a
     refusal, an answer cut off by `max_tokens`.
-- `Claude.usage` (`Usage`) adds up the tokens of the run's calls. `usage.cost` is their cost in $, and
-  `usage.line()` is one line for the command's output.
-- `PRICES` gives $ per million tokens (input, output) for each model. A cached input token costs a tenth.
-  `estimate_cost(model, input_tokens, output_tokens, cached_tokens=0)` prices tokens before a run.
-- `cost_gate(spec, what, estimate, yes, command)`: whether a paid run may start. A run that costs money is a hard
-  stop (docs/how-we-work.md), so the command runs only with `--yes`. Without it, the gate prints what the run would
-  send and cost, and the command line that runs it, and sends nothing.
+- `Claude.usage` (`Usage`) adds up the tokens of the run's calls: input, cache writes, cache reads and output.
+  `usage.cost` is their cost in $, and `usage.line()` is one line for the command's output. After a server-side
+  fallback, a call counts only the attempt that answered, at the requested model's prices: its cost is approximate.
+- `PRICES` gives $ per million tokens for each model: input, output and cache read. A cache write costs 1.25 times
+  the input price. `estimate_cost(model, input_tokens, output_tokens, cache_read_tokens=0, cache_write_tokens=0)`
+  prices tokens before a run. Claude Haiku 5.5's prices hold for prompts up to 100K tokens.
+- `cost_gate(spec, what, estimate, yes, command)`: whether a paid run may start, only with `--yes`. Without it, the
+  gate prints what the run would send and cost, and the command line that runs it, and sends nothing. The flag
+  keeps a run from starting by accident. A run that costs money is still a hard stop (docs/how-we-work.md): the
+  user says yes in the chat first, and the app's `.claude/settings.json` makes Claude Code ask before the `--yes`
+  command (the template's `llm` option adds that rule).
 
 ## `duckkit.curated`
 

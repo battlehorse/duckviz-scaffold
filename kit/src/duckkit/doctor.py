@@ -47,6 +47,7 @@ EXPECTED = [
     ("Dockerfile", "cloud_run"),
     (".gcloudignore", "cloud_run"),
     ("curated/README.md", "curations"),
+    (".claude/skills/classify/SKILL.md", "llm"),
     (".claude/skills/rebuild-database/SKILL.md", "curations"),
     (".githooks/pre-commit", None),
     (".github/pull_request_template.md", None),

@@ -6,7 +6,7 @@ import anthropic
 import httpx2
 import pytest
 
-from duckkit.llm import PRICES, Claude, LLMError, Usage, cost_gate, estimate_cost
+from duckkit.llm import Claude, LLMError, cost_gate, estimate_cost
 from duckkit.testing import FakeAnthropic, claude_reply
 
 SCHEMA = {"type": "object", "properties": {"label": {"type": "string", "enum": ["a", "b"]}}, "required": ["label"]}
@@ -28,18 +28,33 @@ def test_a_call_sends_a_structured_cached_request_and_returns_the_answer(spec):
     assert request["fallbacks"] == "default" and request["betas"] == ["server-side-fallback-2026-07-01"]
 
 
-def test_usage_adds_up_the_calls_and_prices_them(spec):
-    c, _ = claude(spec, claude_reply({"label": "a"}), claude_reply({"label": "b"}, input_tokens=500))
+def test_usage_adds_up_the_calls_with_their_cache_and_prices_them(spec):
+    first = claude_reply({"label": "a"}, input_tokens=100, cache_write=10_000, output_tokens=200)
+    second = claude_reply({"label": "b"}, input_tokens=100, cache_read=10_000, output_tokens=200)
+    c, _ = claude(spec, first, second)
     c.call("s", "1", SCHEMA)
     c.call("s", "2", SCHEMA)
-    assert (c.usage.calls, c.usage.input_tokens, c.usage.output_tokens) == (2, 1500, 400)
-    assert c.usage.cost == estimate_cost("claude-opus-5-5", 1500, 400) == Decimal("0.014")
-    assert c.usage.line() == "API: 2 calls, 1500 input / 400 output tokens, ≈ $0.01"
+    # Claude Opus 5.5: 200 × $4 + 10,000 × $5 (a write, 1.25×) + 10,000 × $0.20 (a read) + 400 × $20, per million
+    assert c.usage.cost == Decimal("0.0608")
+    assert c.usage.line() == "API: 2 calls, 20200 input / 400 output tokens, ≈ $0.06"
 
 
-def test_a_cached_token_costs_a_tenth():
-    usage = Usage("claude-opus-5-5", input_tokens=0, cached_tokens=1_000_000)
-    assert usage.cost == PRICES["claude-opus-5-5"][0] / 10
+@pytest.mark.parametrize("model, cost", [
+    ("claude-opus-5-5", Decimal("24.20")),  # 1M in × $4 + 1M out × $20 + 1M cache reads × $0.20
+    ("claude-sonnet-5-5", Decimal("12.20")),  # $2 + $10 + $0.20
+    ("claude-haiku-5-5", Decimal("0.61")),  # $0.10 + $0.50 + $0.01
+])
+def test_each_model_has_its_published_prices(model, cost):
+    assert estimate_cost(model, 1_000_000, 1_000_000, cache_read_tokens=1_000_000) == cost
+
+
+def test_the_fallback_is_asked_only_of_the_models_that_have_it(spec):
+    opus, opus_client = claude(spec, claude_reply({"label": "a"}))
+    haiku, haiku_client = claude(spec, claude_reply({"label": "a"}), model="claude-haiku-5-5")
+    opus.call("s", "u", SCHEMA)
+    haiku.call("s", "u", SCHEMA)
+    assert opus_client.requests[0]["fallbacks"] == "default"
+    assert "fallbacks" not in haiku_client.requests[0] and "betas" not in haiku_client.requests[0]
 
 
 @pytest.mark.parametrize("reply, message", [

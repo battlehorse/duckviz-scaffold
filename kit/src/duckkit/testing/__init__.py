@@ -40,10 +40,11 @@ def contract_db(spec: AppSpec, path: Path) -> duckdb.DuckDBPyConnection:
     return con
 
 
-def claude_reply(payload: dict, stop_reason: str = "end_turn", input_tokens: int = 1000, output_tokens: int = 200):
+def claude_reply(payload: dict, stop_reason: str = "end_turn", input_tokens: int = 1000, output_tokens: int = 200,
+                 cache_write: int = 0, cache_read: int = 0):
     """An API response whose answer is `payload`, as `FakeAnthropic` returns it to `duckkit.llm.Claude`."""
-    usage = SimpleNamespace(input_tokens=input_tokens, cache_creation_input_tokens=0, cache_read_input_tokens=0,
-                            output_tokens=output_tokens)
+    usage = SimpleNamespace(input_tokens=input_tokens, cache_creation_input_tokens=cache_write,
+                            cache_read_input_tokens=cache_read, output_tokens=output_tokens)
     return SimpleNamespace(usage=usage, stop_reason=stop_reason,
                            stop_details="declined" if stop_reason == "refusal" else None,
                            content=[SimpleNamespace(type="text", text=json.dumps(payload))])
