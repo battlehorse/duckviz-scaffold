@@ -67,6 +67,8 @@ def deployed(spec: AppSpec) -> Deployed | None:
                    "--format=value(metadata.labels.commit)"], spec, "gcloud")
     if not commit:
         raise HostingError(f"the serving revision {serving} has no commit label: deploy with `/hosting deploy`")
+    if not _succeeds(["git", "rev-parse", "--verify", "-q", "origin/main"], spec):
+        raise HostingError("this clone has no origin/main: `git fetch`, then ask again")
     if not _succeeds(["git", "cat-file", "-e", f"{commit}^{{commit}}"], spec):
         return Deployed(commit, known=False)
     if not _succeeds(["git", "merge-base", "--is-ancestor", commit, "origin/main"], spec):
