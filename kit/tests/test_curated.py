@@ -6,7 +6,7 @@ from datetime import date
 import duckdb
 import pytest
 
-from duckkit.curated import Before, CuratedTable, Refused, curating, export, holds_decisions, not_manual, restore
+from duckkit.curated import CuratedTable, Refused, curating, export, holds_decisions, not_manual, restore
 from duckkit.demo import build_demo
 from duckkit.store import connect
 from tests.conftest import DB_SCHEMA
@@ -44,11 +44,6 @@ def rebuilt(spec):
     con.execute("INSERT INTO items VALUES ('apple', NULL, 0.4, 'x'), ('leek', NULL, 0.9, 'y'),"
                 " ('pear', NULL, 0.5, 'z')")
     return con
-
-
-def files(spec):
-    """The text of each curated file."""
-    return {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES}
 
 
 def test_export_writes_sorted_decisions_only(con, spec):
@@ -128,7 +123,7 @@ def test_a_database_without_decisions_never_wipes_the_files(con, spec):
 def test_a_table_emptied_on_purpose_is_written(con, spec):
     export(con, spec.curated_dir, TABLES)
     con.execute("DELETE FROM labels")
-    assert export(con, spec.curated_dir, TABLES, Before(held=frozenset({"labels"})))
+    assert export(con, spec.curated_dir, TABLES, held_before={"labels"})
     assert (spec.curated_dir / "labels.csv").read_text().splitlines() == ["day,label,classified_by,classified_at"]
 
 
@@ -161,22 +156,22 @@ def test_curating_writes_the_removal_of_the_last_decision(con, spec):
 
 def test_curating_refuses_a_database_not_restored_yet(con, spec):
     export(con, spec.curated_dir, TABLES)
-    saved = files(spec)
+    saved = {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES}
     con.close()
     rebuilt(spec).close()
-    with pytest.raises(Refused, match="2 in labels"), command(spec) as c:
+    with pytest.raises(Refused, match="run `shop ingest` first"), command(spec) as c:
         c.execute("INSERT INTO labels VALUES ('2026-04-01', 'new', 'manual', NULL)")  # would export only this
-    assert files(spec) == saved
+    assert {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES} == saved
 
 
 def test_ingest_curates_a_database_not_restored_yet_and_restores_it(con, spec):
     export(con, spec.curated_dir, TABLES)
-    saved = files(spec)
+    saved = {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES}
     con.close()
     rebuilt(spec).close()
     with command(spec, restores=True) as c:
         assert restore(c, spec.curated_dir, TABLES)
-    assert files(spec) == saved
+    assert {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES} == saved
 
 
 def test_curating_refuses_a_demo_database(con, spec):
@@ -200,6 +195,9 @@ def test_not_manual():
     assert sorted(rows, key=str) == [("llm",), (None,)]
 
 
+def files(spec):
+    return {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES}
+
 
 def test_a_decision_waits_in_its_file_until_its_source_is_ingested(con, spec):
     con.execute("INSERT INTO items VALUES ('quince', 'fruit', 0.7, 'q')")
@@ -219,7 +217,7 @@ def test_a_decision_waits_in_its_file_until_its_source_is_ingested(con, spec):
 def test_only_waiting_decisions_do_not_block_the_commands(con, spec):
     con.execute("DELETE FROM labels")
     con.execute("UPDATE items SET kind = NULL")
-    export(con, spec.curated_dir, TABLES, Before(held=frozenset({"labels", "items"})))
+    export(con, spec.curated_dir, TABLES, held_before={"labels", "items"})
     (spec.curated_dir / "items.csv").write_text("name,kind\nquince,fruit\n")  # its source is not ingested
     con.close()
     with command(spec) as c:
@@ -246,50 +244,3 @@ def test_an_ingest_that_fails_before_its_restore_keeps_the_files(con, spec):
         c.execute("INSERT INTO labels VALUES ('2026-04-01', 'new', 'manual', NULL)")  # made by the ingestion
         raise RuntimeError("a bad source file")
     assert files(spec) == saved
-
-
-def test_a_key_the_command_deletes_leaves_the_file(con, spec):
-    export(con, spec.curated_dir, TABLES)
-    con.close()
-    with command(spec) as c:
-        c.execute("DELETE FROM items WHERE name = 'pear'")  # the app removes a row, and its decision with it
-    assert "pear" not in (spec.curated_dir / "items.csv").read_text()
-
-
-def test_a_row_with_a_null_key_does_not_hide_the_waiting_decisions(con, spec):
-    con.execute("CREATE TABLE things (name VARCHAR, kind VARCHAR)")  # a key that may be NULL
-    con.execute("INSERT INTO things VALUES ('apple', 'fruit'), ('quince', 'fruit')")
-    things = [CuratedTable("things", ("name", "kind"), "name", where="kind IS NOT NULL", key="name")]
-    export(con, spec.curated_dir, things)
-    con.execute("DELETE FROM things WHERE name = 'quince'")  # its source isn't ingested
-    con.execute("INSERT INTO things VALUES (NULL, NULL)")
-    export(con, spec.curated_dir, things, Before(held=frozenset({"things"})))
-    assert "quince,fruit" in (spec.curated_dir / "things.csv").read_text()
-
-
-def test_an_empty_text_comes_back_as_empty_text_not_null(con, spec):
-    con.execute("UPDATE labels SET label = '' WHERE label = 'away'")
-    export(con, spec.curated_dir, TABLES)
-    con.close()
-    con = rebuilt(spec)
-    restore(con, spec.curated_dir, TABLES)
-    assert con.execute("SELECT label FROM labels WHERE day = '2026-01-05'").fetchone() == ("",)
-    assert not restore(con, spec.curated_dir, TABLES)  # nothing left to restore
-
-
-def test_a_broken_file_is_refused_with_how_to_fix_it(con, spec):
-    export(con, spec.curated_dir, TABLES)
-    (spec.curated_dir / "items.csv").write_text("")
-    con.close()
-    with pytest.raises(Refused, match="git checkout"), command(spec):
-        pass
-
-
-def test_a_where_on_a_column_that_is_not_exported_is_an_error(con, spec):
-    con.execute("ALTER TABLE items ADD COLUMN checked BOOLEAN")
-    con.execute("UPDATE items SET checked = true WHERE kind IS NOT NULL")
-    table = CuratedTable("items", ("name", "kind"), "name", where="kind IS NOT NULL AND checked", key="name")
-    export(con, spec.curated_dir, [table])
-    con.execute("UPDATE items SET kind = NULL, checked = NULL")
-    with pytest.raises(ValueError, match="only the table's exported columns"):
-        restore(con, spec.curated_dir, [table])

@@ -8,8 +8,8 @@ allowed-tools: Bash(uv run {{ project_name }} status) Bash(uv run {{ project_nam
 # Rebuild the database
 
 Only the user starts this skill. The database comes back from two sources: the source files (`ingest`), and the
-decisions in `curated/*.csv`. `ingest` restores the decisions that the database lacks, and leaves in the files the
-decisions whose sources are gone. A rebuild makes everything else in the database again.
+decisions in `curated/*.csv`. `ingest` restores the decisions into a database that holds none. A rebuild makes
+everything else in the database again.
 
 1. **Check that the decisions are safe.** `git status --short curated/` must be clean, and the files must be
    committed. If they are not, show the user the changes (`git diff curated/`) and stop. The user commits them

@@ -5,29 +5,24 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
-Fixes for four ways to lose curated decisions, all found in review:
+Fixes for two ways to lose curated decisions, found in review:
 - **A command on a rebuilt database before `ingest`** (`label`, say) replaced each file with that command's
   decisions only. The next `ingest` did not restore the rest.
 - **A rebuild with some sources missing** dropped their keyed decisions from the file for good.
-- **The guards looked at all the tables at once**, so a database with decisions in one table could replace another
-  table's file.
-- **An empty text** came back from a file as NULL.
 
 The changes:
 - duckkit: **nothing that curated/ holds is lost.**
   - `curating` raises `curated.Refused` while the database lacks decisions that curated/ could restore. Only
     `ingest` passes `curating(..., restores=True)`, because it restores them before the export.
   - A keyed decision whose key the database doesn't have waits in its file. `export` keeps it, and the `ingest` that
-    brings its source restores it. A key that a command deletes takes its decision out of the file.
+    brings its source restores it.
   - `restore` now runs on every `ingest`, and loads only what the database lacks: the file's rows whose unique key
     (`order_by`) a table of its own rows doesn't have, and the decisions on keyed rows that hold none.
-  - `export` guards each table on its own. Its parameter `removed` is now `before`: a `Before`, made by
-    `before(con, tables, unrestored)`, of what the database held as the command began.
+  - `export` guards each table on its own. Its parameter `removed` is now `held_before`, the tables that held
+    decisions before the command.
   - `restorable(con, directory, tables)` lists the decisions that `restore` would load.
-  - A file that can't be read raises `Refused`, with the `git checkout` that brings it back.
-- duckkit: `CuratedTable` checks that `order_by` names columns, and that a keyed table has `where`. `restore` fails
-  when a `where` uses a column that is not exported, because those rows would never hold a decision.
-- duckkit: `curated.Refused` (a `ValueError`) is the error of the refusals. The demo refusal now names the `demo`
+- duckkit: `CuratedTable` checks that `order_by` names columns, and that a keyed table has `where`.
+- duckkit: `curated.Refused` (a `ValueError`) is the error of both refusals. The demo refusal now names the `demo`
   command.
 - Template, `curations`: `ingest` catches only `Refused`, so any other error keeps its traceback.
   `/rebuild-database` is for the user to start only (`disable-model-invocation`). Its ingest step says not to run
@@ -39,8 +34,8 @@ The changes:
   `restores` parameter and pass it to `duckkit.curated.curating` (the template's file shows how). In `ingest`, call
   `curating(restores=True)`, call `restore` at the end of every ingestion (not only into an empty database), and
   catch `duckkit.curated.Refused` there instead of every `ValueError`.
-- If the app calls `export(..., removed=...)`, pass `before=` instead (`duckkit.curated.before`). A `where` of a
-  keyed table must use only its exported columns.
+- If the app calls `export(..., removed=...)`, pass `held_before=` instead: the names of the tables that held
+  decisions.
 
 ## v0.5.1
 

@@ -319,8 +319,7 @@ A `CuratedTable(name, columns, order_by, where=None, key=None)` is one of two ki
 - **decisions on the ingestion's rows** (`key`): the ingestion makes the rows, and a command fills in some columns
   (a SKU's product). `where` picks the rows that hold a decision. `restore` puts each decision on the row with its
   key, when that row holds none. A decision whose key the database doesn't have yet **waits in the file**: the
-  export keeps it, and the `ingest` that brings its source restores it. A key that a command deletes takes its
-  decision out of the file. `where` may use only the exported columns.
+  export keeps it, and the `ingest` that brings its source restores it.
 
 The rule behind the functions: nothing that curated/ holds is lost. A decision that the database lacks, and that
 curated/ could restore, is **restorable**.
@@ -335,18 +334,12 @@ The functions:
   end of every ingestion. It returns the rows restored per table, or None when it restored nothing. A file written
   before a column existed restores the column empty. A missing file is skipped. `after(con)` runs in the same
   transaction when something was restored: what the app derives from the decisions.
-- `export(con, directory, tables, before=None)`: writes `<name>.csv` per table, sorted by `order_by`, and
+- `export(con, directory, tables, held_before=())`: writes `<name>.csv` per table, sorted by `order_by`, and
   replaces each file atomically. A keyed table keeps the decisions that wait in its file. A table with restorable
-  decisions is not written, unless `before.held` names it: it held decisions as the command began, so the command
-  removed them. It returns True when it wrote every table.
-- `before(con, tables, unrestored)` returns a `Before`: what the database holds as a command begins (the tables
-  with decisions, and the keys of the keyed tables, in temporary tables). `curating` makes one and passes it to
-  `export`, which then tells a key the command deleted from a key whose source is not ingested yet.
+  decisions is not written, unless it is in `held_before`: it held decisions before the command, so the command
+  removed them. `curating` passes the tables that held decisions as the command began. It returns True when it
+  wrote every table.
 - `restorable(con, directory, tables)`: the restorable decisions, per table.
-
-The files keep an empty text and a NULL apart: DuckDB writes `''` as `""` and NULL as an empty field. A file that
-can't be read, or a keyed file without its key column, raises `Refused` with the `git checkout` that brings it
-back.
 - `holds_decisions(con, tables)`: whether the database holds any.
 - `not_manual(column="classified_by")`: SQL for "a model may redo this decision": not made by hand.
 

@@ -2,7 +2,7 @@
 curated/README.md).
 
 Every command that changes a decision runs in `curating()`, which writes the files after it. `ingest` calls
-`restore`, which loads the decisions that the database lacks. Add a table here when the app gets a new kind of decision.
+`restore`, which loads them back into a rebuilt database. Add a table here when the app gets a new kind of decision.
 """
 
 from collections.abc import Iterator
