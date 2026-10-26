@@ -334,18 +334,19 @@ view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the an
   - the server-side fallback, on the models of `FALLBACK_MODELS` (Claude Opus 5.5 and Claude Sonnet 5.5; Claude Haiku
     5.5 has none): a request that a safety classifier declines is retried on Anthropic's fallback model;
   - every failure is an `LLMError` with a message for the user: a rejected key, an API error, no connection, a
-    refusal, an answer cut off by `max_tokens`.
+    refusal, an answer cut off by `max_tokens`, an answer with no text or not valid JSON.
 - `Claude.usage` (`Usage`) adds up the tokens of the run's calls: input, cache writes, cache reads and output.
   `usage.cost` is their cost in $, and `usage.line()` is one line for the command's output. After a server-side
   fallback, a call counts only the attempt that answered, at the requested model's prices: its cost is approximate.
 - `PRICES` gives $ per million tokens for each model: input, output and cache read. A cache write costs 1.25 times
   the input price. `estimate_cost(model, input_tokens, output_tokens, cache_read_tokens=0, cache_write_tokens=0)`
-  prices tokens before a run. Claude Haiku 5.5's prices hold for prompts up to 100K tokens.
+  prices one request's tokens. Over 100K prompt tokens, Claude Haiku 5.5 costs 5 times as much (`LONG_PRICES`), so
+  `Usage` prices each call by its own prompt size.
 - `cost_gate(spec, what, estimate, yes, command)`: whether a paid run may start, only with `--yes`. Without it, the
   gate prints what the run would send and cost, and the command line that runs it, and sends nothing. The flag
   keeps a run from starting by accident. A run that costs money is still a hard stop (docs/how-we-work.md): the
   user says yes in the chat first, and the app's `.claude/settings.json` makes Claude Code ask before the `--yes`
-  command (the template's `llm` option adds that rule).
+  command.
 
 ## `duckkit.curated`
 

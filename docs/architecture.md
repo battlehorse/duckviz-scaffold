@@ -108,8 +108,8 @@ flowchart LR
   query is parsed by DuckDB and run against the reference schema.
 - imports the ingestion side: the modules in `spec.forbidden` (`ingest`, `db`, `cli`, …), or duckkit's service
   modules (`store`, `backup`, `privacy`, `publish`, `cli`, `doctor`, `serve`, `demo`, `curated`, `specdiff`,
-  `llm`). This is checked in the source and again by importing the app in a fresh interpreter, which catches imports made
-  indirectly.
+  `llm`). This is checked in the source and again by importing the app in a fresh interpreter, which catches
+  imports made indirectly.
 
 The app's tests (`tests/app/`) build their databases from the reference schema
 (`duckkit.testing.contract_db`), with synthetic rows from `tests/app/contract_data.py`. They never run the

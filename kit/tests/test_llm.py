@@ -39,13 +39,20 @@ def test_usage_adds_up_the_calls_with_their_cache_and_prices_them(spec):
     assert c.usage.line() == "API: 2 calls, 20200 input / 400 output tokens, ≈ $0.06"
 
 
+def test_a_long_haiku_prompt_costs_its_long_prompt_price():
+    # 300K input tokens and 1K output: $0.50 and $2.50 per million over 100K prompt tokens
+    assert estimate_cost("claude-haiku-5-5", 300_000, 1000) == Decimal("0.1525")
+    assert estimate_cost("claude-haiku-5-5", 90_000, 1000) == Decimal("0.0095")
+
+
 @pytest.mark.parametrize("model, cost", [
-    ("claude-opus-5-5", Decimal("24.20")),  # 1M in × $4 + 1M out × $20 + 1M cache reads × $0.20
-    ("claude-sonnet-5-5", Decimal("12.20")),  # $2 + $10 + $0.20
-    ("claude-haiku-5-5", Decimal("0.61")),  # $0.10 + $0.50 + $0.01
+    # 50K input × $4/M + 1M output × $20/M + 50K cache reads × $0.20/M = $0.20 + $20 + $0.01
+    ("claude-opus-5-5", Decimal("20.21")),
+    ("claude-sonnet-5-5", Decimal("10.11")),  # $0.10 + $10 + $0.01
+    ("claude-haiku-5-5", Decimal("0.5055")),  # $0.005 + $0.50 + $0.0005 (a cache read is a tenth of input)
 ])
 def test_each_model_has_its_published_prices(model, cost):
-    assert estimate_cost(model, 1_000_000, 1_000_000, cache_read_tokens=1_000_000) == cost
+    assert estimate_cost(model, 50_000, 1_000_000, cache_read_tokens=50_000) == cost
 
 
 def test_the_fallback_is_asked_only_of_the_models_that_have_it(spec):
@@ -57,9 +64,29 @@ def test_the_fallback_is_asked_only_of_the_models_that_have_it(spec):
     assert "fallbacks" not in haiku_client.requests[0] and "betas" not in haiku_client.requests[0]
 
 
+def response(status):
+    return httpx2.Response(status, request=httpx2.Request("POST", "https://api.anthropic.com"))
+
+
+def no_text():
+    reply = claude_reply({})
+    reply.content = []
+    return reply
+
+
+def not_json():
+    reply = claude_reply({})
+    reply.content[0].text = "Sure! Here are the labels."
+    return reply
+
+
 @pytest.mark.parametrize("reply, message", [
     (claude_reply({}, stop_reason="refusal"), "declined"),
     (claude_reply({}, stop_reason="max_tokens"), "cut off"),
+    (no_text(), "no text"),
+    (not_json(), "not the JSON"),
+    (anthropic.AuthenticationError("bad key", response=response(401), body=None), "rejected"),
+    (anthropic.InternalServerError("boom", response=response(500), body=None), "API error 500"),
     (anthropic.APIConnectionError(request=httpx2.Request("POST", "https://api.anthropic.com")), "could not reach"),
 ])
 def test_a_failed_call_raises_one_error_with_a_message(spec, reply, message):

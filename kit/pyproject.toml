@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# duckkit.llm: the apps with the template's `llm` option
+# duckkit.llm: the apps whose commands ask Claude for decisions
 llm = ["anthropic>=1.11.0"]
 
 [build-system]
