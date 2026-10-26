@@ -3,7 +3,7 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.6.0
 
 **A new way of working** (docs/how-we-work.md): the user sets outcomes, Claude works on its own inside the app's spec,
 and the user reviews only the changes to the spec.
@@ -34,7 +34,8 @@ and the user reviews only the changes to the spec.
 
 **Steps:**
 - Seeded files don't arrive with an update. Write `docs/spec.md` and `.claude/spec-paths` (the template's show
-  how), with this app's own sub-docs and files. Mark this app's key functional tests `@pytest.mark.spec`.
+  how), with this app's own sub-docs and files. Mark this app's key functional tests `@pytest.mark.spec`, each
+  with a docstring that states its rule.
 - `.claude/settings.json` is now managed. Settings of your own move to `.claude/settings.local.json`. Add the
   app's own hard stops (a paid command, say) to its `ask` list, and list them in `docs/deviations.md`.
 - Create the `spec-change` label, or let the first PR's CI create it. The CI job needs `pull-requests: write`.
