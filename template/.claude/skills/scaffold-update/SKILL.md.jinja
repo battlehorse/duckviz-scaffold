@@ -1,6 +1,6 @@
 ---
 name: scaffold-update
-description: Bring this repo up to a newer release of duckviz-scaffold (the template and the duckkit package together), or turn a scaffold feature on. Runs copier update, resolves conflicts keeping this app's declared deviations, then checks tests, ruff and doctor, and opens a PR.
+description: Bring this repo up to a newer release of duckviz-scaffold (the template and the duckkit package together), or turn a scaffold option on. Runs copier update, resolves conflicts keeping this app's declared deviations, then checks tests, ruff and doctor, and opens a PR.
 when_to_use: >-
   Use when the user says things like "update the scaffold", "pull in the new scaffold release", "turn on cloud run", "enable backups", or when /catch-up or a scaffold-update PR says a release is out.
 argument-hint: "[vX.Y.Z] [turn on <option> …]"
@@ -9,7 +9,8 @@ argument-hint: "[vX.Y.Z] [turn on <option> …]"
 # Update from the scaffold
 
 Arguments: $ARGUMENTS (default: the newest release, same answers). They are plain words: a release, and the options
-to turn on, such as "turn on cloud_run" (docs/scaffold.md lists the options).
+to turn on, such as "turn on cloud_run" (docs/scaffold.md lists the options). To turn an option off or to change
+an answer, agree each change with the user first.
 
 Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app differs) first.
 
@@ -18,6 +19,14 @@ Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app 
 2. **Update.** `uvx copier update --trust --defaults --conflict inline` (add `--vcs-ref <release>`, and
    `-d <option>=true` for each option to turn on). Copier re-renders the template at the old and new release with
    this repo's answers and merges the difference.
+   - An option can have its own answers: `motherduck` has `motherduck_db`, and `cloud_run` has `gcp_project` and
+     `gcp_region`. `--defaults` would take their defaults without a question. So ask the user for each one first,
+     and add `-d <answer>=<value>`. `cloud_run` needs `motherduck` on.
+   - An update never writes seeded files. So `demo_data` and `curations` bring their managed files only, not their
+     seeded ones (the code in `src/{{ package }}/`, its tests and the `/demo-data` or `/fix-curation` skill). Render a
+     new app with this repo's answers and the option on in a temporary folder (`uvx copier copy`). Then copy the
+     seeded files that the option adds, and merge their parts that go into this app's own files, such as the
+     commands in `cli.py`.
 3. **Read the release notes**: the scaffold's CHANGELOG.md entries between `_commit` before and after
    (`git diff .copier-answers.yml`). Do the steps they list by hand.
 4. **Resolve conflicts.** `git grep -n '^<<<<<<< '`. For each:
@@ -32,4 +41,5 @@ Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app 
    new deviation (add it to docs/deviations.md).
 7. **Ask** before you commit, then commit and open a PR titled "Update the scaffold to <release>".
 
-To turn a feature on (e.g. `-d cloud_run=true`): same steps; then follow the new docs it adds (docs/hosting.md).
+To turn an option on (such as `turn on cloud_run`): use the same steps, then follow the docs that it adds
+(docs/hosting.md).
