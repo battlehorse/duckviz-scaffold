@@ -147,10 +147,11 @@ calls `duckkit.cli.add_standard_commands`, which adds the commands every app has
 | `backup`, `backups`, `restore` | verified Parquet snapshots of the whole database |
 | `app [name] [--tailnet] [--demo]` | serve a Streamlit app |
 | `privacy-check` | fail when a file git would commit contains personal data |
-| `doctor [--remote]` | compare the repo with the scaffold release it comes from |
+| `doctor [--remote]` | compare the repo with the scaffold release it comes from. `--remote` also asks GitHub whether a newer release is out, and whether a repo that holds `curated/` is public. |
+| `spec-diff [--base]` | list what a branch changes in the app's spec (docs/how-we-work.md) |
+| `curated-check [--base]` | what a commit does to the curated files (the `curations` option) |
 
-The template writes `docs/cli.md` for each app, and the Claude Code skills (`/ingest`, `/publish`, `/backup`, `/app`,
-…) run these commands.
+The template writes `docs/cli.md` for each app, and the Claude Code skills (docs/skills.md) run these commands.
 
 ## Settings, secrets and personal data
 
@@ -278,16 +279,5 @@ Each app's `CLAUDE.md` is template-managed. It holds the rules every app shares:
 
 It imports `.claude/project-rules.md`, which holds the app's own rules, so the two never conflict on update.
 
-The skills turn the CLI into tasks:
-
-| Skill | What it does |
-|---|---|
-| `/ingest` | bring in new data |
-| `/ask` | answer a question with SQL on the views |
-| `/app` | start, stop or restart the app |
-| `/app-check` | walk the browser checks in docs/browser-checks.md |
-| `/publish` | send the views to MotherDuck |
-| `/backup` | make, list or restore backups |
-| `/hosting` | deploy to Cloud Run, and the other hosting tasks |
-| `/catch-up` | brief the start of a session |
-| `/scaffold-update` | move to a new scaffold release |
+The skills turn the CLI into tasks, such as `/ingest`, `/ask` and `/app`. docs/skills.md lists each skill that the
+template writes, and the option that adds it.

@@ -9,7 +9,7 @@ built, the interface that apps call, and the guardrails of every app and of this
 
 | Group | What it defines | Its canonical docs and files |
 |---|---|---|
-| **Shape** | how an app made from the scaffold works, what duckkit and the template hold, and how apps stay current | `docs/architecture.md`, `docs/kit.md`, `docs/template.md`, `docs/upgrading.md` |
+| **Shape** | how an app made from the scaffold works, what duckkit and the template hold, and how apps stay current | `docs/architecture.md`, `docs/kit.md`, `docs/template.md`, `docs/skills.md`, `docs/upgrading.md` |
 | **API** | what apps depend on: duckkit's public names and the `AppSpec` fields, and the Copier questions with the files that are managed or seeded | `kit/src/duckkit/__init__.py`, `kit/src/duckkit/spec.py`, `copier.yml` |
 | **Guardrails** | how the work is done, in this repo and in every app, and what it must not do | this repo's CLAUDE.md, `.claude/settings.json`, `.claude/spec-paths` and this file; the template's CLAUDE.md, settings, agents, `/deliver-outcome`, spec files, PR template, CI, git hooks, `pyproject.toml` (its pytest settings and its dependencies) and guard test; `docs/how-we-work.md`, `docs/review.md`; `specdiff.py`; this repo's CI and `scripts/render.sh` |
 
