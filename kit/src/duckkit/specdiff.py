@@ -99,9 +99,9 @@ def spec_diff(root: Path, base: str = "origin/main") -> SpecDiff:
     paths = read_spec_paths(root)
     try:
         merge_base = _git(root, "merge-base", base, "HEAD").strip()
-    except subprocess.CalledProcessError as e:
-        raise ValueError(f"no common commit of {base} and HEAD ({e.stderr.strip() or 'git merge-base failed'}): "
-                         "fetch the base branch, or pass another --base") from e
+    except ValueError as e:
+        raise ValueError(f"no common commit of {base} and HEAD ({e}): fetch the base branch, or pass another --base"
+                         ) from e
     result = SpecDiff(base=base)
     changes, renamed_from = _changed_files(root, merge_base)
     renamed = set(renamed_from.values())
@@ -121,7 +121,11 @@ def spec_diff(root: Path, base: str = "origin/main") -> SpecDiff:
 
 
 def _git(root: Path, *args: str) -> str:
-    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=True).stdout
+    """git's output. A failure raises ValueError, so that spec-diff says it can't tell (exit 2)."""
+    done = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=False)
+    if done.returncode != 0:
+        raise ValueError(f"git {' '.join(args)} failed: {done.stderr.strip()}")
+    return done.stdout
 
 
 def _changed_files(root: Path, merge_base: str) -> tuple[list[tuple[str, str]], dict[str, str]]:
@@ -153,8 +157,11 @@ def _read_now(root: Path, path: str) -> str | None:
 def _spec_test_changes(root: Path, merge_base: str, old_path: str, path: str) -> tuple[list[str], list[str]]:
     """The spec tests of one test file (at `old_path` before a rename) that changed, were removed or lost their
     mark; and the new ones."""
-    before_marked, _ = _tests(_read_at(root, merge_base, old_path))
-    after_marked, after_all = _tests(_read_now(root, path))
+    try:
+        before_marked, _ = _tests(_read_at(root, merge_base, old_path))
+        after_marked, after_all = _tests(_read_now(root, path))
+    except SyntaxError as e:  # spec-diff can't tell what changed: exit 2, not 1
+        raise ValueError(f"{path} does not parse: {e}") from e
     changed = []
     for name, body in before_marked.items():
         if name not in after_marked:
