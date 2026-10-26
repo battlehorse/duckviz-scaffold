@@ -22,7 +22,8 @@ Read these first:
 The user sets outcomes (GitHub issues with the label `outcome`, run with `/deliver-outcome`). Inside the spec
 (docs/spec.md), you work on your own: long sessions, PRs you merge yourself. A change to the spec waits for the
 user's approval, but you go on building on top of it, in stacked PRs. docs/how-we-work.md is the canonical description.
-- **Every change is a PR.** Each PR passes CI, `uv run {{ project_name }} spec-diff` and the `reviewer` agent.
+- **Every change is a PR.** Each PR passes CI and the `reviewer` agent. Run `uv run {{ project_name }} spec-diff` on
+  it: it lists the spec changes, which the PR must name.
 - **Merge a PR that leaves the spec unchanged** (`gh pr merge --merge`). **Never merge a PR that changes the
   spec** (CI labels it `spec-change`): the user merges it, or tells you to.
 - **Name each spec change** in the PR's *Spec changes* section, and keep it in a PR of its own.

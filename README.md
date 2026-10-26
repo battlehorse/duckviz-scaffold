@@ -148,7 +148,7 @@ kit/                     duckkit (src/duckkit/) and its tests
 template/                the Copier template: the app's files, rendered with the answers
 copier.yml               the questions (answers and options), and which files are seeded once
 docs/                    architecture, kit, template, upgrading, spec; how-we-work and review (symlinks to template/docs/)
-scripts/render.sh        renders a sample app with every option on and one with every option off, and tests both
+scripts/render.sh        renders three sample apps (every option on, every option off, curations), and tests them
 scripts/release.py       sets the release version (on a branch), then tags it (on main)
 .claude/skills/upstream  the skill that brings a capability from an app into the scaffold
 .github/workflows/ci.yml the kit's tests and the two sample apps, on every PR

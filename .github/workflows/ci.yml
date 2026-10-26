@@ -1,5 +1,5 @@
-# The kit's tests, then sample apps rendered from the template (every flag on, every flag off) with their own tests,
-# and `doctor`.
+# The kit's tests, then sample apps rendered from the template (every option on, every option off, curations) with
+# their own tests, and `doctor`.
 name: ci
 
 on:
