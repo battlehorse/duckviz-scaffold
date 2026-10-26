@@ -21,8 +21,9 @@ SERVICE = {"status": {"traffic": [{"revisionName": "shopviz-00007", "percent": 0
 class Tools:
     """Answers `gcloud` and `git` as a hosted app with `label` on its serving revision would. Keeps the commands."""
 
-    def __init__(self, label="abc1234", known=True, on_main=True, behind="0", fail=None):
+    def __init__(self, label="abc1234", known=True, on_main=True, behind="0", fail=None, has_main=True):
         self.label, self.known, self.on_main, self.behind, self.fail = label, known, on_main, behind, fail
+        self.has_main = has_main
         self.commands = []
 
     def __call__(self, command, **kwargs):
@@ -33,6 +34,8 @@ class Tools:
             return subprocess.CompletedProcess(command, 0, json.dumps(SERVICE), "")
         if command[:4] == ["gcloud", "run", "revisions", "describe"]:
             return subprocess.CompletedProcess(command, 0, self.label + "\n", "")
+        if command[:2] == ["git", "rev-parse"]:
+            return subprocess.CompletedProcess(command, 0 if self.has_main else 1)
         if command[:2] == ["git", "cat-file"]:
             return subprocess.CompletedProcess(command, 0 if self.known else 128)
         if command[:2] == ["git", "merge-base"]:
@@ -84,6 +87,7 @@ def test_the_deployed_commit_is_the_serving_revisions_not_the_latest(spec, cloud
     assert tools.commands == [
         ["gcloud", "run", "services", "describe", "shopviz", *where, "--format=json"],
         ["gcloud", "run", "revisions", "describe", "shopviz-00006", *where, "--format=value(metadata.labels.commit)"],
+        ["git", "rev-parse", "--verify", "-q", "origin/main"],
         ["git", "cat-file", "-e", "abc1234^{commit}"],
         ["git", "merge-base", "--is-ancestor", "abc1234", "origin/main"],
         ["git", "rev-list", "--count", "abc1234..origin/main"],
@@ -94,7 +98,7 @@ def test_the_deployed_commit_is_the_serving_revisions_not_the_latest(spec, cloud
     (Tools(behind="0"), "the same as origin/main"),
     (Tools(behind="1"), "1 commit behind origin/main: `/hosting deploy`"),
     (Tools(known=False), "a commit this clone lacks: `git fetch`, then ask again"),
-    (Tools(on_main=False), "not on origin/main (a branch was deployed)"),
+    (Tools(on_main=False), "not on origin/main (a branch, or a commit not pushed, was deployed)"),
 ])
 def test_the_deployed_line_says_where_the_commit_stands(spec, cloud_run, tools, state):
     cloud_run(tools)
@@ -105,6 +109,7 @@ def test_the_deployed_line_says_where_the_commit_stands(spec, cloud_run, tools, 
     (ANSWERS, Tools(label=""), "the serving revision shopviz-00006 has no commit label: deploy with `/hosting deploy`"),
     (ANSWERS, Tools(fail="gcloud"), "`gcloud` failed: ERROR: (gcloud) you do not have permission"),
     (ANSWERS, Tools(behind="fatal"), "`git rev-list` gave 'fatal', not a count"),
+    (ANSWERS, Tools(has_main=False), "this clone has no origin/main: `git fetch`, then ask again"),
     (ANSWERS.replace("gcp_region: europe-west2\n", ""), Tools(), ".copier-answers.yml has no gcp_region"),
     ("cloud_run: [true\n", Tools(), ".copier-answers.yml can't be read"),
 ])

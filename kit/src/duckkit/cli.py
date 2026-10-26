@@ -19,12 +19,15 @@
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import duckdb
 import typer
 
 from duckkit.spec import AppSpec
+
+if TYPE_CHECKING:
+    from duckkit.hosting import Deployed
 
 
 def fail(message: str) -> None:
@@ -59,8 +62,10 @@ def remote_lines(spec: AppSpec, publishing: bool) -> list[str]:
             stale = [view for view, (_, _, same) in compare(spec).items() if not same]
             differ = "1 view differs" if len(stale) == 1 else f"{len(stale)} views differ"
             hint = "(this is the demo database)" if is_demo(spec) else f"`{spec.cli} publish` sends them"
-            lines.append(f"Published:    {spec.motherduck_target} is up to date" if not stale else
-                         f"Published:    {differ} from the database ({', '.join(stale)}): {hint}")
+            if stale:
+                lines.append(f"Published:    {differ} from the database ({', '.join(stale)}): {hint}")
+            else:
+                lines.append(f"Published:    {spec.motherduck_target} is up to date")
         except (FileNotFoundError, ContractError, ValueError, duckdb.Error) as e:
             lines.append(f"Published:    can't tell: {str(e).splitlines()[0]}")
     try:
@@ -73,12 +78,12 @@ def remote_lines(spec: AppSpec, publishing: bool) -> list[str]:
     return lines
 
 
-def deployed_state(hosted) -> str:
+def deployed_state(hosted: Deployed) -> str:
     """Where the hosted app's commit stands against origin/main, in words."""
     if not hosted.known:
         return "a commit this clone lacks: `git fetch`, then ask again"
     if not hosted.on_main:
-        return "not on origin/main (a branch was deployed)"
+        return "not on origin/main (a branch, or a commit not pushed, was deployed)"
     if hosted.behind == 0:
         return "the same as origin/main"
     commits = "1 commit" if hosted.behind == 1 else f"{hosted.behind} commits"

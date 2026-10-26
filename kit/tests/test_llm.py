@@ -115,3 +115,10 @@ def test_the_gate_runs_a_paid_command_only_with_yes(spec, capsys):
     out = capsys.readouterr().out
     assert "12 rows" in out and "$0.03" in out and "Nothing was sent" in out
     assert f"uv run {spec.cli} classify --limit 12 --yes" in out
+
+
+def test_the_fake_says_when_a_test_runs_out_of_replies(spec):
+    c, _ = claude(spec, claude_reply({"label": "a"}))
+    c.call("s", "1", SCHEMA)
+    with pytest.raises(AssertionError, match="no reply left for request 2"):
+        c.call("s", "2", SCHEMA)
