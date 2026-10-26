@@ -333,7 +333,8 @@ The functions:
   last decisions. `curating` passes it when the database held decisions as the command began.
 - `restore(con, directory, tables, after=None)`: loads the files into a database with no decisions yet, in one
   transaction, and returns the rows per table (None when there was nothing to do). Call it at the end of the
-  ingestion. A file written before a column existed restores the column empty. A missing file is skipped.
+  ingestion. A text column keeps an empty text (`""` in the file) apart from a NULL (an empty field). Other types
+  read both as NULL. A file written before a column existed restores the column as NULL. A missing file is skipped.
   `after(con)` runs in the same transaction: what the app derives from the decisions.
 - `holds_decisions(con, tables)`: whether the database holds any.
 - `file_changes(spec, base=None)`: what a change does to each curated file: its rows before and after, and the
