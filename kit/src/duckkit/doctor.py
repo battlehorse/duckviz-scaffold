@@ -49,6 +49,15 @@ EXPECTED = [
     ("curated/README.md", "curations"),
     (".claude/skills/rebuild-database/SKILL.md", "curations"),
     (".githooks/pre-commit", None),
+    (".github/pull_request_template.md", None),
+    ("docs/spec.md", None),
+    ("docs/working.md", None),
+    ("docs/review.md", None),
+    (".claude/spec-paths", None),
+    (".claude/settings.json", None),
+    (".claude/hooks/hard_stops.py", None),
+    (".claude/agents/reviewer.md", None),
+    (".claude/skills/outcome/SKILL.md", None),
     ("config.example.toml", None),
 ]
 

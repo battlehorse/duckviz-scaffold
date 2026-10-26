@@ -31,7 +31,10 @@ duckkit = { path = "{{ kit_path }}", editable = true }
 {%- endif %}
 
 [tool.pytest.ini_options]
-markers = ["realdata: uses the real data on this machine (opt-in: `pytest -m realdata`)"]
+markers = [
+    "realdata: uses the real data on this machine (opt-in: `pytest -m realdata`)",
+    "spec: a functional test of a key rule; part of the spec (docs/spec.md): only the user approves a change to it",
+]
 addopts = "-m 'not realdata'"
 # Raised inside duckdb's own pandas conversion (.df()), not by this code
 filterwarnings = ["ignore:The inplace keyword in DataFrame.drop is deprecated"]

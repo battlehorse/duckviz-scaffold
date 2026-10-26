@@ -21,3 +21,38 @@ jobs:
         run: uv run pytest -q --cov={{ package }} --cov-report=term
       - name: Scaffold
         run: uv run {{ project_name }} doctor
+
+  # Labels a PR that changes the spec (docs/spec.md) with spec-change: only the user merges those
+  # (docs/working.md). Claude's merge hook reads the label, and this job's result.
+  spec:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10.3.2
+      - name: Install
+        run: uv sync --locked
+      - name: Spec diff
+        id: diff
+        run: |
+          if uv run {{ project_name }} spec-diff --base "origin/${{ '{{' }} github.base_ref {{ '}}' }}"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Label
+        env:
+          GH_TOKEN: ${{ '{{' }} github.token {{ '}}' }}
+          PR: ${{ '{{' }} github.event.pull_request.number {{ '}}' }}
+        run: |
+          gh label create spec-change --color D93F0B --description "Changes the spec: the user merges it" --force
+          if [ "${{ '{{' }} steps.diff.outputs.changed {{ '}}' }}" = true ]; then
+            gh pr edit "$PR" --add-label spec-change
+          else
+            gh pr edit "$PR" --remove-label spec-change || true
+          fi

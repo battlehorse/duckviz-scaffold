@@ -1,6 +1,7 @@
 """Curated decisions: a label is kept in curated/labels.csv, comes back into a rebuilt database, and its removal is
 kept too.{% if demo_data %} A demo database is refused.{% endif %}"""
 
+import pytest
 from typer.testing import CliRunner
 
 from {{ package }}.cli import app
@@ -25,6 +26,7 @@ def test_a_label_is_kept_in_curated(tmp_path):
     assert rows[1].startswith("2026-01-02,away,manual,") and rows[1].endswith(",the heating was off")
 
 
+@pytest.mark.spec
 def test_a_rebuilt_database_gets_its_labels_back(tmp_path):
     ingest(tmp_path)
     runner.invoke(app, ["label", "2026-01-01", "holiday"])
