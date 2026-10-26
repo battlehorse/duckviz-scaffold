@@ -272,6 +272,7 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 | `privacy-check` | fails when a committable file holds personal data | `privacy.check` |
 | `doctor [--remote]` | compares the repo with the scaffold | `doctor.diagnose` |
 | `spec-diff [--base]` | lists what a branch changes in the spec, and exits 1 if anything | `specdiff.spec_diff` |
+| `curated-check [--base]` | what a commit (or a branch) does to the curated files; fails on a large loss | `curated.file_changes` |
 
 The hooks:
 - `connect` opens the database for writing; `backup` needs it.
@@ -311,8 +312,10 @@ curate data should refuse one too (`curated.curating` does).
 ## `duckkit.curated`
 
 **What it is for:** decisions that cost time or money to make (a category chosen by hand, a model's
-classification) and that the source files can't give again. They live in curated tables, and in `curated/*.csv`,
-committed to git: the database can be deleted and rebuilt without losing them. A repo with curations stays private.
+classification) and that the source files can't give again. docs/architecture.md ("Curated decisions") is the
+canonical description of the flow. The database is the source of truth. `curated/*.csv` is its backup in git:
+`curating()` exports it after each command that changes a decision, and `restore` reads it only to rebuild a
+database.
 
 A `CuratedTable(name, columns, order_by, where=None, key=None)` is one of two kinds:
 - **its own rows** (no `key`): the decisions are the rows (a merchant and its category). `restore` inserts them.
@@ -323,16 +326,24 @@ A `CuratedTable(name, columns, order_by, where=None, key=None)` is one of two ki
 The functions:
 - `curating(spec, connect, tables)`: the connection for every command that changes a decision. It exports the
   tables after the command, and after a failure too (it rolls back the half-finished transaction, and exports what
-  earlier batches committed). It refuses a demo database (`ValueError`).
+  earlier batches committed). It refuses a demo database (`Refused`, a `ValueError`).
 - `export(con, directory, tables, removed=False)`: writes `<name>.csv` per table, sorted by `order_by`, each file
   replaced atomically. A database with no decisions at all (new, or rebuilt and not restored yet) never replaces
   files that hold some: it writes nothing and returns False. `removed=True` writes anyway: a command removed the
   last decisions. `curating` passes it when the database held decisions as the command began.
 - `restore(con, directory, tables, after=None)`: loads the files into a database with no decisions yet, in one
-  transaction, and returns the rows per table (None when there was nothing to do). Run it at the end of the
-  ingestion. A file written before a column existed restores the column empty; a missing file is skipped.
+  transaction, and returns the rows per table (None when there was nothing to do). Call it at the end of the
+  ingestion. A file written before a column existed restores the column empty. A missing file is skipped.
   `after(con)` runs in the same transaction: what the app derives from the decisions.
 - `holds_decisions(con, tables)`: whether the database holds any.
+- `file_changes(spec, base=None)`: what a change does to each curated file: its rows before and after, and the
+  rows added and removed (a changed row is one of each). Without `base`, it compares the staged files with HEAD,
+  for the next commit. With `base`, it compares the working tree with the point where the branch left `base`, for
+  a PR. It counts CSV records, so a note with line breaks is one row. `FileChange.loses_many` is True when the file
+  is emptied, or when it loses more than 5 rows and more than a tenth of its rows. The `curated-check` command
+  (`add_standard_commands(..., curations=True)`) prints them. It fails on one that loses many, unless
+  `ALLOW_CURATED_LOSS=1`.
+- `Refused`: the error of `curating` on a demo database (a `ValueError`).
 - `not_manual(column="classified_by")`: SQL for "a model may redo this decision": not made by hand.
 
 Name the decision columns the same way in every app: `classified_by` (`llm` or `manual`; a manual decision is never

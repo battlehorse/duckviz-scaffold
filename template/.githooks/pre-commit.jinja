@@ -1,4 +1,8 @@
 #!/bin/sh
-# Stops a commit when a file that git would commit contains personal data.
+# Stops a commit when a file that git would commit contains personal data{% if curations %}, or when the commit empties a
+# curated file or loses many of its decisions (`curated-check`){% endif %}.
 # Install once per clone: git config core.hooksPath .githooks
+{%- if curations %}
+uv run {{ project_name }} curated-check || exit 1
+{%- endif %}
 exec uv run {{ project_name }} privacy-check

@@ -31,6 +31,26 @@ and the user reviews only the changes to the spec.
   the first.
 - Create the `spec-change` label, or let the first PR's CI create it. The CI job needs `pull-requests: write`.
 
+## v0.5.2
+
+- duckkit: **a git guard for the curated files.** `curated-check`, a standard command with
+  `add_standard_commands(..., curations=True)`, lists what the next commit does to each curated file (rows before
+  and after, added and removed). It fails when a file is emptied or loses more than 5 rows and a tenth of them,
+  unless `ALLOW_CURATED_LOSS=1`. With `--base <branch>` it reports what a branch does, from where it left that
+  branch. `curated.file_changes` is the function behind it.
+- duckkit: `curating` refuses a demo database with `curated.Refused` (a `ValueError`), which names the `demo`
+  command.
+- Template, `curations`: the pre-commit hook runs `curated-check`. CLAUDE.md says that a commit that removes curated
+  rows needs the user's yes. `ingest` catches only `Refused`, so any other error keeps its traceback.
+  `/rebuild-database` is for the user to start only (`disable-model-invocation`), and its ingest step says not to
+  run the other steps of `/ingest`, such as a paid classification.
+- Docs: docs/architecture.md has a "Curated decisions" section: the source of truth (the database), the backup (the
+  files), the write path (`curating()`), the read path (a rebuild), matching by key, and the guardrails.
+
+**Steps:**
+- With `curations` on: `cli.py` is seeded, so add `curations=True` to its `add_standard_commands(...)` call. The
+  managed pre-commit hook runs `curated-check`, and fails without it.
+
 ## v0.5.1
 
 - Template, `curations`: the seeded `/fix` skill is now `/fix-curation`, and says it corrects a curated decision in

@@ -14,6 +14,7 @@
 | `privacy-check` | fail if a committable file holds personal data (the pre-commit hook) |
 | `doctor` | how this repo compares with the scaffold it was made from |
 | `spec-diff [--base]` | the parts of the spec a change touches (`.claude/spec-paths`); exits 1 if any |
+| `curated-check [--base]` | what a commit (or a branch) does to curated/*.csv; fails when a file loses many rows (`curations=True`) |
 """
 
 from collections.abc import Callable
@@ -84,6 +85,7 @@ def add_standard_commands(
     privacy_terms: Callable[[AppSpec], dict[str, str]] | None = None,
     backups: bool = True,
     publishing: bool = True,
+    curations: bool = False,
 ) -> None:
     """Add the standard commands to `app`.
 
@@ -91,6 +93,7 @@ def add_standard_commands(
     - `status`: the app's own summary lines for `status`, from a snapshot of the whole database.
     - `privacy_terms`: the app's own personal terms for `privacy-check` (names in its database, say).
     - `backups`, `publishing`: False leaves those commands out (the scaffold's `backup` and `motherduck` options).
+    - `curations`: True adds `curated-check` (the scaffold's `curations` option).
     """
 
     @app.command("status")
@@ -250,6 +253,31 @@ def add_standard_commands(
         if findings:
             fail(f"{len(findings)} lines with personal data: remove them before committing")
         typer.echo("✓ no personal data in the files git would commit")
+
+    if curations:
+        @app.command("curated-check")
+        def curated_check_command(
+            base: str = typer.Option(None, help="Compare the working tree with this branch, instead of the commit."),
+        ) -> None:
+            """Show what the next commit (or, with --base, this branch) does to the curated decisions. Fail when a file
+            is emptied or loses many rows, unless ALLOW_CURATED_LOSS=1: the pre-commit hook runs it."""
+            import os
+
+            from duckkit.curated import file_changes
+
+            try:
+                changes = file_changes(spec, base)
+            except ValueError as e:
+                fail(str(e))
+            for change in changes:
+                typer.echo(f"  {'✗' if change.loses_many else '·'} {change.line()}")
+            many = ", ".join(c.name for c in changes if c.loses_many)
+            if many and base:
+                fail(f"{many} lose many decisions on this branch. Check `git diff {base} -- curated/`")
+            if many and os.environ.get("ALLOW_CURATED_LOSS") != "1":
+                fail(f"{many} would lose many decisions. Check `git diff --cached curated/`. If you meant it, commit"
+                     " again with ALLOW_CURATED_LOSS=1. If not, unstage them: `git restore --staged curated/`")
+            typer.echo("✓ curated decisions: " + (f"{len(changes)} files change" if changes else "no change"))
 
     @app.command("doctor")
     def doctor_command(

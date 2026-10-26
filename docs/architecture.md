@@ -176,6 +176,35 @@ is then imported into memory and compared with the source, table by table, by ro
 contents. Only the newest 30 are kept. `restore` builds a new database file from a snapshot and never overwrites
 an existing one. `status` shows how old the newest backup is.
 
+## Curated decisions (the `curations` option)
+
+The decisions that people, or a model, make about the data, and that the sources can't give back: a product's
+category, a merchant's name, a day's label. They cost time or money to make.
+
+- **Source of truth: the database**, in the curated tables, next to the data they describe. The app, the commands
+  and every query read them there.
+- **Backup: `curated/*.csv`, committed to git.** One file per curated table, sorted, so a git diff shows each
+  changed decision. The files are the user's decisions, so a repo with curations stays private (`doctor --remote`
+  checks).
+- **Write path: after each command that changes a decision.** Every such command runs inside `curating()`, which
+  exports the curated tables to the files after the command, and after a failure too (earlier batches may have
+  committed). The command can't forget it. Don't edit the files by hand: the next command overwrites the edit.
+- **Read path: only when the database is rebuilt** (lost, a new clone, a schema change with no migration). The
+  `ingest` that rebuilds it calls `restore`, which loads the files into the empty curated tables. Nothing else reads
+  them.
+- **Matching: by key.** The ingestion computes each row's key from the raw data, for example a SKU key from a
+  product's name. A new row whose key already has a decision gets it at once, because the views join on the key. A
+  new key has no decision until a command, or a model, makes one.
+- **Guardrails against accidental loss:**
+  - A database that holds no decisions (rebuilt, and not restored yet) never overwrites files that hold some.
+  - The pre-commit hook runs `curated-check`. It lists what each commit does to each file, and stops one that
+    empties a file or loses many rows until the user confirms (`ALLOW_CURATED_LOSS=1`).
+  - Git keeps every version. To recover lost decisions, `git checkout HEAD -- curated/` restores the files. Then
+    rebuild the database (`/rebuild-database`), with any missing sources back, so that it holds them too.
+  - `curating()` refuses a demo database: its made-up decisions must never reach the files.
+
+duckkit's functions are in docs/kit.md (`duckkit.curated`).
+
 ## Code: duckkit, the template, the app
 
 ```mermaid

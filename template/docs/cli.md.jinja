@@ -24,4 +24,7 @@ come first; the rest are duckkit's standard commands (the same in every app made
 | `restore <snapshot> [--to <file>]` | a new database from a snapshot (never overwrites) |
 {%- endif %}
 | `privacy-check` | fail if a file git would commit holds personal data |
+{%- if curations %}
+| `curated-check [--base <branch>]` | what the next commit (or a branch) does to `curated/*.csv`; fails when a file is emptied or loses many rows (the pre-commit hook runs it) |
+{%- endif %}
 | `doctor [--remote]` | whether the repo is in step with the scaffold |
