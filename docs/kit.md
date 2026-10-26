@@ -14,7 +14,7 @@ see where the modules fit in an app, read docs/architecture.md first.
 - [Which side may import what](#which-side-may-import-what)
 - Modules: [spec](#duckkitspec) · [contract](#duckkitcontract) · [snapshot](#duckkitsnapshot) ·
   [store](#duckkitstore) · [publish](#duckkitpublish) · [backup](#duckkitbackup) · [privacy](#duckkitprivacy) ·
-  [serve](#duckkitserve) · [cli](#duckkitcli) · [doctor](#duckkitdoctor) · [demo](#duckkitdemo) · [app.common](#duckkitappcommon) ·
+  [serve](#duckkitserve) · [cli](#duckkitcli) · [doctor](#duckkitdoctor) · [demo](#duckkitdemo) · [curated](#duckkitcurated) · [app.common](#duckkitappcommon) ·
   [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
 - [Hooks](#hooks-where-an-apps-domain-goes-in)
 - [Compatibility](#compatibility)
@@ -59,6 +59,7 @@ module belongs to one of them:
 | [`cli`](#duckkitcli) | ingestion | the command-line commands every app has |
 | [`doctor`](#duckkitdoctor) | ingestion | compare the repo with the scaffold release it comes from |
 | [`demo`](#duckkitdemo) | ingestion | build a demo database, and tell one apart from the real one |
+| [`curated`](#duckkitcurated) | ingestion | keep curated decisions in `curated/*.csv`, and restore them into a rebuilt database |
 | [`testing`](#duckkittesting) | tests | isolate tests from real data; build contract databases |
 | [`testing.guard`](#duckkittestingguard) | tests | keep the browser app on the contract |
 
@@ -104,6 +105,7 @@ The fields resolved when the spec is made, which can be overridden from the envi
 | Field | Environment | Default |
 |---|---|---|
 | `data_dir` | | `<root>/data` |
+| `curated_dir` | | `<root>/curated`: the curated decisions (`duckkit.curated`) |
 | `db_path` | `<PREFIX>_DB` | `data/<db_file>` |
 | `demo_db_path` | | `data/<demo_file>` |
 | `app_db` | `<PREFIX>_APP_DB` | none. When set, the app reads this (a file or `md:<name>`) instead: a hosted app. |
@@ -303,7 +305,36 @@ file is.
 - `MARKER`: `"demo_params"`. An app's demo builder creates this table.
 
 `publish` refuses a demo database, and `status` says "Demo: made-up data" for one. An app's own commands that send or
-curate data should refuse one too.
+curate data should refuse one too (`curated.curating` does).
+
+## `duckkit.curated`
+
+**What it is for:** decisions that cost time or money to make (a category chosen by hand, a model's
+classification) and that the source files can't give again. They live in curated tables, and in `curated/*.csv`,
+committed to git: the database can be deleted and rebuilt without losing them. A repo with curations stays private.
+
+A `CuratedTable(name, columns, order_by, where=None, key=None)` is one of two kinds:
+- **its own rows** (no `key`): the decisions are the rows (a merchant and its category). `restore` inserts them.
+- **decisions on the ingestion's rows** (`key`): the ingestion makes the rows, and a command fills in some columns
+  (a SKU's product). `where` picks the rows that hold a decision, and `restore` updates rows by `key`, skipping keys
+  the database doesn't have yet.
+
+The functions:
+- `curating(spec, connect, tables)`: the connection for every command that changes a decision. It exports the
+  tables after the command, and after a failure too (it rolls back the half-finished transaction, and exports what
+  earlier batches committed). It refuses a demo database (`ValueError`).
+- `export(con, directory, tables)`: writes `<name>.csv` per table, sorted by `order_by`, each file replaced
+  atomically. A database with no decisions at all (new, or rebuilt and not restored yet) never replaces files that
+  hold some: it writes nothing and returns False.
+- `restore(con, directory, tables, after=None)`: loads the files into a database with no decisions yet, in one
+  transaction, and returns the rows per table (None when there was nothing to do). Run it at the end of the
+  ingestion. A file written before a column existed restores the column empty; a missing file is skipped.
+  `after(con)` runs in the same transaction: what the app derives from the decisions.
+- `holds_decisions(con, tables)`: whether the database holds any.
+- `not_manual(column="classified_by")`: SQL for "a model may redo this decision": not made by hand.
+
+Name the decision columns the same way in every app: `classified_by` (`llm` or `manual`; a manual decision is never
+overwritten by a model), `classified_at`, `model`, and an optional `note`.
 
 ## `duckkit.doctor`
 
@@ -313,6 +344,8 @@ curate data should refuse one too.
 make `doctor` fail; notes don't. It checks that:
 - the files come from the same release as the installed duckkit;
 - with `--remote`, whether a newer release exists (`git ls-remote --tags` on the scaffold);
+- with `--remote`, that a repo whose git holds `curated/` is not public on GitHub (`gh repo view`): a problem if it
+  is, a note if `gh` can't tell;
 - every file in `EXPECTED` is present, unless an option turns it off or `opt_out` lists it;
 - every opted-out file is explained in `docs/deviations.md`.
 
@@ -350,7 +383,7 @@ its own.
 
 **What it is for:** tests that can't touch real data, and tests for the browser app that need no ingestion.
 - `isolate(spec, tmp_path, monkeypatch, env=())` points every path of the spec into `tmp_path`: the database,
-  `data/`, `config.toml` and the backups. It also unsets `MOTHERDUCK_TOKEN`, `<PREFIX>_APP_DB`, the
+  `data/`, `curated/`, `config.toml` and the backups. It also unsets `MOTHERDUCK_TOKEN`, `<PREFIX>_APP_DB`, the
   privacy terms, and any `env` you name. Call it from an autouse fixture in `tests/conftest.py`.
 - `contract_db(spec, path)` creates a database with the contract's exact shape and its `v_contract` row, still
   open so the test can fill it. The browser app's tests build their data this way.

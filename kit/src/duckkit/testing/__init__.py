@@ -15,6 +15,7 @@ def isolate(spec: AppSpec, tmp_path: Path, monkeypatch, env: tuple[str, ...] = (
     data, settings or MotherDuck. Call it from an autouse fixture in tests/conftest.py."""
     monkeypatch.setattr(spec, "db_path", tmp_path / "test.duckdb")
     monkeypatch.setattr(spec, "data_dir", tmp_path / "data")
+    monkeypatch.setattr(spec, "curated_dir", tmp_path / "curated")
     monkeypatch.setattr(spec, "config_path", tmp_path / "config.toml")
     monkeypatch.setattr(spec, "app_db", None)
     monkeypatch.setattr(spec, "version", None)

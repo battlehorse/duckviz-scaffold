@@ -4,7 +4,8 @@ It reads `.copier-answers.yml` (written by `copier copy` / `copier update`: the 
 including the options and `opt_out`) and checks:
 
 - the scaffold version the files come from, against the installed duckkit (they should be the same release);
-- with `--remote`, the newest release of the scaffold (`git ls-remote --tags`);
+- with `--remote`, the newest release of the scaffold (`git ls-remote --tags`), and that a repo whose git holds
+  curated/ (the user's decisions, duckkit.curated) isn't public (`gh repo view`);
 - that the files every app has are there, unless an option turns them off or `opt_out` lists them;
 - that every opted-out file is explained in docs/deviations.md (the app's own list of where it differs).
 
@@ -82,6 +83,23 @@ def newest_release(source: str) -> str | None:
     return max(tags, key=lambda t: tuple(int(x) for x in t[1:].split("."))) if tags else None
 
 
+def tracks_curated(spec: AppSpec) -> bool:
+    """Whether git holds files under curated/."""
+    out = subprocess.run(["git", "ls-files", "--", "curated"], cwd=spec.root, capture_output=True, text=True,
+                         check=False, timeout=30)
+    return bool(out.stdout.strip())
+
+
+def visibility(spec: AppSpec) -> str | None:
+    """The GitHub repo's visibility ("PUBLIC", "PRIVATE", "INTERNAL"); None when `gh` can't tell."""
+    try:
+        out = subprocess.run(["gh", "repo", "view", "--json", "visibility", "--jq", ".visibility"], cwd=spec.root,
+                             capture_output=True, text=True, check=False, timeout=30)
+    except FileNotFoundError:
+        return None
+    return out.stdout.strip() or None if out.returncode == 0 else None
+
+
 def diagnose(spec: AppSpec, remote: bool = False) -> Report:
     report = Report()
     found = answers(spec)
@@ -101,6 +119,13 @@ def diagnose(spec: AppSpec, remote: bool = False) -> Report:
         newest = newest_release(source)
         if newest and newest != commit.split("-")[0]:
             report.notes.append(f"scaffold {newest} is out: `/scaffold-update` brings it in")
+    if remote and tracks_curated(spec):
+        seen = visibility(spec)
+        if seen == "PUBLIC":
+            report.problems.append("git holds curated/, your decisions, and the GitHub repo is public: make the repo "
+                                   "private")
+        elif seen is None:
+            report.notes.append("git holds curated/: couldn't check that the GitHub repo is private (`gh repo view`)")
     opt_out = set(found.get("opt_out") or [])
     for path, flag in EXPECTED:
         if flag and not found.get(flag):
