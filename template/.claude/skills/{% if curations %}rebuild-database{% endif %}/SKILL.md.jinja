@@ -27,7 +27,7 @@ everything else in the database again.
 5. **Run `uv run {{ project_name }} ingest`** with every source file, the files that `/ingest` names. Do not run the
    other steps of `/ingest`. The
    output must say `restored from curated/:` with a count for each table. Run no command that changes a decision
-   before this step: its export would write the files without the decisions not restored yet.
+   before this step.
 6. **Check the result:**
    - Compare each count with the rows of `curated/<table>.csv`, without the header. A keyed table can restore fewer
      rows when some of its sources are gone. Name them.

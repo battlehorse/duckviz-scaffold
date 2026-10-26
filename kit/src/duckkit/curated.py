@@ -2,12 +2,14 @@
 
 The rest of the database comes again from the source files, but a decision costs time or money to make. The database
 is the source of truth: the commands change it, and the app reads it. curated/*.csv is its backup in git:
-- **write path:** a command that changes decisions calls `export` when it is done. `export` writes each curated
-  table to curated/<table>.csv, sorted, so a git diff shows exactly which decisions changed.
+- **write path:** every command that changes a decision runs inside `curating`, which exports the curated tables to
+  curated/<table>.csv after the command, and after a failure too. The caller can't forget it. The files are sorted,
+  so a git diff shows exactly which decisions changed.
 - **read path:** `restore` loads the files into a rebuilt database, at the end of its `ingest`. Nothing else reads
   them.
-- **guardrail:** git keeps every version. `file_changes` (the `curated-check` command, in the pre-commit hook) shows
-  what a commit does to the files, and stops one that loses many decisions.
+- **guardrails:** a database with no decisions never overwrites files that hold some (`export`). Git keeps every
+  version, and `file_changes` (the `curated-check` command, in the pre-commit hook) stops a commit that loses many
+  decisions. A demo database is refused (`Refused`).
 
 The files hold the user's decisions: a repo with curations stays private (`doctor --remote` checks).
 
@@ -23,13 +25,14 @@ import csv
 import io
 import subprocess
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
 import duckdb
 
-from duckkit.demo import has_marker
+from duckkit.demo import is_demo
 from duckkit.snapshot import literal
 from duckkit.spec import AppSpec
 
@@ -63,31 +66,32 @@ def holds_decisions(con: duckdb.DuckDBPyConnection, tables: list[CuratedTable]) 
     return any(_count(con, t) for t in tables)
 
 
-def export(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedTable]) -> None:
-    """Write each curated table to `directory`/<name>.csv, sorted by `order_by`. Each file is replaced atomically.
+def export(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedTable],
+           removed: bool = False) -> bool:
+    """Write each table to `directory`/<name>.csv, sorted. Each file is replaced atomically.
 
-    A command that changes decisions calls it when it is done (and in a `finally`, when earlier batches commit on
-    their own). It writes what the database holds, even when that is nothing: an empty table empties its file. It
-    raises `Refused` for a demo database: its made-up decisions must never reach curated/.
+    A database with no decisions at all (new, or rebuilt and not restored yet) never replaces files that hold some:
+    returns False and writes nothing. Unless `removed`: the decisions were there and a command removed them (what
+    `curating` passes when the database held decisions as the command began).
     """
-    if has_marker(con):
-        raise Refused("this is a demo database: its decisions never go into curated/. Commands that change decisions "
-                      "work on your own database")
+    files = [directory / f"{t.name}.csv" for t in tables]
+    if not removed and not holds_decisions(con, tables) and any(_has_rows(f) for f in files):
+        return False
     directory.mkdir(parents=True, exist_ok=True)
-    for table in tables:
-        target = directory / f"{table.name}.csv"
+    for table, target in zip(tables, files):
         tmp = target.with_name(f".{target.name}.tmp")
         con.execute(f"COPY ({_select(table)} ORDER BY {table.order_by}) TO {literal(str(tmp))} (HEADER)")
         tmp.replace(target)
+    return True
 
 
 def restore(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedTable],
             after: Callable[[duckdb.DuckDBPyConnection], None] | None = None) -> dict[str, int] | None:
-    """Load curated/*.csv into a database that holds no decisions yet (a rebuilt one), in one transaction. Call it at
-    the end of the ingestion, once the rows that keyed tables update exist.
+    """Load curated/*.csv into a database that holds no decisions yet, in one transaction. Run it at the end of the
+    ingestion, once the rows that keyed tables update exist.
 
     Returns the rows restored per table, or None when there was nothing to do (the database holds decisions, or there
-    are no files). A file without a column (written before the column existed) restores it empty. A missing file is
+    are no files). A file without a column (written before the column existed) restores it empty; a missing file is
     skipped. `after(con)` runs inside the transaction: whatever the app derives from the decisions.
     """
     files = {t.name: directory / f"{t.name}.csv" for t in tables}
@@ -106,6 +110,29 @@ def restore(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[Curate
     return counts
 
 
+@contextmanager
+def curating(spec: AppSpec, connect: Callable[[], duckdb.DuckDBPyConnection], tables: list[CuratedTable],
+             directory: Path | None = None) -> Iterator[duckdb.DuckDBPyConnection]:
+    """A connection for a command that changes decisions: exports them to curated/ after it, and after a failure too
+    (earlier batches may be committed). Refuses a demo database: its decisions must never reach curated/."""
+    if is_demo(spec):
+        raise Refused(f"{spec.db_path} is a demo database: commands that change decisions work on your own database"
+                      f" only (`{spec.cli} demo` rebuilds the demo)")
+    directory = directory or spec.curated_dir
+    with connect() as con:
+        held = holds_decisions(con, tables)  # then an empty export is a removal, not a database without decisions
+        try:
+            yield con
+        except BaseException:
+            try:
+                con.rollback()  # drop a half-finished transaction before exporting
+            except duckdb.TransactionException:
+                pass  # none open
+            export(con, directory, tables, removed=held)
+            raise
+        export(con, directory, tables, removed=held)
+
+
 def _select(table: CuratedTable) -> str:
     return f"SELECT {', '.join(table.columns)} FROM {table.name}" + (f" WHERE {table.where}" if table.where else "")
 
@@ -114,6 +141,12 @@ def _count(con: duckdb.DuckDBPyConnection, table: CuratedTable) -> int:
     return con.execute(f"SELECT count(*) FROM ({_select(table)})").fetchone()[0]
 
 
+def _has_rows(path: Path) -> bool:
+    """Whether a CSV has a row under its header."""
+    if not path.exists():
+        return False
+    with path.open() as f:
+        return sum(1 for _ in zip(range(2), f)) > 1
 
 
 def _load(con: duckdb.DuckDBPyConnection, table: CuratedTable, path: Path) -> int:

@@ -10,9 +10,13 @@ from typing import Annotated
 import duckdb
 import typer
 from duckkit.cli import add_standard_commands, contract_line
-{% if curations %}
-from {{ package }}.curated import export, restore
+{%- if curations %}
+from duckkit.curated import Refused
 {%- endif %}
+
+{% if curations -%}
+from {{ package }}.curated import curating, restore
+{% endif -%}
 from {{ package }}.db.store import connect
 from {{ package }}.spec import SPEC
 
@@ -21,11 +25,12 @@ app = typer.Typer(help="{{ description }}")
 
 
 @contextmanager
-def friendly_errors() -> Iterator[None]:
-    """Show a ValueError (a bad argument, a refused demo database) as one line, and exit with 1."""
+def friendly_errors(caught: type[Exception] = ValueError) -> Iterator[None]:
+    """Show a `caught` error (a refusal, a bad argument) as one line, and exit with 1. Other errors keep their
+    traceback."""
     try:
         yield
-    except ValueError as e:
+    except caught as e:
         typer.echo(f"✗ {e}", err=True)
         raise typer.Exit(1) from None
 {%- endif %}
@@ -38,13 +43,13 @@ def ingest(
     """Load files into the database. Re-running is safe: rows already stored are left as they are."""
     from {{ package }}.ingest.pipeline import run
 
-    with connect() as con:
+    with {% if curations %}friendly_errors(Refused), curating(){% else %}connect(){% endif %} as con:
         summary = run(con, paths)
         typer.echo(f"  {summary['files']} files, {summary['new']} new rows")
         for error in summary["errors"]:
             typer.echo(f"  ✗ {error}", err=True)
 {%- if curations %}
-        if restored := restore(con):  # a rebuilt database: its decisions come back from curated/
+        if restored := restore(con):  # a rebuilt database: the decisions come back from curated/
             typer.echo("  restored from curated/: " + ", ".join(f"{n} {table}" for table, n in restored.items()))
 {%- endif %}
         problems = SPEC.contract.check(con)
@@ -61,19 +66,17 @@ def label(
     note: str | None = typer.Option(None, help="Why, for later."),
 ) -> None:
     """Label a day, or change its label: a decision by hand, kept in curated/labels.csv."""
-    with friendly_errors(), connect() as con:
+    with friendly_errors(), curating() as con:
         con.execute("INSERT OR REPLACE INTO labels VALUES (?, ?, 'manual', now(), ?)",
                     [date.fromisoformat(day), text, note])
-        export(con)
     typer.echo(f"Labelled {day}: {text}")
 
 
 @app.command()
 def unlabel(day: Annotated[str, typer.Argument(help="The day, YYYY-MM-DD.")]) -> None:
     """Remove a day's label."""
-    with friendly_errors(), connect() as con:
+    with friendly_errors(), curating() as con:
         gone = con.execute("DELETE FROM labels WHERE day = ?", [date.fromisoformat(day)]).fetchone()[0]
-        export(con)
     typer.echo(f"Removed the label of {day}" if gone else f"{day} has no label")
 {%- endif %}
 {%- if demo_data %}

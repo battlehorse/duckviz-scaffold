@@ -9,12 +9,6 @@ from {{ package }}.spec import SPEC
 runner = CliRunner()
 
 
-def run(*args: str) -> str:
-    result = runner.invoke(app, list(args))
-    assert result.exit_code == 0, result.output
-    return result.output
-
-
 def ingest(tmp_path) -> str:
     path = tmp_path / "sample.csv"
     path.write_text("day,value\n2026-01-01,3\n2026-01-02,5\n")
@@ -25,7 +19,7 @@ def ingest(tmp_path) -> str:
 
 def test_a_label_is_kept_in_curated(tmp_path):
     ingest(tmp_path)
-    run("label", "2026-01-02", "away", "--note", "the heating was off")
+    assert runner.invoke(app, ["label", "2026-01-02", "away", "--note", "the heating was off"]).exit_code == 0
     rows = (SPEC.curated_dir / "labels.csv").read_text().splitlines()
     assert rows[0] == "day,label,classified_by,classified_at,note"
     assert rows[1].startswith("2026-01-02,away,manual,") and rows[1].endswith(",the heating was off")
@@ -33,17 +27,17 @@ def test_a_label_is_kept_in_curated(tmp_path):
 
 def test_a_rebuilt_database_gets_its_labels_back(tmp_path):
     ingest(tmp_path)
-    run("label", "2026-01-01", "holiday")
+    runner.invoke(app, ["label", "2026-01-01", "holiday"])
     SPEC.db_path.unlink()
     assert "restored from curated/: 1 labels" in ingest(tmp_path)
-    assert "holiday" in run("sql", "SELECT label FROM labels")
-    assert "Labels:       1 (1 by hand)" in run("status")
+    assert "holiday" in runner.invoke(app, ["sql", "SELECT label FROM labels"]).output
+    assert "Labels:       1 (1 by hand)" in runner.invoke(app, ["status"]).output
 
 
 def test_removing_the_last_label_empties_the_file(tmp_path):
     ingest(tmp_path)
-    run("label", "2026-01-01", "holiday")
-    run("unlabel", "2026-01-01")
+    runner.invoke(app, ["label", "2026-01-01", "holiday"])
+    assert "Removed the label of 2026-01-01" in runner.invoke(app, ["unlabel", "2026-01-01"]).output
     assert (SPEC.curated_dir / "labels.csv").read_text().splitlines() == ["day,label,classified_by,classified_at,note"]
 {%- if demo_data %}
 

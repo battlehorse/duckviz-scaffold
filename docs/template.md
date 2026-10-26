@@ -141,8 +141,9 @@ come back into a rebuilt database. Choose it when the database is otherwise rebu
 must then stay private**: the files are the user's decisions.
 
 **On:**
-- `duckkit.curated` in use: `src/<package>/curated.py` lists the curated tables, with `export` and `restore`.
-  Every command that changes a decision calls `export` when it is done, and `ingest` calls `restore`;
+- `duckkit.curated` in use: `src/<package>/curated.py` lists the curated tables and wraps `curating()`. Every
+  command that changes a decision runs in it, so the files are exported after it. `ingest` calls `restore`, which
+  loads the files into a rebuilt database;
 - the git guard: the pre-commit hook runs `curated-check`, which stops a commit that empties a curated file or
   loses many of its rows, until the user confirms;
 - `doctor --remote` fails if git holds `curated/` and the GitHub repo is public;

@@ -186,8 +186,9 @@ category, a merchant's name, a day's label. They cost time or money to make.
 - **Backup: `curated/*.csv`, committed to git.** One file per curated table, sorted, so a git diff shows each
   changed decision. The files are the user's decisions, so a repo with curations stays private (`doctor --remote`
   checks).
-- **Write path: at the end of each command that changes a decision.** The command changes the database, then calls
-  `export`, which rewrites the files from it. Don't edit the files by hand: the next command overwrites the edit.
+- **Write path: after each command that changes a decision.** Every such command runs inside `curating()`, which
+  exports the curated tables to the files after the command, and after a failure too (earlier batches may have
+  committed). The command can't forget it. Don't edit the files by hand: the next command overwrites the edit.
 - **Read path: only when the database is rebuilt** (lost, a new clone, a schema change with no migration). The
   `ingest` that rebuilds it calls `restore`, which loads the files into the empty curated tables. Nothing else reads
   them.
@@ -195,11 +196,12 @@ category, a merchant's name, a day's label. They cost time or money to make.
   product's name. A new row whose key already has a decision gets it at once, because the views join on the key. A
   new key has no decision until a command, or a model, makes one.
 - **Guardrails against accidental loss:**
+  - A database that holds no decisions (rebuilt, and not restored yet) never overwrites files that hold some.
   - The pre-commit hook runs `curated-check`. It lists what each commit does to each file, and stops one that
     empties a file or loses many rows until the user confirms (`ALLOW_CURATED_LOSS=1`).
   - Git keeps every version. To recover lost decisions, `git checkout HEAD -- curated/` restores the files. Then
     rebuild the database (`/rebuild-database`), with any missing sources back, so that it holds them too.
-  - `export` refuses a demo database: its made-up decisions must never reach the files.
+  - `curating()` refuses a demo database: its made-up decisions must never reach the files.
 
 duckkit's functions are in docs/kit.md (`duckkit.curated`).
 
