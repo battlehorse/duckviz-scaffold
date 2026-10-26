@@ -5,34 +5,30 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
-- duckkit, **a fix for lost decisions**: `curating` now refuses a database that holds no decisions while curated/
-  holds some, such as a rebuilt database before `ingest`. Before this fix, a command on such a database (`label`,
-  say) replaced each file with that command's decisions only, and the next `ingest` did not restore the rest.
-  `curating(..., restores=True)` lets `ingest` run: it restores the decisions before the export.
-- duckkit: `curated.Refused` (a `ValueError`) is the error for both refusals: a demo database, and a database not
-  restored yet. The demo refusal now names the `demo` command.
-- duckkit: `export`'s parameter `removed` is now `held_decisions_before`.
-- Template, `curations`: `ingest` catches only `Refused`, so any other error keeps its traceback. `/rebuild-database`
-  is for the user to start only (`disable-model-invocation`). Its ingest step now says not to run the other steps
-  of `/ingest`, such as a paid classification.
+- duckkit, `curated`: **curation and export are separate calls.** `curating()` is gone. A command that changes
+  decisions now calls `export(con, directory, tables)` itself, when it is done. A command whose batches commit on
+  their own calls it in a `finally`. `export` writes what the database holds, even nothing, with no guard: an empty
+  table empties its file. It raises `curated.Refused` (a `ValueError`) for a demo database. `restore` is unchanged:
+  `ingest` calls it, and only a rebuilt database reads the files.
 - duckkit: **a git guard for the curated files.** `curated-check`, a standard command with
   `add_standard_commands(..., curations=True)`, lists what the next commit does to each curated file (rows before
   and after, added and removed). It fails when a file is emptied or loses more than 5 rows and a tenth of them,
   unless `ALLOW_CURATED_LOSS=1`. With `--base <branch>` it reports what a branch does, from where it left that
   branch. `curated.file_changes` is the function behind it.
 - Template, `curations`: the pre-commit hook runs `curated-check`. CLAUDE.md says that a commit that removes curated
-  rows needs the user's yes.
-- Docs: docs/architecture.md has a "Curated decisions" section: where they live (the database), when the files are
-  written (after each command) and read (only to rebuild a database), and how new data meets old decisions (keys).
+  rows needs the user's yes. `/rebuild-database` is for the user to start only (`disable-model-invocation`), and
+  its ingest step says not to run the other steps of `/ingest`, such as a paid classification.
+- Docs: docs/architecture.md has a "Curated decisions" section: the source of truth (the database), the backup (the
+  files), the write path, the read path, matching by key, and the guardrails.
 
 **Steps:**
-- With `curations` on: seeded files don't arrive with an update. In `src/<package>/curated.py`, give `curating` a
-  `restores` parameter and pass it to `duckkit.curated.curating` (the template's file shows how). In `ingest`, call
-  `curating(restores=True)`, and catch `duckkit.curated.Refused` there instead of every `ValueError`.
-- If the app calls `export(..., removed=...)`, rename the argument to `held_decisions_before`.
-- With `curations` on: `.githooks/pre-commit` is managed, so the update brings `curated-check` into it. The app's
-  `cli.py` is seeded: add `curations=True` to its `add_standard_commands(...)` call, or the hook fails on a
-  missing command.
+- With `curations` on: seeded files don't arrive with an update.
+  - In `src/<package>/curated.py`, replace `curating()` with an `export(con)` that calls
+    `duckkit.curated.export` (the template's file shows how).
+  - In each command that ran in `curating()`, open the connection as usual and call `export(con)` at its end. Call
+    it in a `finally` where batches commit on their own.
+  - Add `curations=True` to the `add_standard_commands(...)` call in `cli.py`: the managed pre-commit hook runs
+    `curated-check`.
 
 ## v0.5.1
 

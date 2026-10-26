@@ -7,8 +7,7 @@ or money (a model's) to make. The database holds them. These files are their cop
   `/fix-curation`) changes the database, then rewrites these files from it. Don't edit them by hand: the next
   command overwrites your edit.
 - **Read only to rebuild a database.** After the database is lost or rebuilt (`/rebuild-database`), `ingest` loads
-  them back. Until then, every other command that changes a decision refuses to run. In normal work, nothing reads
-  them.
+  them back. In normal work, nothing reads them.
 - **Guarded by git.** The pre-commit hook (`curated-check`) shows what each commit does to these files. It stops a
   commit that empties one or loses many rows, until you confirm with `ALLOW_CURATED_LOSS=1`.
 - **To bring lost decisions back:** `git checkout HEAD -- curated/` restores the files. The database still lacks

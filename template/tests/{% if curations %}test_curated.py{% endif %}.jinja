@@ -1,6 +1,5 @@
 """Curated decisions: a label is kept in curated/labels.csv, comes back into a rebuilt database, and its removal is
-kept too. A rebuilt database refuses a label until `ingest` restores it.{% if demo_data %} A demo database is
-refused.{% endif %}"""
+kept too.{% if demo_data %} A demo database is refused.{% endif %}"""
 
 from typer.testing import CliRunner
 
@@ -39,16 +38,6 @@ def test_a_rebuilt_database_gets_its_labels_back(tmp_path):
     assert "restored from curated/: 1 labels" in ingest(tmp_path)
     assert "holiday" in run("sql", "SELECT label FROM labels")
     assert "Labels:       1 (1 by hand)" in run("status")
-
-
-def test_a_rebuilt_database_refuses_a_label_until_ingest_restores_it(tmp_path):
-    ingest(tmp_path)
-    run("label", "2026-01-01", "holiday")
-    saved = (SPEC.curated_dir / "labels.csv").read_text()
-    SPEC.db_path.unlink()
-    result = runner.invoke(app, ["label", "2026-01-02", "away"])  # its export would hold this label only
-    assert result.exit_code == 1 and "ingest" in result.output
-    assert (SPEC.curated_dir / "labels.csv").read_text() == saved
 
 
 def test_removing_the_last_label_empties_the_file(tmp_path):

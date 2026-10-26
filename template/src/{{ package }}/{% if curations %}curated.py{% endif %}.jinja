@@ -1,18 +1,15 @@
-"""This app's curated decisions: the tables kept in curated/*.csv, committed to git (duckkit.curated,
-curated/README.md).
+"""This app's curated decisions: the tables whose decisions are kept in curated/*.csv, committed to git
+(curated/README.md, duckkit.curated).
 
-Every command that changes a decision runs in `curating()`, which writes the files after it. `ingest` calls
-`restore`, which loads them back into a rebuilt database. Add a table here when the app gets a new kind of decision.
+The database holds the decisions. The files are their backup. A command that changes a decision calls `export` when
+it is done. `ingest` calls `restore`, which loads the files into a rebuilt database. Add a table here when the app
+gets a new kind of decision.
 """
-
-from collections.abc import Iterator
-from contextlib import contextmanager
 
 import duckdb
 from duckkit import curated
 from duckkit.curated import CuratedTable
 
-from {{ package }}.db.store import connect
 from {{ package }}.spec import SPEC
 
 TABLES = [
@@ -20,15 +17,13 @@ TABLES = [
 ]
 
 
-@contextmanager
-def curating(restores: bool = False) -> Iterator[duckdb.DuckDBPyConnection]:
-    """The connection for a command that changes a decision. It exports curated/ after the command, even when the
-    command fails. It refuses a demo database, and a rebuilt database that `ingest` has not restored yet. `ingest`
-    passes `restores=True`, because it restores the decisions itself."""
-    with curated.curating(SPEC, connect, TABLES, restores=restores) as con:
-        yield con
+def export(con: duckdb.DuckDBPyConnection) -> None:
+    """Write the curated tables to curated/. Call it at the end of every command that changes a decision. It refuses
+    a demo database."""
+    curated.export(con, SPEC.curated_dir, TABLES)
 
 
 def restore(con: duckdb.DuckDBPyConnection) -> dict[str, int] | None:
-    """Load curated/ into a database that holds no decisions yet; the rows per table, or None."""
+    """Load curated/ into a database that holds no decisions yet (a rebuilt one). Returns the rows per table, or
+    None."""
     return curated.restore(con, SPEC.curated_dir, TABLES)
