@@ -11,11 +11,6 @@ keep = 30            # newest snapshots kept
 [motherduck]
 token = ""           # optional: `{{ project_name }} publish` (MotherDuck → Settings → Access tokens)
 {%- endif %}
-{%- if llm %}
-
-[anthropic]
-api_key = ""         # `{{ project_name }} classify --yes` (console.anthropic.com → API keys). It costs money.
-{%- endif %}
 
 [privacy]
 terms = []           # more words `privacy-check` refuses in committed files (names, places)

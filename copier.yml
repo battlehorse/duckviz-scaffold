@@ -108,13 +108,6 @@ curations:
     Decisions kept in git (curated/*.csv: categories chosen by hand or by a model, which a rebuild from the sources
     can't give back)? The repo must then stay private.
   default: false
-llm:
-  type: bool
-  help: >-
-    Decisions made by Claude (a `classify` command that labels the data through the Anthropic API, which costs
-    money and sends the rows it labels to Anthropic)?
-  default: false
-  when: "{{ curations }}"
 
 # ─── Deviations ───
 opt_out:
@@ -153,7 +146,6 @@ _exclude:
     .claude/skills/ask/SKILL.md
     .claude/skills/demo-data/SKILL.md
     .claude/skills/fix-curation/SKILL.md
-    .claude/skills/classify/SKILL.md
     curated/README.md
     src/{{ package }}/**
     tests/conftest.py
@@ -183,7 +175,6 @@ _skip_if_exists:
   - .claude/skills/ask/SKILL.md
   - .claude/skills/demo-data/SKILL.md
   - .claude/skills/fix-curation/SKILL.md
-  - .claude/skills/classify/SKILL.md
   - curated/README.md
   - "src/{{ package }}/**"
   - tests/conftest.py

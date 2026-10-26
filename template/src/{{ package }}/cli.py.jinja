@@ -103,41 +103,6 @@ def demo(
     typer.echo(f"Wrote {path} ({days} days, seed {seed})")
 {%- endif %}
 
-{%- if llm %}
-
-
-@app.command()
-def classify(
-    limit: Annotated[int | None, typer.Option(help="Label at most this many days (a cheap trial).")] = None,
-    model: Annotated[str, typer.Option(help="The Claude model.")] = "claude-opus-5-5",
-    yes: Annotated[bool, typer.Option("--yes", help="Send the days to Claude: it costs money.")] = False,
-) -> None:
-    """Label the days whose value stands out, with Claude. Without --yes, show what it would send and cost."""
-    from duckkit.llm import Claude, LLMError, cost_gate
-
-    from {{ package }} import classify as labeller
-
-    with friendly_errors(Refused), curating() as con:
-        days = labeller.days_to_label(con, limit)
-        if not days:
-            typer.echo("No day to label.")
-            return
-        command = "classify" + (f" --limit {limit}" if limit else "")
-        command += f" --model {model}" if model != "claude-opus-5-5" else ""
-        if not cost_gate(SPEC, f"{len(days)} days", labeller.estimate(days, model), yes, command):
-            return
-        try:
-            claude = Claude(SPEC, model=model)
-            try:
-                labelled = labeller.classify(con, claude, days)
-            finally:
-                typer.echo(claude.usage.line())
-        except LLMError as e:
-            typer.echo(f"✗ {e}", err=True)
-            raise typer.Exit(1) from None
-    typer.echo(f"Labelled {labelled} of {len(days)} days: see them with `{{ project_name }} sql \"FROM labels\"`.")
-{%- endif %}
-
 
 def status_lines(con: duckdb.DuckDBPyConnection) -> list[str]:
     """What `status` says about the data, before the contract check."""
