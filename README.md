@@ -155,6 +155,7 @@ docs/                    architecture, kit, template, upgrading, spec; how-we-wo
 scripts/render.sh        renders three sample apps (every option on, every option off, curations), and tests them
 scripts/release.py       sets the release version (on a branch), then tags it (on main)
 .claude/skills/upstream  the skill that brings a capability from an app into the scaffold
+.claude/skills/catch-up  the start-of-session briefing for this repo
 .github/workflows/ci.yml the kit's tests and the two sample apps, on every PR
 ```
 
