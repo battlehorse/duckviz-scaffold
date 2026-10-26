@@ -28,16 +28,17 @@ building on top of it, in stacked PRs. docs/how-we-work.md is the canonical desc
 - **Every change is a PR.** Each PR passes CI and the `reviewer` agent. Run
   `uv run --project kit python -m duckkit.specdiff` on it: it lists the spec files that it touches, which the PR
   must name.
-- **Each PR keeps the spec** (docs/how-we-work.md, "Each PR keeps the spec"): the kit's tests, `scripts/render.sh`,
-  and the code still doing what the Shape docs say. Its *Evidence* section shows each result. When a check fails,
-  fix the code. Never edit a check so that it passes: that is a change to the spec.
+- **Each PR keeps the spec.** Run the checks of docs/how-we-work.md ("Each PR keeps the spec": in this repo, the
+  kit's tests and ruff, `scripts/render.sh` and `spec-diff`), and show each result in the PR's *Evidence* section.
+  When a check fails, fix the code. Never weaken a check so that it passes.
 - **Merge a PR that leaves the spec unchanged or extends it** (`gh pr merge --merge`). An extension adds to the spec
-  and keeps each promise that it already makes: a new public name, a new `AppSpec` field with a default, a doc
-  section for a new part. It goes in the PR of its feature, and the reviewer must agree that it is one.
-- **Never merge a PR that changes the spec**: one that alters or removes a promise, changes what apps depend on, or
+  and keeps each promise that it already makes: a new public name, a new `AppSpec` field whose default keeps
+  today's behaviour, a doc section for a new part. It goes in the PR of its feature, and the reviewer's answer must
+  agree that it is one.
+- **Never merge a PR that revises the spec**: one that alters or removes a promise, changes what apps depend on, or
   edits the Guardrails. The user merges it, or tells you to. Keep it in a PR of its own. When you are not sure, it
-  is a change.
-- **Name each spec file the PR touches** in its *Spec changes* section, marked *extends* or *changes*.
+  is a revision.
+- **Name each spec file the PR touches** in its *Spec changes* section, marked *extends* or *revises*.
 - **Report** dependency changes and new tags in the PR and in the outcome report.
 - **A release is part of an outcome.** It ships to every app, so its PR names the apps' **Steps**. Make the release
   PR and the tag only when the user's outcome includes them.

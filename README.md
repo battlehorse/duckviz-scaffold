@@ -119,7 +119,7 @@ description:
 - **The spec.** Each app's `docs/spec.md` lists what the app must keep doing: what it is for, how it is built, its
   data contract, its behaviour (browser checks, real-data tests, spec tests) and its guardrails. Each PR shows that
   it keeps the spec. Claude merges a PR that leaves the spec unchanged or only extends it (a new feature with its
-  new browser check, say), after CI and an independent review. A PR that changes what the spec promises waits for
+  new browser check, say), after CI and an independent review. A PR that revises what the spec promises waits for
   you.
 - **The hard stops.** An action that cannot be undone, such as publishing, deploying or deleting data, needs your
   yes first.

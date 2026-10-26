@@ -1,7 +1,7 @@
 # The spec
 
 The spec of duckviz-scaffold is what the scaffold must keep doing. Each PR keeps it, and Claude merges a PR that
-leaves it unchanged or only extends it (docs/how-we-work.md). A PR that changes what it promises waits for the user.
+leaves it unchanged or only extends it (docs/how-we-work.md). A PR that revises what it promises waits for the user.
 `.claude/spec-paths` holds the same list as patterns, for `spec-diff` and CI: keep the two in step.
 
 A release changes every app that updates to it. So the scaffold's spec is what the apps depend on: how an app is
@@ -20,8 +20,8 @@ built, the interface that apps call, and the guardrails of every app and of this
 - **The tests.** The scaffold has no spec tests: its rules are in the Shape docs, and the kit's tests and the
   rendered sample apps check them. A test changes with the code it tests.
 - **README.md.** It introduces the scaffold. It follows the docs above and says nothing they don't.
-- **This repo's tools:** `scripts/release.py` and the `/upstream` skill change with the code. The reviewer agent and
-  the PR template here are links to the template's files, which are in the spec.
+- **This repo's tools:** `scripts/release.py`, and the `/upstream` and `/catch-up` skills, change with the code.
+  The reviewer agent and the PR template here are links to the template's files, which are in the spec.
 - **CHANGELOG.md.** Every PR adds to it. Its **Steps** (what an app must do by hand) come from a change to the API
   or the template. The PR that makes that change names them, and the user reviews them before each release.
 

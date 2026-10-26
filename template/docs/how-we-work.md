@@ -2,13 +2,13 @@
 
 The user sets **outcomes**. Claude works on them for long sessions, with no review of each step. The **spec** says
 what the app must keep doing. Each PR shows with evidence that it keeps the spec, and Claude merges it. The user
-reviews only the PRs that change what the spec promises, and reads the evidence for the rest. This doc is the canonical description of the
-cycle. `/deliver-outcome` runs it.
+reviews only the PRs that revise what the spec promises, and reads the evidence for the rest. This doc is the
+canonical description of the cycle. `/deliver-outcome` runs it.
 
 ## The spec
 
 The spec is the set of documents and tests that describe what the app is for, its contracts and its guardrails.
-It protects the app against regressions: it holds each PR, and only the user changes what it promises. It has five
+It protects the app against regressions: each PR must keep it, and only the user revises what it promises. It has five
 parts:
 - **Purpose:** what the app is for, and the questions it answers (`docs/dashboard.md`).
 - **Shape:** how the app is built (`docs/architecture.md` and its sub-docs, `docs/cli.md`).
@@ -35,21 +35,31 @@ does not follow a helper imported from another module: if a spec test relies on 
 ## Each PR keeps the spec
 
 Most work leaves the spec as it is, or only adds to it: a fix, a refactor, a new feature. Such a PR merges only when
-it shows that the app still does all that the spec says:
-- `pytest -q` passes, `pytest -m spec` with it, and `pytest -m realdata` on this machine;
-- the contract check of `status`, `doctor` and `privacy-check` are clean;
-- the browser checks of each page that the PR changes pass, in light and dark mode (`/app-check`). A PR that
-  changes a shared part, such as the theme, the sidebar or a query that several pages use, walks all of them;
-- the code still works as docs/architecture.md and docs/cli.md say: the browser app reads only the contract, the
-  commands keep their names and options, and the data flows the same way. The reviewer checks this;
-- each question of docs/dashboard.md still has its answer in the app.
+it shows that the app still does all that the spec says. This is the one list of the checks:
+1. `pytest -q`, `pytest -m spec` and `pytest -m realdata` pass.
+2. The contract check (`status`), `doctor` and `privacy-check` are clean.
+3. The browser checks of each page that the PR changes pass, in light and dark mode (`/app-check`). A PR that
+   changes a shared part, such as the theme, the sidebar or a query that several pages use, walks all the checks.
+4. The code still works as docs/architecture.md and docs/cli.md say: the browser app reads only the contract, the
+   commands keep their names and options, and the data flows the same way.
+5. Each question of docs/dashboard.md that the PR's pages answer still has its answer.
 
-The PR's *Evidence* section shows each result. A check that fails stops the merge: fix the code. If the check is
-wrong now, that is a change to the spec (below), and it waits for the user.
+Claude runs checks 1 to 3 and shows each result in the PR's *Evidence* section. The reviewer checks 4 and 5 from
+the diff and the docs.
 
-## Extensions and changes
+A check that fails stops the merge: fix the code. If the check is wrong now, that is a revision of the spec (below),
+and it waits for the user. Never weaken a check so that it passes.
 
-A PR that touches a spec file is one of two kinds.
+A check marked ➖ (not run) is allowed only when it does not apply: the PR changes no page, or the app has no
+real-data tests yet (`pytest -m realdata` then selects none). When a check applies but cannot run in this session
+(no real data here, no browser), the PR waits until it can run.
+
+In the scaffold repo, the checks are the kit's tests and ruff, `scripts/render.sh` and `spec-diff`, and the reviewer
+checks that the code still does what the Shape docs say.
+
+## Extensions and revisions
+
+A PR that touches a spec file makes a **spec change** of one of two kinds.
 
 **An extension** adds to the spec and keeps each promise that it already makes. A new feature brings one, such as:
 - a new browser check, a new question in docs/dashboard.md, a new real-data test;
@@ -58,21 +68,21 @@ A PR that touches a spec file is one of two kinds.
 - a new table, with its migration.
 
 Claude merges an extension on its own, in the same PR as the feature that needs it, when the reviewer agrees that
-it is one. The report lists it. The user can undo it later with a revert.
+it is one. The report lists it. The user can undo it later with a revert, which removes the feature too.
 
-**A change** alters or removes a promise: it edits or removes a browser check, a question, a test or a rule, renames
-or removes a view or column (a major version), changes what a command does, or changes the architecture. Any edit
-to the Guardrails is a change, even one that only adds a rule: they define how Claude works. A change waits for the
-user, in a PR of its own.
+**A revision** alters or removes a promise: it edits or removes a browser check, a question, a test or a rule,
+renames or removes a view or column (a major version), changes what a command does, or changes the architecture.
+Any edit to the Guardrails is a revision, even one that only adds a rule: they define how Claude works. A revision
+waits for the user, in a PR of its own.
 
-When an edit does both, it is a change. When Claude is not sure, it is a change.
+When an edit does both, it is a revision. When Claude is not sure, it is a revision.
 
 ## The cycle
 
 1. **The user opens a GitHub issue** with the label `outcome`. One or two sentences are enough.
 2. **Claude posts a brief** on the issue:
    - the acceptance criteria, as scenarios: questions in `docs/dashboard.md`, browser checks, tests;
-   - the extensions and changes to the spec that it expects;
+   - the extensions and revisions of the spec that it expects;
    - the guardrails the outcome touches;
    - the PRs it plans, in order;
    - the risks, and how to roll back.
@@ -82,11 +92,11 @@ When an edit does both, it is a change. When Claude is not sure, it is a change.
    - Each change is a branch and a PR. A change in parts is a stack of PRs, each on the one before.
    - Each PR passes CI, `spec-diff` and an independent review (below), and shows that it keeps the spec.
    - **Claude merges a PR that leaves the spec unchanged or extends it**, with a merge commit.
-   - **A PR that changes the spec waits for the user.** It holds only the change, and says why. Claude sends a
+   - **A PR that revises the spec waits for the user.** It holds only the revision, and says why. Claude sends a
      push notification, and goes on building on top of it, in PRs stacked on it. This is branch prediction: when
      the user approves, the work on top is ready. When the user rejects it, Claude closes the PR and drops or redoes
      the PRs on top. `main` never held the change, so nothing needs a revert.
-   - Work that doesn't depend on a waiting spec change goes on from `main`.
+   - Work that doesn't depend on a waiting revision goes on from `main`.
    - The data stays safe. Before any command that changes data, Claude runs `backup` (or, in an app without
      backups, copies the database file), and it tries things on copies of the database.
    - The hard stops (below) need the user's yes.
@@ -95,8 +105,8 @@ When an edit does both, it is a change. When Claude is not sure, it is a change.
    - "the spec holds", shown by: the same tests passing, and the new ones; `pytest -m spec` and `pytest -m
      realdata` passing; all the browser checks walked in light and dark mode, with screenshots; `doctor` and
      `privacy-check` clean;
-   - each extension and each change, with its PR and the command that reverts it: `git revert -m 1 <merge
-     commit>`.
+   - the spec files that each merged PR touched (`spec-diff`), and each extension and revision, with its PR and
+     the command that reverts it: `git revert -m 1 <merge commit>`.
    - the dependencies and tags that changed.
 
 ## The independent review
@@ -104,8 +114,8 @@ When an edit does both, it is a change. When Claude is not sure, it is a change.
 The reviewer agent (`.claude/agents/reviewer.md`) reviews each PR against `docs/review.md`. It starts with a fresh
 context, and gets the PR and the spec, never Claude's reasoning. It looks for bugs, for code and text a reader cannot
 follow, for simpler solutions, for brittle ones, for code that no longer does what the spec says, and for spec
-changes the PR does not declare. For each spec change, it says whether it agrees that it is an extension. Each finding is
-*blocking*, *should* or *nit*.
+changes the PR does not declare. Each finding is *blocking*, *should* or *nit*. For each spec file that the PR marks
+*extends*, its answer ends with a line that agrees, or it has a blocking finding.
 
 Claude fixes the blocking findings, and asks a new reviewer to look again. When Claude and the reviewer still do
 not agree on a blocking finding after a few rounds, Claude asks the user. The PR text lists the findings Claude did
@@ -115,9 +125,9 @@ not fix, with the reason.
 
 Two kinds of action wait for the user. They are different.
 
-**Merging a PR that changes the spec.** Claude never does it. The user merges it, or tells Claude to. A merge can
+**Merging a PR that revises the spec.** Claude never does it. The user merges it, or tells Claude to. A merge can
 be reverted (`git revert -m 1`), so this is a rule of CLAUDE.md. CI's `spec-change` label shows each PR that
-touches a spec file: an extension or a change. The PR's *Spec changes* section says which.
+touches a spec file. The PR's *Spec changes* section says whether each one is an extension or a revision.
 
 **The hard stops:** actions that cannot be undone. Claude never does them without the user's yes in the chat, for
 that action:
