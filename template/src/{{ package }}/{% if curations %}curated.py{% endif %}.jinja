@@ -1,0 +1,33 @@
+"""This app's curated decisions: the tables kept in curated/*.csv, committed to git (duckkit.curated,
+curated/README.md).
+
+Every command that changes a decision runs in `curating()`, which writes the files after it. `ingest` calls
+`restore`, which loads them back into a rebuilt database. Add a table here when the app gets a new kind of decision.
+"""
+
+from collections.abc import Iterator
+from contextlib import contextmanager
+
+import duckdb
+from duckkit import curated
+from duckkit.curated import CuratedTable
+
+from {{ package }}.db.store import connect
+from {{ package }}.spec import SPEC
+
+TABLES = [
+    CuratedTable("labels", ("day", "label", "classified_by", "classified_at", "note"), order_by="day"),
+]
+
+
+@contextmanager
+def curating() -> Iterator[duckdb.DuckDBPyConnection]:
+    """The connection for a command that changes a decision: exports curated/ after it, even when it fails. Refuses
+    a demo database."""
+    with curated.curating(SPEC, connect, TABLES) as con:
+        yield con
+
+
+def restore(con: duckdb.DuckDBPyConnection) -> dict[str, int] | None:
+    """Load curated/ into a database that holds no decisions yet; the rows per table, or None."""
+    return curated.restore(con, SPEC.curated_dir, TABLES)

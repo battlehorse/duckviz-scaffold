@@ -21,13 +21,13 @@ it can.
 | Kind | What it is | Examples |
 |---|---|---|
 | **Answer** | a name or value that each app must have, and that differs between apps by nature | `project_name`, `app_port`, `contract_name` |
-| **Option** | a yes/no choice where each side is right for some app | `motherduck`, `cloud_run`, `backup`, `demo_data` |
+| **Option** | a yes/no choice where each side is right for some app | `motherduck`, `cloud_run`, `backup`, `demo_data`, `curations` |
 | **Capability** | something every app has. There is no question. | the contract guard, `privacy-check`, `app --tailnet`, settings in `config.toml` |
 
 **Something is an option only when both of these hold:**
 1. **Some apps should not have it,** because it brings a cost or a risk that an app may rightly refuse. Examples:
    data leaving the machine (`motherduck`), a cloud account and a bill (`cloud_run`), or code that only some apps
-   have to write (`demo_data`).
+   have to write (`demo_data`), or a repo that must stay private (`curations`).
 2. **Turning it off removes something real:** files, commands or setup. If "off" would only hide a line in the
    docs, it isn't an option.
 
@@ -132,6 +132,26 @@ written): a `demo` command in `cli.py` that calls `duckkit.demo.build_demo`, an 
 generator with its own; `build_demo` keeps the safety (the marker, never over another file, never half-built).
 
 **Off:** there is no `demo` command and no `--demo`.
+
+### `curations`: decisions kept in git (default: off)
+
+**What it decides:** whether the app holds decisions that the sources can't give back: a category chosen by hand,
+a model's classification. They cost time or money to make, so they go into `curated/*.csv`, committed to git, and
+come back into a rebuilt database. Choose it when the database is otherwise rebuilt from its sources. **The repo
+must then stay private**: the files are the user's decisions.
+
+**On:**
+- `duckkit.curated` in use: `src/<package>/curated.py` lists the curated tables and wraps `curating()`; every
+  command that changes a decision runs in it, and `ingest` restores the files into a database without decisions;
+- `doctor --remote` fails if git holds `curated/` and the GitHub repo is public;
+- the curated-decisions rule in CLAUDE.md, `curated/.*.tmp` in `.gitignore`, `curated/` named in the ignore files'
+  comments;
+- `/rebuild-database` (managed);
+- seeded (the app's own once written): `curated.py`, an example curated table (`labels`, a day's label) with
+  `label` and `unlabel` commands and a status line, their test (`tests/test_curated.py`), `curated/README.md`
+  (the columns of each file) and a `/fix` skill. The app replaces the example with its own decisions.
+
+**Off:** no curated tables: the sources alone rebuild the database.
 
 ## Capabilities: what every app has
 

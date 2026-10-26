@@ -1,16 +1,34 @@
 """The `{{ project_name }}` command line: this app's own commands, plus duckkit's standard ones (docs/cli.md)."""
-
+{% if curations %}
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import date
+{%- endif %}
 from pathlib import Path
 from typing import Annotated
 
 import duckdb
 import typer
 from duckkit.cli import add_standard_commands, contract_line
-
+{% if curations %}
+from {{ package }}.curated import curating, restore
+{%- endif %}
 from {{ package }}.db.store import connect
 from {{ package }}.spec import SPEC
 
 app = typer.Typer(help="{{ description }}")
+{%- if curations %}
+
+
+@contextmanager
+def friendly_errors() -> Iterator[None]:
+    """Show a ValueError (a refusal, a bad argument) as one line, and exit with 1."""
+    try:
+        yield
+    except ValueError as e:
+        typer.echo(f"✗ {e}", err=True)
+        raise typer.Exit(1) from None
+{%- endif %}
 
 
 @app.command()
@@ -20,15 +38,42 @@ def ingest(
     """Load files into the database. Re-running is safe: rows already stored are left as they are."""
     from {{ package }}.ingest.pipeline import run
 
-    with connect() as con:
+    with {% if curations %}friendly_errors(), curating(){% else %}connect(){% endif %} as con:
         summary = run(con, paths)
         typer.echo(f"  {summary['files']} files, {summary['new']} new rows")
         for error in summary["errors"]:
             typer.echo(f"  ✗ {error}", err=True)
+{%- if curations %}
+        if restored := restore(con):  # a rebuilt database: the decisions come back from curated/
+            typer.echo("  restored from curated/: " + ", ".join(f"{n} {table}" for table, n in restored.items()))
+{%- endif %}
         problems = SPEC.contract.check(con)
     contract_line(SPEC, problems)
     if summary["errors"] or problems:
         raise typer.Exit(1)
+{%- if curations %}
+
+
+@app.command()
+def label(
+    day: Annotated[str, typer.Argument(help="The day, YYYY-MM-DD.")],
+    text: Annotated[str, typer.Argument(help="What was special about it (a holiday, a broken meter).")],
+    note: str | None = typer.Option(None, help="Why, for later."),
+) -> None:
+    """Label a day, or change its label: a decision by hand, kept in curated/labels.csv."""
+    with friendly_errors(), curating() as con:
+        con.execute("INSERT OR REPLACE INTO labels VALUES (?, ?, 'manual', now(), ?)",
+                    [date.fromisoformat(day), text, note])
+    typer.echo(f"Labelled {day}: {text}")
+
+
+@app.command()
+def unlabel(day: Annotated[str, typer.Argument(help="The day, YYYY-MM-DD.")]) -> None:
+    """Remove a day's label."""
+    with friendly_errors(), curating() as con:
+        gone = con.execute("DELETE FROM labels WHERE day = ?", [date.fromisoformat(day)]).fetchone()[0]
+    typer.echo(f"Removed the label of {day}" if gone else f"{day} has no label")
+{%- endif %}
 {%- if demo_data %}
 
 
@@ -58,7 +103,13 @@ def status_lines(con: duckdb.DuckDBPyConnection) -> list[str]:
     """What `status` says about the data, before the contract check."""
     days = con.execute("SELECT count(*), min(day), max(day) FROM v_daily").fetchone()
     last = con.execute("SELECT strftime(max(started_at), '%Y-%m-%d %H:%M') FROM v_ingests WHERE ok").fetchone()[0]
+{%- if curations %}
+    labels = con.execute("SELECT count(*), count(*) FILTER (classified_by = 'manual') FROM labels").fetchone()
+    return [f"Days:         {days[0]:,}, {days[1]} → {days[2]}", f"Last ingest:  {last or 'never'}",
+            f"Labels:       {labels[0]:,} ({labels[1]:,} by hand), kept in curated/"]
+{%- else %}
     return [f"Days:         {days[0]:,}, {days[1]} → {days[2]}", f"Last ingest:  {last or 'never'}"]
+{%- endif %}
 
 
 add_standard_commands(

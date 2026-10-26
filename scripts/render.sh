@@ -1,5 +1,5 @@
 #!/bin/sh
-# Render sample apps from the working copy (every flag on; every flag off) with the local kit, and run their checks
+# Render sample apps from the working copy (every flag on; every flag off; curations on, the others as default) with the local kit, and run their checks
 # (ruff, pytest, the CLI, doctor).
 # The scaffold's CI runs this; run it before a release. Usage: scripts/render.sh [output folder]
 set -eu
@@ -16,9 +16,10 @@ render() {
   echo "✓ $name"
 }
 
-render all-on -d cloud_run=true -d demo_data=true \
+render all-on -d cloud_run=true -d demo_data=true -d curations=true \
   -d 'extra_apps=[{name: catalog, port: 8503, title: Catalog, hosted: false}]'
 render all-off -d motherduck=false -d backup=false
+render curations -d curations=true  # the one combination the other two don't cover
 
 # Not checked here: `docker build` of the all-on image. The samples use the local kit (kit_path), which is outside
 # the image's build context; a released app fetches duckkit from GitHub instead. Build a real app's image to check it.

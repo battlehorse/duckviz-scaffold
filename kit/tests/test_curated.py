@@ -139,6 +139,26 @@ def test_curating_exports_what_was_committed_when_the_command_fails(con, spec):
     assert "away" in (spec.curated_dir / "labels.csv").read_text() and "leek,veg" in (spec.curated_dir / "items.csv").read_text()
 
 
+def test_curating_writes_the_removal_of_the_last_decision(con, spec):
+    con.execute("DELETE FROM labels WHERE label = 'away'")
+    con.execute("UPDATE items SET kind = NULL")
+    export(con, spec.curated_dir, TABLES)
+    con.close()
+    with curating(spec, lambda: connect(spec, SCHEMA), TABLES) as c:
+        c.execute("DELETE FROM labels")
+    assert (spec.curated_dir / "labels.csv").read_text().splitlines() == ["day,label,classified_by,classified_at"]
+
+
+def test_curating_on_a_database_without_decisions_keeps_the_files(con, spec):
+    export(con, spec.curated_dir, TABLES)
+    saved = (spec.curated_dir / "labels.csv").read_text()
+    con.close()
+    rebuilt(spec).close()
+    with curating(spec, lambda: connect(spec, SCHEMA), TABLES):
+        pass  # a command run before `ingest` restored the decisions
+    assert (spec.curated_dir / "labels.csv").read_text() == saved
+
+
 def test_curating_refuses_a_demo_database(con, spec):
     con.close()
     build_demo(spec, lambda path: connect(spec, SCHEMA, path=path), lambda c: None, "", path=spec.demo_db_path)

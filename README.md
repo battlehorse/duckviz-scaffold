@@ -70,6 +70,7 @@ apps truly differ:
 | `cloud_run` | off | the Dockerfile, `/hosting`, docs/hosting.md, the idle pause (needs `motherduck`) |
 | `backup` | on | `backup`, `backups`, `restore` and `/backup` |
 | `demo_data` | off | `app --demo` on `data/demo.duckdb` |
+| `curations` | off | decisions kept in `curated/*.csv` in git, restored into a rebuilt database (the repo stays private) |
 
 docs/template.md explains each answer and option, and the rule for what may be an option at all.
 
