@@ -217,8 +217,8 @@ domain rules never conflict with the scaffold's.
 - Seeded files can use any answer. Template-managed files should change rarely and in small hunks, so that merges
   stay clean.
 - Anything that is code, and the same for every app, belongs in duckkit instead.
-- `scripts/render.sh` renders two sample apps, one with every option on and one with every option off, and runs
-  their lint, tests and `doctor`. Run it after every template change. CI runs it on every PR.
+- `scripts/render.sh` renders three sample apps (every option on, every option off, and curations), and runs their
+  lint, tests and `doctor`. Run it after every template change. CI runs it on every PR.
 
 ## Adding a question
 

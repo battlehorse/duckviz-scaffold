@@ -198,7 +198,7 @@ def test_the_scaffold_spec_holds_every_file_that_defines_a_spec_or_a_guardrail()
     root = Path(__file__).resolve().parents[2]
     paths = read_spec_paths(root)
     guardrails = [
-        "CLAUDE.md", ".claude/settings.json", ".claude/spec-paths", "copier.yml", "scripts/render.sh",
+        "CLAUDE.md", "docs/spec.md", ".claude/settings.json", ".claude/spec-paths", "copier.yml", "scripts/render.sh",
         ".github/workflows/ci.yml", "kit/src/duckkit/specdiff.py", "kit/src/duckkit/spec.py",
         "template/CLAUDE.md.jinja", "template/docs/how-we-work.md", "template/docs/review.md",
         "template/docs/spec.md.jinja", "template/.claude/spec-paths.jinja", "template/.claude/settings.json.jinja",
