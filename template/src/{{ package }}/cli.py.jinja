@@ -13,6 +13,9 @@ from duckkit.cli import add_standard_commands, contract_line
 {%- if curations %}
 from duckkit.curated import Refused
 {%- endif %}
+{%- if llm %}
+from duckkit.llm import DEFAULT_MODEL
+{%- endif %}
 
 {% if curations -%}
 from {{ package }}.curated import curating, restore
@@ -108,8 +111,8 @@ def demo(
 
 @app.command()
 def classify(
-    limit: Annotated[int | None, typer.Option(help="Label at most this many days (a cheap trial).")] = None,
-    model: Annotated[str, typer.Option(help="The Claude model.")] = "claude-opus-5-5",
+    limit: Annotated[int | None, typer.Option(min=1, help="Label at most this many days (a cheap trial).")] = None,
+    model: Annotated[str, typer.Option(help="The Claude model.")] = DEFAULT_MODEL,
     yes: Annotated[bool, typer.Option("--yes", help="Send the days to Claude: it costs money.")] = False,
 ) -> None:
     """Label the days whose value stands out, with Claude. Without --yes, show what it would send and cost."""
@@ -117,25 +120,24 @@ def classify(
 
     from {{ package }} import classify as labeller
 
-    with friendly_errors(Refused), curating() as con:
+    with friendly_errors(LLMError), friendly_errors(Refused), curating() as con:
         days = labeller.days_to_label(con, limit)
         if not days:
             typer.echo("No day to label.")
             return
         command = "classify" + (f" --limit {limit}" if limit else "")
-        command += f" --model {model}" if model != "claude-opus-5-5" else ""
-        if not cost_gate(SPEC, f"{len(days)} days", labeller.estimate(days, model), yes, command):
+        command += f" --model {model}" if model != DEFAULT_MODEL else ""
+        what = "1 day" if len(days) == 1 else f"{len(days)} days"
+        if not cost_gate(SPEC, what, labeller.estimate(days, model), yes, command):
             return
+        claude = Claude(SPEC, model=model)
         try:
-            claude = Claude(SPEC, model=model)
-            try:
-                labelled = labeller.classify(con, claude, days)
-            finally:
-                typer.echo(claude.usage.line())
-        except LLMError as e:
-            typer.echo(f"✗ {e}", err=True)
-            raise typer.Exit(1) from None
-    typer.echo(f"Labelled {labelled} of {len(days)} days: see them with `{{ project_name }} sql \"FROM labels\"`.")
+            labelled = labeller.classify(con, claude, days)
+        finally:
+            typer.echo(claude.usage.line())
+    typer.echo(f"Labelled {len(labelled)} of {len(days)} days: see them with `{{ project_name }} sql \"FROM labels\"`.")
+    if missed := [f"{day:%Y-%m-%d}" for day, _ in days if day not in labelled]:
+        typer.echo(f"No label for {', '.join(missed)} (no answer, or a label set by hand meanwhile): run it again.")
 {%- endif %}
 
 

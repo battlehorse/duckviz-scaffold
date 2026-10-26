@@ -39,7 +39,7 @@ def test_the_answers_are_stored_as_the_models_decisions(tmp_path):
                                                   {"index": 1, "label": "holiday"}]}))
     with connect() as con:
         days = labeller.days_to_label(con)
-        assert labeller.classify(con, Claude(SPEC, client=client), days) == 2
+        assert labeller.classify(con, Claude(SPEC, client=client), days) == {date(2026, 1, 3), date(2026, 1, 5)}
         assert labels(con) == [("2026-01-03", "unusual use", "llm"), ("2026-01-05", "holiday", "llm")]
     sent = client.requests[0]["messages"][0]["content"]
     assert "0. 2026-01-03 (Saturday): 20" in sent and "1. 2026-01-05 (Monday): 1" in sent
@@ -52,7 +52,7 @@ def test_a_label_set_by_hand_is_never_changed_by_the_model(tmp_path):
     assert runner.invoke(app, ["label", "2026-01-03", "party"]).exit_code == 0
     client = FakeAnthropic(claude_reply({"days": [{"index": 0, "label": "meter fault"}]}))
     with connect() as con:
-        assert labeller.classify(con, Claude(SPEC, client=client), [(date(2026, 1, 3), 20.0)]) == 0
+        assert labeller.classify(con, Claude(SPEC, client=client), [(date(2026, 1, 3), 20.0)]) == set()
         assert labels(con) == [("2026-01-03", "party", "manual")]
 
 
@@ -63,8 +63,14 @@ def test_classify_without_yes_sends_nothing(tmp_path, monkeypatch):
     monkeypatch.setattr("duckkit.llm.Claude", lambda *a, **k: pytest.fail("Claude was called without --yes"))
     result = runner.invoke(app, ["classify"])
     assert result.exit_code == 0, result.output
-    assert "2 days" in result.output and "Nothing was sent" in result.output
-    assert "classify --yes" in result.output
+    assert "2 days" in result.output and "classify --yes" in result.output
+
+
+def test_an_unknown_model_is_one_line_not_a_traceback(tmp_path):
+    ingest(tmp_path)
+    result = runner.invoke(app, ["classify", "--model", "claude-unknown"])
+    assert result.exit_code == 1 and "no price for the model" in result.output
+    assert result.exception is None or isinstance(result.exception, SystemExit)
 
 
 def test_classify_without_a_key_says_where_to_put_it(tmp_path):

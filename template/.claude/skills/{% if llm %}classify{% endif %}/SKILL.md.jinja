@@ -2,8 +2,7 @@
 name: classify
 description: Let Claude make the {{ project_name }} decisions that have none yet (the labels of the days that stand out), with `{{ project_name }} classify`. It costs money and sends those rows to Anthropic, so it shows the estimate and waits for the user's yes. Never changes a decision made by hand.
 when_to_use: >-
-  Use when the user says things like "classify the new days", "label what's new", "let Claude label them", or
-  when /ingest says that new rows have no decision.
+  Use when the user says things like "classify the new days", "label what's new", "let Claude label them".
 argument-hint: "[--limit N] [--model MODEL]"
 allowed-tools: Bash(uv run {{ project_name }} classify) Bash(uv run {{ project_name }} classify --limit *) Bash(uv run {{ project_name }} classify --model *) Bash(uv run {{ project_name }} sql *) Bash(git diff *)
 ---
@@ -14,7 +13,7 @@ Arguments: $ARGUMENTS
 
 A run costs money: it is a hard stop (docs/how-we-work.md). The command sends nothing without `--yes`.
 
-1. **Estimate.** Run `uv run {{ project_name }} classify $ARGUMENTS` (without `--yes`). It says how many rows it
+1. **Estimate.** Run `uv run {{ project_name }} classify $ARGUMENTS`, with any `--yes` taken out of the arguments. It says how many rows it
    would send and what that costs, and sends nothing. With no row to classify, say so and stop.
 2. **Ask** the user (AskUserQuestion): the rows, the estimate, and the model. For a first run or after a change to
    the prompt, suggest a trial with `--limit 10`.

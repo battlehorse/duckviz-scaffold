@@ -59,17 +59,20 @@ def days_to_label(con: duckdb.DuckDBPyConnection, limit: int | None = None) -> l
 
 
 def estimate(days: list[tuple[date, float]], model: str) -> Decimal:
-    """What labelling `days` would cost with `model`, in $."""
-    batches = -(-len(days) // BATCH_SIZE)
+    """What labelling `days` would cost with `model`, in $: each batch is one request, priced on its own."""
     tokens_in, tokens_out = TOKENS_PER_DAY
-    return estimate_cost(model, batches * len(SYSTEM) // 4 + len(days) * tokens_in, len(days) * tokens_out)
+    total = Decimal(0)
+    for start in range(0, len(days), BATCH_SIZE):
+        size = len(days[start:start + BATCH_SIZE])
+        total += estimate_cost(model, len(SYSTEM) // 4 + size * tokens_in, size * tokens_out)
+    return total
 
 
-def classify(con: duckdb.DuckDBPyConnection, claude: Claude, days: list[tuple[date, float]]) -> int:
+def classify(con: duckdb.DuckDBPyConnection, claude: Claude, days: list[tuple[date, float]]) -> set[date]:
     """Ask Claude for a label for each of `days`, and store the answers as its decisions. Returns the days labelled.
     A day labelled by hand meanwhile keeps its label."""
     usual = median(v for (v,) in con.execute("SELECT value FROM v_daily").fetchall())
-    labelled = 0
+    labelled = set()
     for start in range(0, len(days), BATCH_SIZE):
         batch = days[start:start + BATCH_SIZE]
         user = f"The usual (median) value is {usual:g}.\n\n" + "\n".join(
@@ -83,5 +86,5 @@ def classify(con: duckdb.DuckDBPyConnection, claude: Claude, days: list[tuple[da
                 WHERE labels.classified_by <> 'manual'
                 RETURNING day
             """, [day, label]).fetchall()
-            labelled += len(written)
+            labelled.update(d for (d,) in written)
     return labelled

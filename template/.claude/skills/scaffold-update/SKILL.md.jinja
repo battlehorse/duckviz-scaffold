@@ -22,8 +22,9 @@ Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app 
    - An option can have its own answers: `motherduck` has `motherduck_db`, and `cloud_run` has `gcp_project` and
      `gcp_region`. `--defaults` would take their defaults without a question. So ask the user for each one first,
      and add `-d <answer>=<value>`. `cloud_run` needs `motherduck` on.
-   - An update never writes seeded files. So `demo_data` and `curations` bring their managed files only, not their
-     seeded ones (the code in `src/{{ package }}/`, its tests and the `/demo-data` or `/fix-curation` skill). Render a
+   - An update never writes seeded files. So `demo_data`, `curations` and `llm` bring their managed files only, not
+     their seeded ones (the code in `src/{{ package }}/`, its tests and the `/demo-data`, `/fix-curation` or
+     `/classify` skill, and `config.example.toml`). Render a
      new app with this repo's answers and the option on in a temporary folder (`uvx copier copy`). Then copy the
      seeded files that the option adds, and merge their parts that go into this app's own files, such as the
      commands in `cli.py`.

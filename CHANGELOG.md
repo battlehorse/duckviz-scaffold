@@ -12,7 +12,7 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 - Template: a new option, **`llm`** (default off, asked only with `curations`): decisions made by Claude. It adds
   the `llm` extra, `[anthropic] api_key` in `config.example.toml`, and, seeded: `classify.py` (an example that labels
   the days whose value stands out), a `classify` command that shows the estimate and sends nothing without `--yes`,
-  its test with `FakeAnthropic`, and a `/classify` skill. `doctor` expects the skill when the option is on.
+  its test with `FakeAnthropic`, and a `/classify` skill.
   `.claude/settings.json` makes Claude Code ask before `classify --yes`. `render.sh`'s all-on sample turns it on.
 - duckkit: `[anthropic] api_key` (`ANTHROPIC_API_KEY`) is a standard private setting: `spec.anthropic_api_key()`,
   `privacy-check` refuses its value in git, and `testing.isolate` unsets it. The guard keeps `duckkit.llm` out of
