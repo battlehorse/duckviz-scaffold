@@ -10,9 +10,13 @@ from typing import Annotated
 import duckdb
 import typer
 from duckkit.cli import add_standard_commands, contract_line
-{% if curations %}
-from {{ package }}.curated import curating, restore
+{%- if curations %}
+from duckkit.curated import Refused
 {%- endif %}
+
+{% if curations -%}
+from {{ package }}.curated import curating, restore
+{% endif -%}
 from {{ package }}.db.store import connect
 from {{ package }}.spec import SPEC
 
@@ -21,11 +25,12 @@ app = typer.Typer(help="{{ description }}")
 
 
 @contextmanager
-def friendly_errors() -> Iterator[None]:
-    """Show a ValueError (a refusal, a bad argument) as one line, and exit with 1."""
+def friendly_errors(caught: type[Exception] = ValueError) -> Iterator[None]:
+    """Show a `caught` error (a refusal, a bad argument) as one line, and exit with 1. Other errors keep their
+    traceback."""
     try:
         yield
-    except ValueError as e:
+    except caught as e:
         typer.echo(f"✗ {e}", err=True)
         raise typer.Exit(1) from None
 {%- endif %}
@@ -38,7 +43,7 @@ def ingest(
     """Load files into the database. Re-running is safe: rows already stored are left as they are."""
     from {{ package }}.ingest.pipeline import run
 
-    with {% if curations %}friendly_errors(), curating(){% else %}connect(){% endif %} as con:
+    with {% if curations %}friendly_errors(Refused), curating(){% else %}connect(){% endif %} as con:
         summary = run(con, paths)
         typer.echo(f"  {summary['files']} files, {summary['new']} new rows")
         for error in summary["errors"]:
@@ -114,5 +119,5 @@ def status_lines(con: duckdb.DuckDBPyConnection) -> list[str]:
 
 add_standard_commands(
     app, SPEC, connect=connect, status=status_lines,
-    backups={{ backup }}, publishing={{ motherduck }},
+    backups={{ backup }}, publishing={{ motherduck }},{% if curations %} curations=True,{% endif %}
 )

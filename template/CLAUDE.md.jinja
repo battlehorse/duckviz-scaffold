@@ -29,10 +29,12 @@ Read these first:
 - **Keep personal data out of git.** Settings and secrets go in `config.toml`; data goes in `data/`. Tests and docs
   use synthetic data only. The pre-commit hook runs `uv run {{ project_name }} privacy-check`.
 {%- if curations %}
-- **Curated decisions** (`curated/*.csv`, curated/README.md) are written by the commands that change them, which
-  run in `curated.curating()`: never edit the files by hand. A manual decision (`classified_by = 'manual'`) is never
-  overwritten by a model. The files are the user's decisions in git, so **this repo stays private** (`doctor
-  --remote` checks). `ingest` restores them into a rebuilt database (`/rebuild-database`).
+- **Curated decisions** (curated/README.md) live in the database. `curated/*.csv` is their backup in git: every
+  command that changes a decision runs in `curated.curating()`, which exports the files after it. Never edit the
+  files by hand. `ingest` reads them only to rebuild a database (`/rebuild-database`). A manual decision
+  (`classified_by = 'manual'`) is never overwritten by a model. The files are the user's decisions, so **this repo
+  stays private** (`doctor --remote` checks). **A commit that removes curated rows needs the user's yes:**
+  `curated-check` (the pre-commit hook) lists them. Never set `ALLOW_CURATED_LOSS` yourself.
 {%- endif %}
 {%- if motherduck %}
 - **Publishing** sends personal data to MotherDuck. Run `publish` only when the user asks (`/publish`).

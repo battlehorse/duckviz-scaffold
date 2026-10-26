@@ -1,12 +1,23 @@
 """Curated decisions: exported sorted and atomically, restored into a rebuilt database in one transaction, never
 wiped by a database without decisions, and kept apart from a demo database."""
 
+import subprocess
 from datetime import date
 
 import duckdb
 import pytest
 
-from duckkit.curated import CuratedTable, curating, export, holds_decisions, not_manual, restore
+from duckkit.curated import (
+    CuratedTable,
+    FileChange,
+    Refused,
+    curating,
+    export,
+    file_changes,
+    holds_decisions,
+    not_manual,
+    restore,
+)
 from duckkit.demo import build_demo
 from duckkit.store import connect
 from tests.conftest import DB_SCHEMA
@@ -164,7 +175,7 @@ def test_curating_refuses_a_demo_database(con, spec):
     build_demo(spec, lambda path: connect(spec, SCHEMA, path=path), lambda c: None, "", path=spec.demo_db_path)
     spec.db_path.unlink()
     spec.demo_db_path.rename(spec.db_path)
-    with pytest.raises(ValueError, match="is a demo database"), curating(spec, lambda: connect(spec, SCHEMA), TABLES):
+    with pytest.raises(Refused, match="is a demo database"), curating(spec, lambda: connect(spec, SCHEMA), TABLES):
         pass
     assert not spec.curated_dir.exists()
 
@@ -178,3 +189,80 @@ def test_not_manual():
     with duckdb.connect() as c:
         rows = c.execute(f"SELECT x FROM (VALUES ('llm'), ('manual'), (NULL)) t(x) WHERE {not_manual('x')}").fetchall()
     assert sorted(rows, key=str) == [("llm",), (None,)]
+
+
+# ─── The git guard ───
+
+def git(root, *args):
+    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *args], cwd=root, check=True,
+                   capture_output=True)
+
+
+@pytest.fixture
+def committed(con, spec):
+    """The decisions exported and committed: 2 labels, 2 items."""
+    export(con, spec.curated_dir, TABLES)
+    git(spec.root, "init", "-q", "-b", "main")
+    git(spec.root, "add", "curated")
+    git(spec.root, "commit", "-q", "-m", "decisions")
+    return con
+
+
+def test_the_guard_lists_what_the_next_commit_does_to_each_file(committed, spec):
+    committed.execute("UPDATE items SET kind = 'veg' WHERE name = 'pear'")
+    committed.execute("INSERT INTO labels VALUES ('2026-04-01', 'new', 'manual', NULL)")
+    export(committed, spec.curated_dir, TABLES)
+    git(spec.root, "add", "curated")
+    changes = {c.name: c for c in file_changes(spec)}
+    assert changes["items.csv"] == FileChange("items.csv", 2, 2, added=1, removed=1)  # a changed row
+    assert changes["labels.csv"] == FileChange("labels.csv", 2, 3, added=1, removed=0)
+    assert not any(c.loses_many for c in changes.values())
+
+
+def test_an_emptied_file_is_a_loss_to_confirm(committed, spec):
+    (spec.curated_dir / "labels.csv").write_text("day,label,classified_by,classified_at\n")
+    git(spec.root, "add", "curated")
+    (change,) = file_changes(spec)
+    assert change.loses_many and change.line() == "labels.csv: 2 → 0 rows (+0, −2)"
+
+
+def test_losing_a_few_rows_of_many_is_not_flagged():
+    assert not FileChange("skus.csv", 2000, 1995, added=0, removed=5).loses_many
+    assert FileChange("skus.csv", 2000, 1700, added=0, removed=300).loses_many
+    assert not FileChange("skus.csv", 2000, 2000, added=300, removed=300).loses_many  # a reclassification
+
+
+def test_against_a_branch_the_guard_reads_the_working_tree(committed, spec):
+    (spec.curated_dir / "items.csv").write_text("name,kind\n")  # not staged
+    assert file_changes(spec) == []
+    assert [c.line() for c in file_changes(spec, base="main")] == ["items.csv: 2 → 0 rows (+0, −2)"]
+
+
+def test_a_note_with_line_breaks_is_one_row(committed, spec):
+    committed.execute("UPDATE labels SET label = 'away\nfor a week\nin the hills' WHERE label = 'away'")
+    export(committed, spec.curated_dir, TABLES)
+    git(spec.root, "add", "curated")
+    (change,) = file_changes(spec)
+    assert change.line() == "labels.csv: 2 → 2 rows (+1, −1)"
+
+
+def test_a_branch_is_compared_from_where_it_left_its_base(committed, spec):
+    git(spec.root, "switch", "-q", "-c", "work")
+    git(spec.root, "switch", "-q", "main")
+    committed.execute("INSERT INTO labels VALUES ('2026-04-01', 'new on main', 'manual', NULL)")
+    export(committed, spec.curated_dir, TABLES)
+    git(spec.root, "commit", "-q", "-am", "main gains a decision")
+    git(spec.root, "switch", "-q", "work")  # never touched curated/
+    assert file_changes(spec, base="main") == []
+
+
+def test_an_unknown_base_is_an_error(committed, spec):
+    with pytest.raises(ValueError, match="nosuch is not a branch"):
+        file_changes(spec, base="nosuch")
+
+
+def test_the_first_commit_has_nothing_before_it(con, spec):
+    export(con, spec.curated_dir, TABLES)
+    git(spec.root, "init", "-q", "-b", "main")
+    git(spec.root, "add", "curated")
+    assert {c.name: (c.before, c.after) for c in file_changes(spec)} == {"labels.csv": (0, 2), "items.csv": (0, 2)}
