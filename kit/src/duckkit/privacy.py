@@ -1,10 +1,10 @@
 """Keep personal data out of git: the repo is meant to be safe to make public.
 
 `check` scans every file git would commit (tracked, plus untracked files that aren't ignored) for this machine's
-personal values: the settings the spec lists as private (`private_settings`), the MotherDuck token, the Anthropic API key, extra terms
-from `[privacy] terms` in config.toml (or <PREFIX>_PRIVACY_TERMS, comma-separated), and whatever the app's own
-`extra` function finds (names in its database, say). The pre-commit hook (`<cli> privacy-check`) runs it before
-every commit. A finding names the kind of term, never the term itself.
+personal values: the settings the spec lists as private (`private_settings`), the MotherDuck token, the Anthropic API
+key, extra terms from `[privacy] terms` in config.toml (or <PREFIX>_PRIVACY_TERMS, comma-separated), and whatever the
+app's own `extra` function finds (names in its database, say). The pre-commit hook (`<cli> privacy-check`) runs it
+before every commit. A finding names the kind of term, never the term itself.
 """
 
 import re
