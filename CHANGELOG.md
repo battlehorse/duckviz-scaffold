@@ -3,6 +3,13 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- duckkit: the guard (`testing.guard.KIT_SERVICE`) also keeps `duckkit.curated` and `duckkit.specdiff` out of the
+  browser app, as docs/kit.md already says (both are ingestion-side).
+- Template: `/app-check` and the seeded browser checks switch the theme with the Light and Dark buttons of the ⋮
+  menu (Streamlit no longer has them under Settings). An app can fix its own `docs/browser-checks.md` the same way.
+
 ## v0.6.1
 
 - Template, how we work: **each PR keeps the spec, and Claude merges an extension with its feature when the
