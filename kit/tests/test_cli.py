@@ -19,7 +19,8 @@ runner = CliRunner()
 def cli(spec):
     app = typer.Typer()
     add_standard_commands(app, spec, connect=lambda: connect(spec, DB_SCHEMA),
-                          status=lambda con: [f"Items: {con.execute('SELECT count(*) FROM items').fetchone()[0]}"])
+                          status=lambda con: [f"Items: {con.execute('SELECT count(*) FROM items').fetchone()[0]}"],
+                          curations=True)
     return app
 
 

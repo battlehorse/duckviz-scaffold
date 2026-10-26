@@ -24,7 +24,8 @@ everything else in the database again.
    not hold.
 4. **Move the database aside.** Do not delete it. Rename `{{ db_file }}` in `data/` to `{{ db_file }}.old`. Also
    rename its `.wal` file, if there is one.
-5. **Run the ingest command** on all the sources, as `/ingest` gives it. Do not run the other steps of `/ingest`. The
+5. **Run `uv run {{ project_name }} ingest`** with every source file, the files that `/ingest` names. Do not run the
+   other steps of `/ingest`. The
    output must say `restored from curated/:` with a count for each table. Until this step, every command that changes
    a decision refuses the database.
 6. **Check the result:**

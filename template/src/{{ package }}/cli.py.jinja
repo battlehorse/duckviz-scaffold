@@ -119,5 +119,5 @@ def status_lines(con: duckdb.DuckDBPyConnection) -> list[str]:
 
 add_standard_commands(
     app, SPEC, connect=connect, status=status_lines,
-    backups={{ backup }}, publishing={{ motherduck }},
+    backups={{ backup }}, publishing={{ motherduck }},{% if curations %} curations=True,{% endif %}
 )

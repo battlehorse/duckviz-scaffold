@@ -15,10 +15,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 - Template, `curations`: `ingest` catches only `Refused`, so any other error keeps its traceback. `/rebuild-database`
   is for the user to start only (`disable-model-invocation`). Its ingest step now says not to run the other steps
   of `/ingest`, such as a paid classification.
-- duckkit: **a git guard for the curated files.** `curated-check`, a standard command, lists what the next commit
-  does to each curated file (rows before and after, added and removed). It fails when a file is emptied or loses
-  more than 5 rows and a tenth of them, unless `ALLOW_CURATED_LOSS=1`. With `--base <branch>` it compares a branch.
-  `curated.file_changes` is the function behind it.
+- duckkit: **a git guard for the curated files.** `curated-check`, a standard command with
+  `add_standard_commands(..., curations=True)`, lists what the next commit does to each curated file (rows before
+  and after, added and removed). It fails when a file is emptied or loses more than 5 rows and a tenth of them,
+  unless `ALLOW_CURATED_LOSS=1`. With `--base <branch>` it reports what a branch does, from where it left that
+  branch. `curated.file_changes` is the function behind it.
 - Template, `curations`: the pre-commit hook runs `curated-check`. CLAUDE.md says that a commit that removes curated
   rows needs the user's yes.
 - Docs: docs/architecture.md has a "Curated decisions" section: where they live (the database), when the files are
@@ -29,7 +30,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   `restores` parameter and pass it to `duckkit.curated.curating` (the template's file shows how). In `ingest`, call
   `curating(restores=True)`, and catch `duckkit.curated.Refused` there instead of every `ValueError`.
 - If the app calls `export(..., removed=...)`, rename the argument to `held_decisions_before`.
-- With `curations` on: `.githooks/pre-commit` is managed, so the update brings `curated-check` into it.
+- With `curations` on: `.githooks/pre-commit` is managed, so the update brings `curated-check` into it. The app's
+  `cli.py` is seeded: add `curations=True` to its `add_standard_commands(...)` call, or the hook fails on a
+  missing command.
 
 ## v0.5.1
 

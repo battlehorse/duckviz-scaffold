@@ -206,8 +206,11 @@ makes one.
 - Git keeps every earlier version of the files. A decision can still be lost from the database: a rebuild with some
   sources missing doesn't restore their decisions, so the next export leaves them out of the file. The pre-commit
   hook runs `curated-check`, which lists what a commit does to each file. It stops a commit that empties a file or
-  loses many rows, until the user confirms it (`ALLOW_CURATED_LOSS=1`). `git checkout HEAD -- curated/` brings
-  the files back.
+  loses many rows, until the user confirms it (`ALLOW_CURATED_LOSS=1`).
+- **To bring lost decisions back:** `git checkout HEAD -- curated/` restores the files, but not the database, which
+  still lacks the decisions. So also bring back the missing sources, and rebuild the database
+  (`/rebuild-database`). Until then, the next command that changes a decision exports the files without them
+  again.
 - A demo database is refused: its made-up decisions must never reach the files.
 - The files are the user's decisions, so a repo with curations stays private. `doctor --remote` checks this.
 

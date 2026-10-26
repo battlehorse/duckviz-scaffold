@@ -341,9 +341,11 @@ The functions:
 - `holds_decisions(con, tables)`: whether the database holds any.
 - `file_changes(spec, base=None)`: what a change does to each curated file: its rows before and after, and the
   rows added and removed (a changed row is one of each). Without `base`, it compares the staged files with HEAD,
-  for the next commit. With `base`, it compares the working tree with that branch, for a PR. A `FileChange` whose
-  file is emptied, or loses more than 5 rows and more than a tenth, `loses_many`. The `curated-check` command prints
-  them, and fails on one that `loses_many`, unless `ALLOW_CURATED_LOSS=1`.
+  for the next commit. With `base`, it compares the working tree with the point where the branch left `base`, for
+  a PR. It counts CSV records, so a note with line breaks is one row. `FileChange.loses_many` is True when the file
+  is emptied, or when it loses more than 5 rows and more than a tenth of its rows. The `curated-check` command
+  (`add_standard_commands(..., curations=True)`) prints them. It fails on one that loses many, unless
+  `ALLOW_CURATED_LOSS=1`.
 - `not_manual(column="classified_by")`: SQL for "a model may redo this decision": not made by hand.
 
 Name the decision columns the same way in every app: `classified_by` (`llm` or `manual`; a manual decision is never

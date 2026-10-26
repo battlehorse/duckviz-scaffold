@@ -11,7 +11,9 @@ or money (a model's) to make. The database holds them. These files are their cop
   them.
 - **Guarded by git.** The pre-commit hook (`curated-check`) shows what each commit does to these files. It stops a
   commit that empties one or loses many rows, until you confirm with `ALLOW_CURATED_LOSS=1`.
-  `git checkout HEAD -- curated/` brings them back.
+- **To bring lost decisions back:** `git checkout HEAD -- curated/` restores the files. The database still lacks
+  them, so also bring back any missing sources and rebuild the database (`/rebuild-database`). Until then, the next
+  command that changes a decision writes the files without them again.
 - **Sorted**, so `git diff` shows exactly which decisions changed.
 - **Private.** They are your decisions: this repo stays private. `doctor --remote` fails if it is public.
 

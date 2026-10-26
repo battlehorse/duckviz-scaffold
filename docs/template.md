@@ -141,8 +141,11 @@ come back into a rebuilt database. Choose it when the database is otherwise rebu
 must then stay private**: the files are the user's decisions.
 
 **On:**
-- `duckkit.curated` in use: `src/<package>/curated.py` lists the curated tables and wraps `curating()`; every
-  command that changes a decision runs in it, and `ingest` restores the files into a database without decisions;
+- `duckkit.curated` in use: `src/<package>/curated.py` lists the curated tables and wraps `curating()`. Every
+  command that changes a decision runs in it. It refuses a database that holds no decisions while the files hold
+  some, until `ingest` restores them;
+- the git guard: the pre-commit hook runs `curated-check`, which stops a commit that empties a curated file or
+  loses many of its rows, until the user confirms;
 - `doctor --remote` fails if git holds `curated/` and the GitHub repo is public;
 - the curated-decisions rule in CLAUDE.md, `curated/.*.tmp` in `.gitignore`, `curated/` named in the ignore files'
   comments;

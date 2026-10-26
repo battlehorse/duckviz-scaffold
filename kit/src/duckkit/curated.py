@@ -15,6 +15,8 @@ A curated table is one of two kinds:
   database doesn't have yet (its source file isn't ingested) is skipped.
 """
 
+import csv
+import io
 import subprocess
 from collections import Counter
 from collections.abc import Callable, Iterator
@@ -201,16 +203,23 @@ def file_changes(spec: AppSpec, base: str | None = None) -> list[FileChange]:
     """The curated files that a change touches, with their rows before and after.
 
     Without `base`, it compares the staged files with HEAD: what the next commit does (the pre-commit hook). With
-    `base` (a branch, say), it compares the working tree with `base`: what a PR does."""
+    `base` (a branch, say), it compares the working tree with the point where the branch left `base`: what a PR does.
+    It raises ValueError when git can't answer (an unknown `base`, not a git repo)."""
     folder = spec.curated_dir.relative_to(spec.root).as_posix()
-    before_ref = base or "HEAD"
-    names = set(_git_lines(spec, "ls-tree", "--name-only", before_ref, f"{folder}/"))
-    names |= set(_git_lines(spec, "ls-files", f"{folder}/")) if base is None else {
-        f"{folder}/{p.name}" for p in spec.curated_dir.glob("*.csv")}
+    if base is None:
+        before_ref = "HEAD" if _git(spec, "rev-parse", "--verify", "-q", "HEAD^{commit}", check=False) else None
+        names = set(_git(spec, "ls-files", "--", f"{folder}/").splitlines())
+    else:
+        if not _git(spec, "rev-parse", "--verify", "-q", f"{base}^{{commit}}", check=False):
+            raise ValueError(f"{base} is not a branch or commit of this repo")
+        before_ref = _git(spec, "merge-base", base, "HEAD").strip()
+        names = {f"{folder}/{p.name}" for p in spec.curated_dir.glob("*.csv")}
+    if before_ref:  # the first commit has nothing before it
+        names |= set(_git(spec, "ls-tree", "-r", "--name-only", before_ref, "--", f"{folder}/").splitlines())
     changes = []
     for path in sorted(n for n in names if n.endswith(".csv")):
-        old = _rows(_git_text(spec, f"{before_ref}:{path}"))
-        new = _rows(_git_text(spec, f":{path}") if base is None else _file_text(spec.root / path))
+        old = _records(_git(spec, "show", f"{before_ref}:{path}", check=False) if before_ref else None)
+        new = _records(_git(spec, "show", f":{path}", check=False) if base is None else _file_text(spec.root / path))
         if old == new:
             continue
         added, removed = Counter(new) - Counter(old), Counter(old) - Counter(new)
@@ -218,19 +227,22 @@ def file_changes(spec: AppSpec, base: str | None = None) -> list[FileChange]:
     return changes
 
 
-def _rows(text: str | None) -> list[str]:
-    """The data lines of a CSV's text, without its header."""
-    return text.splitlines()[1:] if text else []
+def _records(text: str | None) -> list[tuple[str, ...]]:
+    """The records of a CSV's text, without its header. A quoted field may hold line breaks (a note)."""
+    if not text:
+        return []
+    return [tuple(record) for record in csv.reader(io.StringIO(text))][1:]
 
 
-def _git_lines(spec: AppSpec, *args: str) -> list[str]:
+def _git(spec: AppSpec, *args: str, check: bool = True) -> str:
+    """git's output. With `check`, a failure raises ValueError. Without, a failure gives "" (a file or a commit that
+    doesn't exist)."""
     done = subprocess.run(["git", *args], cwd=spec.root, capture_output=True, text=True, check=False)
-    return done.stdout.splitlines() if done.returncode == 0 else []
-
-
-def _git_text(spec: AppSpec, object_name: str) -> str | None:
-    done = subprocess.run(["git", "show", object_name], cwd=spec.root, capture_output=True, text=True, check=False)
-    return done.stdout if done.returncode == 0 else None
+    if done.returncode != 0:
+        if check:
+            raise ValueError(f"git {' '.join(args)} failed: {done.stderr.strip()}")
+        return ""
+    return done.stdout
 
 
 def _file_text(path: Path) -> str | None:

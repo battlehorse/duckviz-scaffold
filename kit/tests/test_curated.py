@@ -247,3 +247,33 @@ def test_against_a_branch_the_guard_reads_the_working_tree(committed, spec):
     (spec.curated_dir / "items.csv").write_text("name,kind\n")  # not staged
     assert file_changes(spec) == []
     assert [c.line() for c in file_changes(spec, base="main")] == ["items.csv: 2 → 0 rows (+0, −2)"]
+
+
+def test_a_note_with_line_breaks_is_one_row(committed, spec):
+    committed.execute("UPDATE labels SET label = 'away\nfor a week\nin the hills' WHERE label = 'away'")
+    export(committed, spec.curated_dir, TABLES)
+    git(spec.root, "add", "curated")
+    (change,) = file_changes(spec)
+    assert change.line() == "labels.csv: 2 → 2 rows (+1, −1)"
+
+
+def test_a_branch_is_compared_from_where_it_left_its_base(committed, spec):
+    git(spec.root, "switch", "-q", "-c", "work")
+    git(spec.root, "switch", "-q", "main")
+    committed.execute("INSERT INTO labels VALUES ('2026-04-01', 'new on main', 'manual', NULL)")
+    export(committed, spec.curated_dir, TABLES)
+    git(spec.root, "commit", "-q", "-am", "main gains a decision")
+    git(spec.root, "switch", "-q", "work")  # never touched curated/
+    assert file_changes(spec, base="main") == []
+
+
+def test_an_unknown_base_is_an_error(committed, spec):
+    with pytest.raises(ValueError, match="nosuch is not a branch"):
+        file_changes(spec, base="nosuch")
+
+
+def test_the_first_commit_has_nothing_before_it(con, spec):
+    export(con, spec.curated_dir, TABLES)
+    git(spec.root, "init", "-q", "-b", "main")
+    git(spec.root, "add", "curated")
+    assert {c.name: (c.before, c.after) for c in file_changes(spec)} == {"labels.csv": (0, 2), "items.csv": (0, 2)}
