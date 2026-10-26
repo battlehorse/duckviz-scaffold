@@ -3,6 +3,15 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## v0.5.1
+
+- Template, `curations`: the seeded `/fix` skill is now `/fix-curation`, and says it corrects a curated decision in
+  the database (not source data or code).
+
+**Steps:**
+- With `curations` on: seeded skills don't arrive with an update. Rename the app's `/fix` skill (or its own skill
+  for correcting decisions) to `.claude/skills/fix-curation/`, and its `name:`.
+
 ## v0.5.0
 
 - duckkit: `curated` keeps curated decisions in `curated/*.csv`, committed to git. `CuratedTable` describes a table

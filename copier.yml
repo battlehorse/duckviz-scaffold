@@ -143,7 +143,7 @@ _exclude:
     .claude/skills/ingest/SKILL.md
     .claude/skills/ask/SKILL.md
     .claude/skills/demo-data/SKILL.md
-    .claude/skills/fix/SKILL.md
+    .claude/skills/fix-curation/SKILL.md
     curated/README.md
     src/{{ package }}/**
     tests/conftest.py
@@ -170,7 +170,7 @@ _skip_if_exists:
   - .claude/skills/ingest/SKILL.md
   - .claude/skills/ask/SKILL.md
   - .claude/skills/demo-data/SKILL.md
-  - .claude/skills/fix/SKILL.md
+  - .claude/skills/fix-curation/SKILL.md
   - curated/README.md
   - "src/{{ package }}/**"
   - tests/conftest.py

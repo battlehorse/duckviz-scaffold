@@ -149,7 +149,7 @@ must then stay private**: the files are the user's decisions.
 - `/rebuild-database` (managed);
 - seeded (the app's own once written): `curated.py`, an example curated table (`labels`, a day's label) with
   `label` and `unlabel` commands and a status line, their test (`tests/test_curated.py`), `curated/README.md`
-  (the columns of each file) and a `/fix` skill. The app replaces the example with its own decisions.
+  (the columns of each file) and a `/fix-curation` skill. The app replaces the example with its own decisions.
 
 **Off:** no curated tables: the sources alone rebuild the database.
 
