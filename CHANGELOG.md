@@ -3,7 +3,7 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.6.1
 
 - Template, how we work: **each PR keeps the spec, and Claude merges an extension with its feature when the
   reviewer agrees.**
@@ -15,6 +15,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
     view with a minor version). Claude merges it with its feature when the reviewer's answer agrees
     (`Extension agreed: <path>`). A revision alters or removes a promise, or edits the Guardrails, and waits for
     the user as before.
+  - "The merge rule": every spec file is marked *extends*, none is in the Guardrails, and a review of the head
+    commit agrees with each, with no blocking finding. Every review names the commit it read, and a later commit
+    needs a new review.
   - CLAUDE.md, `/deliver-outcome`, the reviewer agent, the PR template (*extends* or *revises*, and more evidence),
     docs/review.md and docs/spec.md say the same. The `spec-change` label marks each PR that touches the spec.
   - The PR template and `/deliver-outcome` join the Guardrails of the seeded `.claude/spec-paths`.
