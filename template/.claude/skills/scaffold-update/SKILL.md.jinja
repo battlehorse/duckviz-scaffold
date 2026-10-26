@@ -21,7 +21,7 @@ Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app 
    this repo's answers and merges the difference.
    - An option can have its own answers: `motherduck` has `motherduck_db`, and `cloud_run` has `gcp_project` and
      `gcp_region`. `--defaults` would take their defaults without a question. So ask the user for each one first,
-     and add `-d <answer>=<value>`. `cloud_run` needs `motherduck` on.
+     and add `-d <answer>=<value>`. `cloud_run` needs `motherduck` on, and `llm` needs `curations`.
    - An update never writes seeded files. So `demo_data`, `curations` and `llm` bring their managed files only, not
      their seeded ones (the code in `src/{{ package }}/`, its tests and the `/demo-data`, `/fix-curation` or
      `/classify` skill, and `config.example.toml`). Render a

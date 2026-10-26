@@ -11,7 +11,7 @@ keep = 30            # newest snapshots kept
 [motherduck]
 token = ""           # optional: `{{ project_name }} publish` (MotherDuck → Settings → Access tokens)
 {%- endif %}
-{%- if llm %}
+{%- if curations and llm %}
 
 [anthropic]
 api_key = ""         # `{{ project_name }} classify --yes` (console.anthropic.com → API keys). It costs money.

@@ -8,7 +8,7 @@ come first; the rest are duckkit's standard commands (the same in every app made
 | `ingest <files>` | load data into the database (this app's own){% if curations %}; restores curated/ into a database without decisions{% endif %} |
 {%- if curations %}
 | `label <day> "<text>" [--note …]` / `unlabel <day>` | label a day, or remove its label: decisions kept in `curated/labels.csv` (this app's own) |
-{%- if llm %}
+{%- if curations and llm %}
 | `classify [--limit N] [--model M] [--yes]` | label the days that stand out with Claude (this app's own). Without `--yes`: the estimate, and nothing sent. It costs money |
 {%- endif %}
 {%- endif %}

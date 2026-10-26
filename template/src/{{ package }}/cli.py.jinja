@@ -13,7 +13,7 @@ from duckkit.cli import add_standard_commands, contract_line
 {%- if curations %}
 from duckkit.curated import Refused
 {%- endif %}
-{%- if llm %}
+{%- if curations and llm %}
 from duckkit.llm import DEFAULT_MODEL
 {%- endif %}
 
@@ -106,7 +106,7 @@ def demo(
     typer.echo(f"Wrote {path} ({days} days, seed {seed})")
 {%- endif %}
 
-{%- if llm %}
+{%- if curations and llm %}
 
 
 @app.command()
@@ -135,9 +135,10 @@ def classify(
             labelled = labeller.classify(con, claude, days)
         finally:
             typer.echo(claude.usage.line())
-    typer.echo(f"Labelled {len(labelled)} of {len(days)} days: see them with `{{ project_name }} sql \"FROM labels\"`.")
+    typer.echo(f"Labelled {len(labelled)} of {what}: see them with `{{ project_name }} sql \"FROM labels\"`.")
     if missed := [f"{day:%Y-%m-%d}" for day, _ in days if day not in labelled]:
-        typer.echo(f"No label for {', '.join(missed)} (no answer, or a label set by hand meanwhile): run it again.")
+        typer.echo(f"No label for {', '.join(missed)}: Claude gave none, or the day was labelled by hand meanwhile. "
+                   "Run it again for the days with no label.")
 {%- endif %}
 
 
