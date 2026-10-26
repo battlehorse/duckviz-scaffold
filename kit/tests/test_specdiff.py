@@ -143,6 +143,17 @@ def test_a_repo_without_spec_paths_is_an_error(tmp_path):
         read_spec_paths(tmp_path)
 
 
+def test_a_test_file_that_does_not_parse_is_an_error_not_a_change(repo):
+    edit(repo, "tests/test_logic.py", "1 + 1 == 2", "1 + 1 ==")
+    with pytest.raises(ValueError, match="tests/test_logic.py does not parse"):
+        spec_diff(repo, "main")
+
+
+def test_an_unknown_base_is_an_error(repo):
+    with pytest.raises(ValueError, match="no common commit of nowhere and HEAD"):
+        spec_diff(repo, "nowhere")
+
+
 def test_a_change_to_what_a_spec_test_uses_is_a_spec_change(repo):
     (repo / "tests" / "test_cases.py").write_text(dedent('''\
         import pytest
