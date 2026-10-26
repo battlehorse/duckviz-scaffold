@@ -3,7 +3,7 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.5.2
 
 - duckkit: **a git guard for the curated files.** `curated-check`, a standard command with
   `add_standard_commands(..., curations=True)`, lists what the next commit does to each curated file (rows before
