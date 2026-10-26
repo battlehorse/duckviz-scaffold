@@ -3,7 +3,7 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.5.0
 
 - duckkit: `curated` keeps curated decisions in `curated/*.csv`, committed to git. `CuratedTable` describes a table
   (its own rows, or decisions on the ingestion's rows by `key`). `curating(spec, connect, tables)` is the connection
