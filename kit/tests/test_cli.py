@@ -157,6 +157,23 @@ def test_doctor_versions(cli, spec, monkeypatch):
     assert "not a release" in runner.invoke(cli, ["doctor"]).output
 
 
+def test_doctor_remote_refuses_curated_decisions_in_a_public_repo(cli, spec, monkeypatch):
+    (spec.root / ".copier-answers.yml").write_text("_commit: v0.1.0\n")
+    subprocess.run(["git", "init", "-q"], cwd=spec.root, check=True)
+    (spec.root / "curated").mkdir()
+    (spec.root / "curated" / "labels.csv").write_text("day,label\n")
+    seen = {"visibility": "PUBLIC"}
+    monkeypatch.setattr("duckkit.doctor.visibility", lambda _spec: seen["visibility"])
+    assert "curated" not in runner.invoke(cli, ["doctor", "--remote"]).output  # not in git
+    subprocess.run(["git", "add", "curated"], cwd=spec.root, check=True)
+    assert "the GitHub repo is public: make the repo private" in runner.invoke(cli, ["doctor", "--remote"]).output
+    assert "curated" not in runner.invoke(cli, ["doctor"]).output  # only with --remote
+    seen["visibility"] = "PRIVATE"
+    assert "curated" not in runner.invoke(cli, ["doctor", "--remote"]).output
+    seen["visibility"] = None
+    assert "couldn't check that the GitHub repo is private" in runner.invoke(cli, ["doctor", "--remote"]).output
+
+
 def test_status_says_how_to_bring_stale_views_up_to_date(cli, closed_db, spec):
     with duckdb.connect(str(spec.db_path)) as con:  # as if made by an older version
         con.execute("DROP VIEW v_items")

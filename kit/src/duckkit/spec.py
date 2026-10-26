@@ -66,6 +66,7 @@ class AppSpec:
 
     # Resolved in __post_init__
     data_dir: Path = field(init=False)
+    curated_dir: Path = field(init=False)  # curated/: the decisions kept in git (duckkit.curated)
     db_path: Path = field(init=False)
     demo_db_path: Path | None = field(init=False)
     app_db: str | None = field(init=False)
@@ -79,6 +80,7 @@ class AppSpec:
         self.refresh_hint = self.refresh_hint or (
             f"Run `{self.cli} ingest` (or `/ingest` in Claude Code) to bring its views up to date.")
         self.data_dir = self.root / "data"
+        self.curated_dir = self.root / "curated"
         self.db_path = Path(self.env("DB") or self.data_dir / self.db_file)
         self.demo_db_path = self.data_dir / self.demo_file if self.demo_file else None
         self.app_db = self.env("APP_DB")  # where a hosted app reads the contract, e.g. "md:shop"

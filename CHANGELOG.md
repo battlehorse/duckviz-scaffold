@@ -3,6 +3,16 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- duckkit: `curated` keeps curated decisions in `curated/*.csv`, committed to git. `CuratedTable` describes a table
+  (its own rows, or decisions on the ingestion's rows by `key`). `curating(spec, connect, tables)` is the connection
+  for a command that changes decisions: it exports after the command, and after a failure, and refuses a demo
+  database. `export` never lets a database without decisions replace files that hold some. `restore` loads the files
+  into a rebuilt database in one transaction. `not_manual()` is the SQL for decisions a model may redo.
+- duckkit: `spec.curated_dir` (`<root>/curated`); `testing.isolate` points it into the test's folder.
+- duckkit: `doctor --remote` fails when git holds `curated/` and the GitHub repo is public.
+
 ## v0.4.0
 
 - duckkit: `demo.build_demo(spec, connect, fill, params, path=None)` builds a demo database. The app's `connect`
