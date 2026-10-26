@@ -91,8 +91,9 @@ def restore(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[Curate
     ingestion, once the rows that keyed tables update exist.
 
     Returns the rows restored per table, or None when there was nothing to do (the database holds decisions, or there
-    are no files). A file without a column (written before the column existed) restores it empty; a missing file is
-    skipped. `after(con)` runs inside the transaction: whatever the app derives from the decisions.
+    are no files). A text column keeps an empty text ("" in the file) apart from a NULL (an empty field). A file
+    without a column (written before the column existed) restores it as NULL; a missing file is skipped.
+    `after(con)` runs inside the transaction: whatever the app derives from the decisions.
     """
     files = {t.name: directory / f"{t.name}.csv" for t in tables}
     present = [t for t in tables if files[t.name].exists()]
