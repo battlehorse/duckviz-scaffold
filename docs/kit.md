@@ -345,8 +345,8 @@ view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the an
 - `cost_gate(spec, what, estimate, yes, command)`: whether a paid run may start, only with `--yes`. Without it, the
   gate prints what the run would send and cost, and the command line that runs it, and sends nothing. The flag
   keeps a run from starting by accident. A run that costs money is still a hard stop (docs/how-we-work.md): the
-  user says yes in the chat first, and the app's `.claude/settings.json` makes Claude Code ask before the `--yes`
-  command.
+  user says yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its
+  `.claude/settings.json` (docs/how-we-work.md, "What waits for the user").
 
 ## `duckkit.curated`
 

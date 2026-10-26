@@ -46,7 +46,8 @@ def claude_reply(payload: dict, stop_reason: str = "end_turn", input_tokens: int
     usage = SimpleNamespace(input_tokens=input_tokens, cache_creation_input_tokens=cache_write,
                             cache_read_input_tokens=cache_read, output_tokens=output_tokens)
     return SimpleNamespace(usage=usage, stop_reason=stop_reason,
-                           stop_details="declined" if stop_reason == "refusal" else None,
+                           stop_details=SimpleNamespace(type="refusal", category="cyber", explanation="declined")
+                           if stop_reason == "refusal" else None,
                            content=[SimpleNamespace(type="text", text=json.dumps(payload))])
 
 

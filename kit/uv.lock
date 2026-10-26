@@ -323,6 +323,7 @@ llm = [
 [package.dev-dependencies]
 dev = [
     { name = "anthropic" },
+    { name = "httpx2" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
@@ -341,6 +342,7 @@ provides-extras = ["llm"]
 [package.metadata.requires-dev]
 dev = [
     { name = "anthropic", specifier = ">=1.11.0" },
+    { name = "httpx2", specifier = ">=2.0.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "ruff", specifier = ">=0.17.2" },
