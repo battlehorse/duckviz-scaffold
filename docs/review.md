@@ -18,7 +18,8 @@ Each standard below has a bad and a good example. The examples come from real ch
 Write comments, docstrings, docs, CLI messages, skills and PR text in simplified English, after ASD-STE100. The
 reader can be a person who reads English as a second language, or an agent. Neither can ask what you meant.
 
-- One idea in each sentence. Write a sentence of 25 words or fewer, or 20 or fewer in an instruction.
+- One idea in each sentence. Keep sentences short, but do not cut words that the meaning needs: clarity comes
+  first. `ste-lint.py`'s length findings are a hint, not a rule.
 - Use the active voice. Say who does the action.
 - Use the verb, not a noun made from it: "check the file", not "perform a check of the file".
 - No semicolons. Use a list for three or more steps or conditions.
@@ -35,11 +36,16 @@ The `asd-ste100` skill rewrites a text, and its `scripts/ste-lint.py` checks the
 | "Temperatures, to 0.1." | "Temperatures in °C, in steps of 0.1 °C (the hub logs one decimal)." |
 | "It is important to note that this may potentially help to improve the load time." | "This can make the page load faster: 1.8 s, measured, against 4 s before." |
 
-## 2. Words and terms
+## 2. Canonical terms
 
-- **One name for one thing.** Use the same word for the same concept everywhere: in code, docs and the UI. Do not
-  rotate synonyms.
-- **Explain each term once,** where it first appears: with a short definition, or a link for an outside tool.
+**Canonical** means the one place where something is defined. A canonical term is the one name of a concept. A
+canonical doc is the one doc that defines a concept or a behaviour. Everything else uses that name, and links to
+that doc. See [canonical everything](https://naomi.com/canonical-everything-c85441a84e70?gi=2fc660f004b2).
+
+- **One canonical term for one thing.** Use the same word for the same concept everywhere: in code, docs and the
+  UI. Do not rotate synonyms.
+- **Define each term once,** in its canonical doc: with a short definition, or a link for an outside tool. Other
+  docs link to the definition.
 - **Two names for two things:** when two columns or settings look alike, explain both and say how they differ.
 
 | Bad | Good |
@@ -50,8 +56,9 @@ The `asd-ste100` skill rewrites a text, and its `scripts/ste-lint.py` checks the
 
 ## 3. Docs
 
-- **Each concept has one owner doc.** Other docs link to it, and do not copy it: a copy drifts.
-- **Put text in the doc whose topic it is.** How the app uses the contract goes in `architecture.md`, not
+- **Each concept and each behaviour has one canonical doc.** Other docs link to it, and do not copy it: a copy
+  drifts.
+- **Put text in its canonical doc: the one whose topic it is.** How the app uses the contract goes in `architecture.md`, not
   `contract.md`. What a page shows goes in `dashboard.md`, not in a skill. A rule for Claude goes in CLAUDE.md, not
   in a doc that describes the template.
 - **Describe every table, view and column**: what one row is, and what each column means.
