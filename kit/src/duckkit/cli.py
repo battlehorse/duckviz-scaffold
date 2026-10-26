@@ -45,6 +45,46 @@ def contract_line(spec: AppSpec, problems: list[str], pad: str = "") -> None:
         typer.echo(f"  ✗ {problem}")
 
 
+def remote_lines(spec: AppSpec, publishing: bool) -> list[str]:
+    """The lines of `status --remote`: whether the published copy and the hosted app are current. A check that can't
+    run says why, in its line."""
+    from duckkit.demo import is_demo
+    from duckkit.hosting import HostingError, deployed
+    from duckkit.publish import compare
+    from duckkit.snapshot import ContractError
+
+    lines = []
+    if publishing:
+        try:
+            stale = [view for view, (_, _, same) in compare(spec).items() if not same]
+            differ = "1 view differs" if len(stale) == 1 else f"{len(stale)} views differ"
+            hint = "(this is the demo database)" if is_demo(spec) else f"`{spec.cli} publish` sends them"
+            lines.append(f"Published:    {spec.motherduck_target} is up to date" if not stale else
+                         f"Published:    {differ} from the database ({', '.join(stale)}): {hint}")
+        except (FileNotFoundError, ContractError, ValueError, duckdb.Error) as e:
+            lines.append(f"Published:    can't tell: {str(e).splitlines()[0]}")
+    try:
+        hosted = deployed(spec)
+    except HostingError as e:
+        lines.append(f"Deployed:     can't tell: {e}")
+    else:
+        if hosted is not None:
+            lines.append(f"Deployed:     {hosted.commit}, {deployed_state(hosted)}")
+    return lines
+
+
+def deployed_state(hosted) -> str:
+    """Where the hosted app's commit stands against origin/main, in words."""
+    if not hosted.known:
+        return "a commit this clone lacks: `git fetch`, then ask again"
+    if not hosted.on_main:
+        return "not on origin/main (a branch was deployed)"
+    if hosted.behind == 0:
+        return "the same as origin/main"
+    commits = "1 commit" if hosted.behind == 1 else f"{hosted.behind} commits"
+    return f"{commits} behind origin/main: `/hosting deploy`"
+
+
 def backups_line(spec: AppSpec) -> str:
     """How many backup snapshots there are, and how old the newest is."""
     from datetime import UTC, datetime
@@ -97,7 +137,10 @@ def add_standard_commands(
     """
 
     @app.command("status")
-    def status_command() -> None:
+    def status_command(
+        remote: bool = typer.Option(False, "--remote", help="Also say whether the published copy and the hosted app "
+                                    "are current (reads MotherDuck and Cloud Run; changes nothing)."),
+    ) -> None:
         """What the database holds (the app's summary), and the contract check."""
         from duckkit.snapshot import database_snapshot
 
@@ -105,6 +148,9 @@ def add_standard_commands(
             con = database_snapshot(spec)
         except FileNotFoundError as e:
             typer.echo(str(e))
+            if remote:  # the hosted app can be checked without a local database
+                for line in remote_lines(spec, publishing=False):
+                    typer.echo(line)
             return
         from duckkit.demo import has_marker
 
@@ -116,6 +162,9 @@ def add_standard_commands(
         if backups and connect:
             typer.echo(backups_line(spec))
         contract_line(spec, spec.contract.check(con), pad="    ")
+        if remote:
+            for line in remote_lines(spec, publishing):
+                typer.echo(line)
 
     @app.command("sql")
     def sql_command(query: str, limit: int = typer.Option(200, help="Maximum rows to print.")) -> None:
