@@ -50,9 +50,10 @@ the diff and the docs.
 A check that fails stops the merge: fix the code. If the check is wrong now, that is a revision of the spec (below),
 and it waits for the user. Never weaken a check so that it passes.
 
-A check marked ➖ (not run) is allowed only when it does not apply: the PR changes no page, or the app has no
+A check marked ➖ (does not apply) is allowed only when it does not apply: the PR changes no page, or the app has no
 real-data tests yet (`pytest -m realdata` then selects none). When a check applies but cannot run in this session
-(no real data here, no browser), the PR waits until it can run.
+(no real data here, no browser), the PR waits until it can run. A `pytest -m realdata` run in which every test skips
+cannot run.
 
 In the scaffold repo, the checks are the kit's tests and ruff, `scripts/render.sh` and `spec-diff`, and the reviewer
 checks that the code still does what the Shape docs say.
@@ -67,8 +68,17 @@ A PR that touches a spec file makes a **spec change** of one of two kinds.
 - a new command or option in docs/cli.md, a new section of docs/architecture.md for a new part;
 - a new table, with its migration.
 
-Claude merges an extension on its own, in the same PR as the feature that needs it, when the reviewer agrees that
-it is one. The report lists it. The user can undo it later with a revert, which removes the feature too.
+Claude merges an extension on its own, in the same PR as the feature that needs it. The report lists it. The user
+can undo it later with a revert, which removes the feature too.
+
+**The merge rule.** Claude merges a PR that touches a spec file only when:
+1. each file that `spec-diff` lists is marked *extends* in the PR's *Spec changes* section;
+2. a review of the PR's current head commit has no blocking finding, and has an `Extension agreed: <path>` line for
+   each of those files;
+3. the PR's *Evidence* section records each of those lines, with the commit that the review read.
+
+A commit after the review needs a new review. Claude does not ask new reviewers until one agrees: when a reviewer
+does not agree, the file is a revision, or Claude fixes the finding.
 
 **A revision** alters or removes a promise: it edits or removes a browser check, a question, a test or a rule,
 renames or removes a view or column (a major version), changes what a command does, or changes the architecture.

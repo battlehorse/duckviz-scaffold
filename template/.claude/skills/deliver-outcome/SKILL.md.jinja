@@ -1,6 +1,6 @@
 ---
 name: deliver-outcome
-description: Work on an outcome the user set as a GitHub issue (label `outcome`), from the brief to the report, as docs/how-we-work.md describes. Posts a brief and waits for the user's approval, then works on its own in PRs, merges those that keep the spec or extend it, and ends with a report of the evidence and of each extension and revision.
+description: Work on an outcome the user set as a GitHub issue (label `outcome`), from the brief to the report, as docs/how-we-work.md describes. Posts a brief and waits for the user's approval, then works on its own in PRs, merges those that leave the spec unchanged or extend it, and ends with a report of the evidence and of each extension and revision.
 when_to_use: >-
   Use when the user says things like "work on issue 12", "take the outcome in #12", "here is an outcome", or opens an
   issue with the label `outcome` and asks to start.
@@ -39,8 +39,9 @@ For each PR of the plan:
    reviewer. If you and the reviewer still disagree on a blocking finding after a few rounds, ask the user. Put the
    findings you don't fix in the PR text, with the reason.
 6. Wait for CI.
-   - **The spec is unchanged, or only extended** and the reviewer's last answer has `Extension agreed: <path>` for
-     each file marked *extends*: merge it with a merge commit (`gh pr merge <number> --merge`), and go on.
+   - **The spec is unchanged:** merge it with a merge commit (`gh pr merge <number> --merge`), and go on.
+   - **The spec is only extended:** follow the merge rule of docs/how-we-work.md ("Extensions and revisions").
+     Record each `Extension agreed` line, with the commit the review read, in the PR's *Evidence*, then merge.
    - **A revision:** the PR waits for the user. Send a push notification that names the revision. Go on with the
      next PRs, stacked on it. If the user rejects it, close it, and drop or redo the PRs on top.
 

@@ -8,7 +8,9 @@ reviewer gets the PR and this file, and nothing of the author's reasoning.
 Each finding has a level:
 
 - **Blocking**: the PR does not merge until the author fixes it. A bug, personal data, a spec change the PR does not
-  declare, a spec file marked *extends* that is not an extension, or code or text that a reader cannot follow.
+  declare, a spec file marked *extends* that is not an extension, a weakened check, missing evidence for a check that
+  applies, a file marked *revises* in a PR that holds more than the revision, or code or text that a reader cannot
+  follow.
 - **Should**: fix it in this PR, or say in the PR why not.
 - **Nit**: fix it if it is cheap.
 

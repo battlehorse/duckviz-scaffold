@@ -16,7 +16,7 @@ it uses (helpers, constants, the lists that `parametrize` reads). A change to th
 counted.
 
 `spec-diff` lists the files and tests that a change touches. It does not tell an extension (it adds to the spec and
-keeps each promise) from a change (it alters or removes one): the reviewer judges that.
+keeps each promise) from a revision (it alters or removes one): the reviewer judges that.
 
 The diff runs from the merge base with `base` to the working tree, so it covers commits and uncommitted changes.
 """

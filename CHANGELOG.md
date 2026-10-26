@@ -5,7 +5,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
-- Template, how we work: **each PR keeps the spec, and extensions merge on their own.**
+- Template, how we work: **each PR keeps the spec, and Claude merges an extension with its feature when the
+  reviewer agrees.**
   - docs/how-we-work.md, "Each PR keeps the spec": the one list of checks. A PR merges only when it shows that the
     app still does all that the spec says: the tests with `-m spec` and `-m realdata`, the contract check,
     `doctor`, `privacy-check`, the browser checks of the pages it changes, and (the reviewer) the architecture and

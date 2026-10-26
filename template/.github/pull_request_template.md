@@ -15,6 +15,7 @@
 ✅ contract check (`status`)
 ✅ browser checks of the pages it changes, light and dark
 ✅ architecture and dashboard questions: the reviewer
+Extension agreed: <path> (review of <commit>), one line for each file marked *extends*
 ✅ `doctor`, `privacy-check`
 -->
 

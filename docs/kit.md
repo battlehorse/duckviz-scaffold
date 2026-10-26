@@ -372,7 +372,8 @@ CI runs `doctor` on every PR. `/catch-up` runs it with `--remote`.
 
 ## `duckkit.specdiff`
 
-**What it is for:** telling whether a branch changes the app's spec, the part that only the user approves
+**What it is for:** telling whether a branch changes the app's spec, the part that each PR must keep and
+only the user revises
 (docs/how-we-work.md).
 
 `spec_diff(root, base="origin/main")` compares the working tree with its merge base with `base`: commits,

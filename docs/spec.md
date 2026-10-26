@@ -13,6 +13,16 @@ built, the interface that apps call, and the guardrails of every app and of this
 | **API** | what apps depend on: duckkit's public names and the `AppSpec` fields, and the Copier questions with the files that are managed or seeded | `kit/src/duckkit/__init__.py`, `kit/src/duckkit/spec.py`, `copier.yml` |
 | **Guardrails** | how the work is done, in this repo and in every app, and what it must not do | this repo's CLAUDE.md, `.claude/settings.json`, `.claude/spec-paths` and this file; the template's CLAUDE.md, settings, agents, `/deliver-outcome`, spec files, PR template, CI, git hooks, `pyproject.toml` (its pytest settings and its dependencies) and guard test; `docs/how-we-work.md`, `docs/review.md`; `specdiff.py`; this repo's CI and `scripts/render.sh` |
 
+## Extensions and revisions here
+
+docs/how-we-work.md defines the two kinds of spec change. In this repo:
+- **Extensions:** a new public name in duckkit, a new `AppSpec` field whose default keeps today's behaviour, a new
+  section of a Shape doc for a new part, a new answer or file of the template that changes nothing for an app that
+  updates.
+- **Revisions:** anything that changes what apps depend on: a renamed or removed name or field, a changed default,
+  a changed Copier question, a file that moves between managed and seeded, a release with **Steps**. Any edit to
+  the Guardrails.
+
 ## What is not in the spec
 
 - **The rest of duckkit's code and the template's other files.** They change with each fix. The tests, `render.sh`
