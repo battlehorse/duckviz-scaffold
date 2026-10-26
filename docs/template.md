@@ -21,13 +21,14 @@ it can.
 | Kind | What it is | Examples |
 |---|---|---|
 | **Answer** | a name or value that each app must have, and that differs between apps by nature | `project_name`, `app_port`, `contract_name` |
-| **Option** | a yes/no choice where each side is right for some app | `motherduck`, `cloud_run`, `backup`, `demo_data`, `curations` |
+| **Option** | a yes/no choice where each side is right for some app | `motherduck`, `cloud_run`, `backup`, `demo_data`, `curations`, `llm` |
 | **Capability** | something every app has. There is no question. | the contract guard, `privacy-check`, `app --tailnet`, settings in `config.toml` |
 
 **Something is an option only when both of these hold:**
 1. **Some apps should not have it,** because it brings a cost or a risk that an app may rightly refuse. Examples:
    data leaving the machine (`motherduck`), a cloud account and a bill (`cloud_run`), or code that only some apps
-   have to write (`demo_data`), or a repo that must stay private (`curations`).
+   have to write (`demo_data`), a repo that must stay private (`curations`), or a bill and data sent to a model
+   (`llm`).
 2. **Turning it off removes something real:** files, commands or setup. If "off" would only hide a line in the
    docs, it isn't an option.
 
@@ -159,6 +160,24 @@ must then stay private**: the files are the user's decisions.
   (the columns of each file) and a `/fix-curation` skill. The app replaces the example with its own decisions.
 
 **Off:** no curated tables: the sources alone rebuild the database.
+
+### `llm`: decisions made by Claude (default: off; asked only with `curations`)
+
+**What it decides:** whether a model makes some of the app's decisions, through the Anthropic API. It costs money,
+and it sends the rows it decides to Anthropic. Choose it when there are too many decisions to make by hand, and a
+model makes them well enough for the user to check.
+
+**On:**
+- duckkit's `llm` extra (`duckkit[llm]` in `pyproject.toml`) and `duckkit.llm` in use;
+- `[anthropic] api_key` in `config.example.toml` (a private setting for every app: `privacy-check` refuses it);
+- seeded (the app's own once written): `src/<package>/classify.py`, an example that asks Claude for the label of
+  each day whose value stands out, a `classify` command that shows the estimate and sends nothing without `--yes`,
+  its test (`tests/test_classify.py`, with `duckkit.testing.FakeAnthropic`: no network, no key) and a `/classify`
+  skill. The app replaces the example with its own decisions, its prompt and its schema.
+
+A run that costs money is a hard stop (docs/how-we-work.md): the user says yes in the chat first.
+
+**Off:** no model: every decision is made by hand.
 
 ## Capabilities: what every app has
 

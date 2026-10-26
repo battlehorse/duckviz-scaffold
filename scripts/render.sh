@@ -16,7 +16,7 @@ render() {
   echo "✓ $name"
 }
 
-render all-on -d cloud_run=true -d demo_data=true -d curations=true -d llm=true \
+render all-on -d cloud_run=true -d demo_data=true -d curations=true \
   -d 'extra_apps=[{name: catalog, port: 8503, title: Catalog, hosted: false}]'
 render all-off -d motherduck=false -d backup=false
 render curations -d curations=true  # the one combination the other two don't cover

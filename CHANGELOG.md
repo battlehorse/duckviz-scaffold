@@ -9,6 +9,10 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   one structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`;
   `Usage` and `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which runs a paid command only with
   `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
+- Template: a new option, **`llm`** (default off, asked only with `curations`): decisions made by Claude. It adds
+  the `llm` extra, `[anthropic] api_key` in `config.example.toml`, and, seeded: `classify.py` (an example that labels
+  the days whose value stands out), a `classify` command that shows the estimate and sends nothing without `--yes`,
+  its test with `FakeAnthropic`, and a `/classify` skill. `doctor` expects the skill when the option is on.
 - duckkit: `[anthropic] api_key` (`ANTHROPIC_API_KEY`) is a standard private setting: `spec.anthropic_api_key()`,
   `privacy-check` refuses its value in git, and `testing.isolate` unsets it. The guard keeps `duckkit.llm` out of
   the browser app.

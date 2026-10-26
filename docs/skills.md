@@ -30,6 +30,7 @@ docs/architecture.md how the skills fit in an app.
 | `/demo-data` | `demo_data` | seeded | build the demo database with `demo` |
 | `/fix-curation` | `curations` | seeded | correct one curated decision with the app's commands, which write `curated/` too |
 | `/rebuild-database` | `curations` | managed, the user starts it | rebuild the database from its sources, with the curated decisions restored from `curated/` |
+| `/classify` | `llm` | seeded | let Claude make the decisions that have none yet: it shows the estimate and runs only after the user's yes |
 
 ## Kinds
 
