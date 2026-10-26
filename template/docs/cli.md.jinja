@@ -12,7 +12,7 @@ come first; the rest are duckkit's standard commands (the same in every app made
 {%- if demo_data %}
 | `demo [--seed N] [--days N] [--out <file>]` | build the demo database, `data/demo.duckdb`, from made-up data (this app's own) |
 {%- endif %}
-| `status [--remote]` | what the database holds, and the contract check.{% if motherduck or cloud_run %} `--remote` also says whether {% if motherduck %}the published copy{% endif %}{% if motherduck and cloud_run %} and {% endif %}{% if cloud_run %}the hosted app{% endif %} {% if motherduck and cloud_run %}are{% else %}is{% endif %} current{% endif %} |
+| `status{% if motherduck or cloud_run %} [--remote]{% endif %}` | what the database holds, and the contract check{% if motherduck or cloud_run %}. `--remote` also says whether {% if motherduck %}the published copy{% endif %}{% if motherduck and cloud_run %} and {% endif %}{% if cloud_run %}the hosted app{% endif %} {% if motherduck and cloud_run %}are{% else %}is{% endif %} current{% endif %} |
 | `sql "<SELECT>"` | one read-only SELECT on a snapshot (prefer the contract views) |
 | `app [name] [--tailnet]{% if demo_data %} [--demo]{% endif %}` | serve an app on localhost: `app` (:{{ app_port }}){% for a in extra_apps %}, `{{ a.name }}` (:{{ a.port }}){% endfor %} |
 {%- if motherduck %}

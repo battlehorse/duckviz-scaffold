@@ -48,6 +48,7 @@ def contract_line(spec: AppSpec, problems: list[str], pad: str = "") -> None:
 def remote_lines(spec: AppSpec, publishing: bool) -> list[str]:
     """The lines of `status --remote`: whether the published copy and the hosted app are current. A check that can't
     run says why, in its line."""
+    from duckkit.demo import is_demo
     from duckkit.hosting import HostingError, deployed
     from duckkit.publish import compare
     from duckkit.snapshot import ContractError
@@ -57,9 +58,9 @@ def remote_lines(spec: AppSpec, publishing: bool) -> list[str]:
         try:
             stale = [view for view, (_, _, same) in compare(spec).items() if not same]
             differ = "1 view differs" if len(stale) == 1 else f"{len(stale)} views differ"
+            hint = "(this is the demo database)" if is_demo(spec) else f"`{spec.cli} publish` sends them"
             lines.append(f"Published:    {spec.motherduck_target} is up to date" if not stale else
-                         f"Published:    {differ} from the database ({', '.join(stale)}): `{spec.cli} publish` "
-                         "sends them")
+                         f"Published:    {differ} from the database ({', '.join(stale)}): {hint}")
         except (FileNotFoundError, ContractError, ValueError, duckdb.Error) as e:
             lines.append(f"Published:    can't tell: {str(e).splitlines()[0]}")
     try:
@@ -68,12 +69,20 @@ def remote_lines(spec: AppSpec, publishing: bool) -> list[str]:
         lines.append(f"Deployed:     can't tell: {e}")
     else:
         if hosted is not None:
-            commits = "1 commit" if hosted.behind == 1 else f"{hosted.behind} commits"
-            behind = ("the same as origin/main" if hosted.behind == 0 else
-                      f"{commits} behind origin/main: `/hosting deploy`" if hosted.behind else
-                      "a commit this clone lacks: `git fetch`, then ask again")
-            lines.append(f"Deployed:     {hosted.commit}, {behind}")
+            lines.append(f"Deployed:     {hosted.commit}, {deployed_state(hosted)}")
     return lines
+
+
+def deployed_state(hosted) -> str:
+    """Where the hosted app's commit stands against origin/main, in words."""
+    if not hosted.known:
+        return "a commit this clone lacks: `git fetch`, then ask again"
+    if not hosted.on_main:
+        return "not on origin/main (a branch was deployed)"
+    if hosted.behind == 0:
+        return "the same as origin/main"
+    commits = "1 commit" if hosted.behind == 1 else f"{hosted.behind} commits"
+    return f"{commits} behind origin/main: `/hosting deploy`"
 
 
 def backups_line(spec: AppSpec) -> str:
@@ -139,6 +148,9 @@ def add_standard_commands(
             con = database_snapshot(spec)
         except FileNotFoundError as e:
             typer.echo(str(e))
+            if remote:  # the hosted app can be checked without a local database
+                for line in remote_lines(spec, publishing=False):
+                    typer.echo(line)
             return
         from duckkit.demo import has_marker
 

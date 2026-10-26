@@ -408,13 +408,15 @@ CI runs `doctor` on every PR. `/catch-up` runs it with `--remote`.
 ## `duckkit.hosting`
 
 **What it is for:** telling whether the hosted app (the `cloud_run` option) runs the latest code, for
-`status --remote` and `/catch-up`. The deploy of `/hosting` labels the Cloud Run service with the commit it built.
+`status --remote` and `/catch-up`. The deploy of `/hosting` labels the revision with the commit it built.
 
 - `service(spec)`: (service, project, region) from `.copier-answers.yml`, or None without `cloud_run`.
-- `deployed(spec)` reads the service's `commit` label with `gcloud`, and counts the commits of `origin/main` that it
-  lacks (`git rev-list`, as of the last fetch). It returns a `Deployed(commit, behind)`, or None without
-  `cloud_run`. `behind` is None when the commit is not in this clone. A failure (no `gcloud`, no access, no label)
-  is a `HostingError` with a message. Nothing here changes the service or the repo.
+- `deployed(spec)` finds the revision that serves the traffic (after a rollback, an older one), reads its `commit`
+  label with `gcloud`, and compares it with `origin/main`, as of the last fetch. It returns a
+  `Deployed(commit, behind, on_main, known)`: the commits of `origin/main` it lacks, whether it is on `origin/main`
+  at all (a branch deployed for a test is not), and whether this clone has it. It returns None without
+  `cloud_run`. A failure (no `gcloud`, no access, no label, an answers file without the GCP answers) is a
+  `HostingError` with a message. Nothing here changes the service or the repo.
 
 ## `duckkit.specdiff`
 

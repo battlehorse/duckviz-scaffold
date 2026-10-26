@@ -3,7 +3,7 @@ name: catch-up
 description: Start-of-session briefing for {{ project_name }}. Pulls main, lists open PRs and issues, syncs dependencies, shows the database status and contract check{% if motherduck %}, whether the published copy is current{% endif %}{% if cloud_run %}, whether Cloud Run runs the latest commit{% endif %}, whether the app runs, and whether the scaffold has a newer release.
 when_to_use: >-
   Use when the user says things like "catch up", "where were we", "what's the state", "start of session".
-allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bash(git log *) Bash(git branch *) Bash(gh pr list *) Bash(gh issue list *) Bash(uv sync) Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} status --remote) Bash(uv run {{ project_name }} doctor *) Bash(curl -s localhost:*/_stcore/health)
+allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bash(git log *) Bash(git branch *) Bash(gh pr list *) Bash(gh issue list *) Bash(uv sync) Bash(uv run {{ project_name }} status){% if motherduck or cloud_run %} Bash(uv run {{ project_name }} status --remote){% endif %} Bash(uv run {{ project_name }} doctor *) Bash(curl -s localhost:*/_stcore/health)
 ---
 
 # Catch up
