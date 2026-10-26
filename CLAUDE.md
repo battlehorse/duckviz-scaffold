@@ -13,6 +13,7 @@ Read these first:
 - docs/architecture.md: how an app made from the scaffold works.
 - docs/kit.md: duckkit, module by module.
 - docs/template.md: the template: answers, options and capabilities, the files it manages, deviations.
+- docs/skills.md: the skills the template writes, and the option that adds each one.
 - docs/upgrading.md: the cycle (discover → upstream → release → apply), and adopting the scaffold in an existing
   repo.
 - CHANGELOG.md

@@ -4,24 +4,28 @@ duckkit is the code that every app made from the scaffold shares. It lives in `k
 the scaffold release its files come from:
 
 ```toml
-dependencies = ["duckkit @ git+https://github.com/battlehorse/duckviz-scaffold@v0.2.0#subdirectory=kit"]
+dependencies = ["duckkit @ git+https://github.com/battlehorse/duckviz-scaffold@vX.Y.Z#subdirectory=kit"]
 ```
+
+`vX.Y.Z` is the release, the `_commit` of `.copier-answers.yml`.
 
 `copier update` moves this pin and the template's files together, so they always come from the same release. To
 see where the modules fit in an app, read docs/architecture.md first.
 
-- [The spec](#the-spec-one-description-passed-everywhere)
+- [The AppSpec](#the-appspec-one-description-passed-everywhere)
 - [Which side may import what](#which-side-may-import-what)
 - Modules: [spec](#duckkitspec) · [contract](#duckkitcontract) · [snapshot](#duckkitsnapshot) ·
   [store](#duckkitstore) · [publish](#duckkitpublish) · [backup](#duckkitbackup) · [privacy](#duckkitprivacy) ·
-  [serve](#duckkitserve) · [cli](#duckkitcli) · [doctor](#duckkitdoctor) · [demo](#duckkitdemo) · [curated](#duckkitcurated) · [app.common](#duckkitappcommon) ·
+  [serve](#duckkitserve) · [cli](#duckkitcli) · [demo](#duckkitdemo) · [curated](#duckkitcurated) ·
+  [doctor](#duckkitdoctor) · [specdiff](#duckkitspecdiff) · [app.common](#duckkitappcommon) ·
   [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
 - [Hooks](#hooks-where-an-apps-domain-goes-in)
 - [Compatibility](#compatibility)
 
-## The spec: one description, passed everywhere
+## The AppSpec: one description, passed everywhere
 
-duckkit has no settings and no global state. Each app describes itself once, in `src/<package>/spec.py`:
+duckkit has no settings and no global state. Each app describes itself once, in `src/<package>/spec.py`, as an
+`AppSpec`:
 
 ```python
 SPEC = AppSpec(
@@ -36,7 +40,7 @@ SPEC = AppSpec(
 )
 ```
 
-Every function takes the spec: `contract_snapshot(SPEC)`, `publish(SPEC, target)`, `backup(SPEC, con)`,
+Every function takes the AppSpec: `contract_snapshot(SPEC)`, `publish(SPEC, target)`, `backup(SPEC, con)`,
 `run_app(SPEC, "app", tailnet=True)`. Nothing in duckkit knows which app it serves.
 
 ## Which side may import what
@@ -46,11 +50,6 @@ module belongs to one of them:
 
 | Module | Side | In one line |
 |---|---|---|
-| [`spec`](#duckkitspec) | both | the app's description: paths, ports, contract, settings |
-| [`contract`](#duckkitcontract) | both | the contract: reference schema, descriptions, conformance check |
-| [`snapshot`](#duckkitsnapshot) | both | read-only, in-memory copies of the database or of its contract views |
-| [`app.common`](#duckkitappcommon) | browser | the cached snapshot, sidebar, theme and idle watchers, tables |
-| [`app.theme`](#duckkitapptheme) | browser | colour palettes and shared chart options, light and dark |
 | [`store`](#duckkitstore) | ingestion | open the database for writing: schema and migrations |
 | [`publish`](#duckkitpublish) | ingestion | send the contract's views to MotherDuck; dry run; compare |
 | [`backup`](#duckkitbackup) | ingestion | verified Parquet snapshots, and restore |
@@ -58,8 +57,14 @@ module belongs to one of them:
 | [`serve`](#duckkitserve) | ingestion | run a Streamlit app on localhost, optionally on the tailnet |
 | [`cli`](#duckkitcli) | ingestion | the command-line commands every app has |
 | [`doctor`](#duckkitdoctor) | ingestion | compare the repo with the scaffold release it comes from |
+| [`specdiff`](#duckkitspecdiff) | ingestion | list what a branch changes in the app's spec |
 | [`demo`](#duckkitdemo) | ingestion | build a demo database, and tell one apart from the real one |
 | [`curated`](#duckkitcurated) | ingestion | keep curated decisions in `curated/*.csv`, and restore them into a rebuilt database |
+| [`spec`](#duckkitspec) | both | the `AppSpec`, the app's description: paths, ports, contract, settings |
+| [`contract`](#duckkitcontract) | both | the contract: reference schema, descriptions, conformance check |
+| [`snapshot`](#duckkitsnapshot) | both | read-only, in-memory copies of the database or of its contract views |
+| [`app.common`](#duckkitappcommon) | browser | the cached snapshot, sidebar, theme and idle watchers, tables |
+| [`app.theme`](#duckkitapptheme) | browser | colour palettes and shared chart options, light and dark |
 | [`testing`](#duckkittesting) | tests | isolate tests from real data; build contract databases |
 | [`testing.guard`](#duckkittestingguard) | tests | keep the browser app on the contract |
 
@@ -100,7 +105,7 @@ The fields you set:
 | `idle_minutes` | 15 | how long before a hosted app pauses an idle tab (0: never) |
 | `backup_prefix` | `<package>-` | the start of each backup folder's name |
 
-The fields resolved when the spec is made, which can be overridden from the environment:
+The fields resolved when the AppSpec is made, which can be overridden from the environment:
 
 | Field | Environment | Default |
 |---|---|---|
@@ -121,7 +126,7 @@ Methods:
   `[backup] keep` (default 30).
 - `app(name)` returns an `AppEntry`. `main_script(name)` returns its entry point.
 
-Tests change the resolved paths on the spec itself (`duckkit.testing.isolate`). The browser app imports the spec,
+Tests change the resolved paths on the AppSpec itself (`duckkit.testing.isolate`). The browser app imports the AppSpec,
 so `spec.py` must not import the ingestion.
 
 ## `duckkit.contract`
@@ -259,7 +264,7 @@ same way. The app's `cli.py` makes its [Typer](https://typer.tiangolo.com) app, 
 
 ```python
 add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_terms=terms,
-                      backups=True, publishing=True, privacy=True)
+                      backups=True, publishing=True, curations=False)
 ```
 
 | Command | Does | Built on |
@@ -271,16 +276,16 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 | `app [name] [--tailnet] [--demo]` | serves an app | `serve.run_app` |
 | `privacy-check` | fails when a committable file holds personal data | `privacy.check` |
 | `doctor [--remote]` | compares the repo with the scaffold | `doctor.diagnose` |
-| `spec-diff [--base]` | lists what a branch changes in the spec, and exits 1 if anything | `specdiff.spec_diff` |
+| `spec-diff [--base]` | lists what a branch changes in the app's spec, and exits 1 if anything | `specdiff.spec_diff` |
 | `curated-check [--base]` | what a commit (or a branch) does to the curated files; fails on a large loss | `curated.file_changes` |
 
-The hooks:
+Three parameters take functions from the app's own code (its [hooks](#hooks-where-an-apps-domain-goes-in)):
 - `connect` opens the database for writing; `backup` needs it.
 - `status` returns the app's summary lines.
 - `privacy_terms` returns the app's own personal terms.
 
-`backups` and `publishing` follow the template's `backup` and `motherduck` options: when one is False, its
-commands are left out. `privacy-check` is a capability every app has.
+`backups`, `publishing` and `curations` follow the template's `backup`, `motherduck` and `curations` options: when
+one is False, its commands are left out. `privacy-check` is a capability every app has.
 
 The module also exports helpers for the app's own commands:
 - `fail(message)` prints the message and exits with status 1.
@@ -387,7 +392,7 @@ command, run `uv run --project kit python -m duckkit.specdiff [base]`.
 
 ## `duckkit.app.common`
 
-**What it is for:** what every page needs. The app's own `app/common.py` binds these helpers to its spec and adds
+**What it is for:** what every page needs. The app's own `app/common.py` binds these helpers to its AppSpec and adds
 its own.
 
 | Name | Does |
@@ -416,7 +421,7 @@ its own.
 ## `duckkit.testing`
 
 **What it is for:** tests that can't touch real data, and tests for the browser app that need no ingestion.
-- `isolate(spec, tmp_path, monkeypatch, env=())` points every path of the spec into `tmp_path`: the database,
+- `isolate(spec, tmp_path, monkeypatch, env=())` points every path of the AppSpec into `tmp_path`: the database,
   `data/`, `curated/`, `config.toml` and the backups. It also unsets `MOTHERDUCK_TOKEN`, `<PREFIX>_APP_DB`, the
   privacy terms, and any `env` you name. Call it from an autouse fixture in `tests/conftest.py`.
 - `contract_db(spec, path)` creates a database with the contract's exact shape and its `v_contract` row, still
@@ -454,7 +459,7 @@ There are also smaller helpers: `app_files`, `app_tests`, `sql_strings`, `tables
 | Privacy | `cli.py` | `add_standard_commands(…, privacy_terms=fn(spec) -> {term: what})` |
 | Schema | `db/store.py` | `store.connect(SPEC, schema.sql, SCHEMA_VERSION, MIGRATIONS)` |
 | Personal settings | `spec.py` | `AppSpec(private_settings=…)` |
-| Pages | `app/common.py` | binds duckkit's helpers to the spec and adds the app's own |
+| Pages | `app/common.py` | binds duckkit's helpers to the AppSpec and adds the app's own |
 
 When an app needs something that no hook allows, that is a candidate for a new hook. Upstream it as
 docs/upgrading.md explains.
@@ -462,5 +467,5 @@ docs/upgrading.md explains.
 ## Compatibility
 
 duckkit's version is the release version. Within a major version (in 0.x, each minor counts as a major), a
-release only adds: new functions, new optional parameters, new spec fields with defaults. When a change needs an
+release only adds: new functions, new optional parameters, new `AppSpec` fields with defaults. When a change needs an
 app to change its code, CHANGELOG.md lists it under **Steps**.

@@ -22,12 +22,12 @@ In this repo, run `/upstream <app path> <what>` (the skill in `.claude/skills/up
 Through a PR, like every change here:
 
 ```sh
-git switch -c release/v0.3.0
-uv run --project kit scripts/release.py 0.3.0          # sets the versions and commits
-git push -u origin release/v0.3.0 && gh pr create     # review, then merge
+git switch -c release/vX.Y.Z
+uv run --project kit scripts/release.py X.Y.Z          # sets the versions and commits
+git push -u origin release/vX.Y.Z && gh pr create     # review, then merge
 git switch main && git pull
-uv run --project kit scripts/release.py --tag 0.3.0    # tags the merged commit
-git push origin v0.3.0
+uv run --project kit scripts/release.py --tag X.Y.Z    # tags the merged commit
+git push origin vX.Y.Z
 ```
 
 ## 4. Apply
@@ -37,7 +37,8 @@ In each app, either:
 - or run `/scaffold-update` (in Claude Code). It updates, resolves conflicts using docs/deviations.md, follows the
   CHANGELOG's steps, runs ruff, the tests and `doctor`, and opens a PR.
 
-To turn on a feature an app lacks: `/scaffold-update -d cloud_run=true`, then the feature's docs (docs/hosting.md).
+To turn on an option that an app does not have: `/scaffold-update turn on cloud_run`, then the option's docs
+(docs/hosting.md).
 
 ## Adopting the scaffold in an existing repo
 

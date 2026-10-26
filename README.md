@@ -38,8 +38,9 @@ only its own code: what it ingests, its tables, its contract views and its pages
 | Read | To learn |
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | how an app made from the scaffold works: the two sides, the contract, the database, the browser app, where it runs, the CLI, settings and privacy, backups, the repo layout |
-| [docs/kit.md](docs/kit.md) | every duckkit module: what it is for, its functions, which command uses it, and the hooks where an app plugs in its domain |
+| [docs/kit.md](docs/kit.md) | the `AppSpec`, and every duckkit module: what it is for, its functions, which command uses it, and the hooks where an app plugs in its domain |
 | [docs/template.md](docs/template.md) | the template: every answer and option and what it decides, options vs capabilities, which files it manages and which it seeds once, deviations |
+| [docs/skills.md](docs/skills.md) | the Claude Code skills of an app: what each one does, the option that adds it, managed or seeded |
 | [docs/upgrading.md](docs/upgrading.md) | the update cycle in detail, and adopting the scaffold in an existing repo |
 | [docs/spec.md](docs/spec.md) | this repo's spec: what changes only with the user's approval, and why |
 | [docs/how-we-work.md](docs/how-we-work.md) | how apps and this repo are developed: outcomes, the spec, the PRs Claude merges, what waits for the user |
@@ -85,7 +86,8 @@ There is no question for these. Every app gets:
 - **settings in `config.toml`**, kept out of git, and a pre-commit hook that runs `privacy-check`;
 - **CI**, and a weekly workflow that opens a PR when a new scaffold release is out;
 - **the Claude Code setup:** CLAUDE.md, skills for the everyday tasks (`/ingest`, `/ask`, `/app`, `/app-check`,
-  `/catch-up`, `/scaffold-update`, `/deliver-outcome`), the `reviewer` agent, and the prompts before a hard stop;
+  `/catch-up`, `/scaffold-update`, `/deliver-outcome`; docs/skills.md lists them all), the `reviewer` agent, and the
+  prompts before a hard stop;
 - **the docs:** the app's architecture, contract, dashboard, commands and browser checks, how we work and the
   review standards, and `docs/spec.md`, which lists the spec. docs/template.md ("Capabilities") has the full list.
 
