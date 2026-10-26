@@ -8,9 +8,10 @@ from duckkit import privacy
 def test_terms(spec, monkeypatch):
     spec.config_path.write_text('[shop]\naccount = "12345678"\n[privacy]\nterms = ["Smithson"]\n')
     monkeypatch.setenv("MOTHERDUCK_TOKEN", "md-secret")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-secret")
     terms = privacy.personal_terms(spec, extra=lambda s: {"Alice's Room": "a zone name"})
-    assert terms == {"12345678": "account number", "md-secret": "MotherDuck token", "Smithson": "a [privacy] term",
-                     "Alice's Room": "a zone name"}
+    assert terms == {"12345678": "account number", "md-secret": "MotherDuck token", "sk-secret": "Anthropic API key",
+                     "Smithson": "a [privacy] term", "Alice's Room": "a zone name"}
 
 
 def test_scan_reads_only_committable_files(tmp_path):

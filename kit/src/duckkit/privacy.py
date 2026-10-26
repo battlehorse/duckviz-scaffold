@@ -31,7 +31,8 @@ class Finding:
 def personal_terms(spec: AppSpec, extra: Terms | None = None) -> dict[str, str]:
     """{term: what it is} for every personal value known on this machine."""
     terms = {}
-    settings = [*spec.private_settings, ("motherduck", "token", "MOTHERDUCK_TOKEN", "MotherDuck token")]
+    settings = [*spec.private_settings, ("motherduck", "token", "MOTHERDUCK_TOKEN", "MotherDuck token"),
+                ("anthropic", "api_key", "ANTHROPIC_API_KEY", "Anthropic API key")]
     for section, key, env, what in settings:
         if value := spec.setting(section, key, env):
             terms[str(value)] = what

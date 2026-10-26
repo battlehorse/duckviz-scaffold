@@ -134,6 +134,14 @@ class AppSpec:
         """Where the user puts the MotherDuck token, for messages."""
         return "[motherduck] token in config.toml (or the MOTHERDUCK_TOKEN environment variable)"
 
+    def anthropic_api_key(self) -> str | None:
+        """The Anthropic API key (`duckkit.llm`). None: the app has no key."""
+        return self.setting("anthropic", "api_key", "ANTHROPIC_API_KEY")
+
+    def where_anthropic_key(self) -> str:
+        """Where the user puts the Anthropic API key, for messages."""
+        return "[anthropic] api_key in config.toml (or the ANTHROPIC_API_KEY environment variable)"
+
     def backup_dir(self) -> Path:
         """The folder of backup snapshots. A relative `[backup] dir` (or <PREFIX>_BACKUP_DIR) is relative to the root."""
         value = self.setting("backup", "dir", f"{self.env_prefix}_BACKUP_DIR")
