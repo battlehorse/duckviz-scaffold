@@ -1,0 +1,51 @@
+"""Curated decisions: a label is kept in curated/labels.csv, comes back into a rebuilt database, and its removal is
+kept too.{% if demo_data %} A demo database is refused.{% endif %}"""
+
+from typer.testing import CliRunner
+
+from {{ package }}.cli import app
+from {{ package }}.spec import SPEC
+
+runner = CliRunner()
+
+
+def ingest(tmp_path) -> str:
+    path = tmp_path / "sample.csv"
+    path.write_text("day,value\n2026-01-01,3\n2026-01-02,5\n")
+    result = runner.invoke(app, ["ingest", str(path)])
+    assert result.exit_code == 0, result.output
+    return result.output
+
+
+def test_a_label_is_kept_in_curated(tmp_path):
+    ingest(tmp_path)
+    assert runner.invoke(app, ["label", "2026-01-02", "away", "--note", "the heating was off"]).exit_code == 0
+    rows = (SPEC.curated_dir / "labels.csv").read_text().splitlines()
+    assert rows[0] == "day,label,classified_by,classified_at,note"
+    assert rows[1].startswith("2026-01-02,away,manual,") and rows[1].endswith(",the heating was off")
+
+
+def test_a_rebuilt_database_gets_its_labels_back(tmp_path):
+    ingest(tmp_path)
+    runner.invoke(app, ["label", "2026-01-01", "holiday"])
+    SPEC.db_path.unlink()
+    assert "restored from curated/: 1 labels" in ingest(tmp_path)
+    assert "holiday" in runner.invoke(app, ["sql", "SELECT label FROM labels"]).output
+    assert "Labels:       1 (1 by hand)" in runner.invoke(app, ["status"]).output
+
+
+def test_removing_the_last_label_empties_the_file(tmp_path):
+    ingest(tmp_path)
+    runner.invoke(app, ["label", "2026-01-01", "holiday"])
+    assert "Removed the label of 2026-01-01" in runner.invoke(app, ["unlabel", "2026-01-01"]).output
+    assert (SPEC.curated_dir / "labels.csv").read_text().splitlines() == ["day,label,classified_by,classified_at,note"]
+{%- if demo_data %}
+
+
+def test_a_demo_database_is_refused(tmp_path):
+    assert runner.invoke(app, ["demo", "--days", "3", "--out", str(tmp_path / "demo.duckdb")]).exit_code == 0
+    (tmp_path / "demo.duckdb").rename(SPEC.db_path)
+    result = runner.invoke(app, ["label", "2026-01-01", "holiday"])
+    assert result.exit_code == 1 and "is a demo database" in result.output
+    assert not SPEC.curated_dir.exists()
+{%- endif %}

@@ -1,0 +1,33 @@
+---
+name: rebuild-database
+description: Rebuild the {{ project_name }} database from its sources, with the curated decisions coming back from curated/. Use when the database is lost or damaged, or when a schema change has no migration and the database must be made again.
+when_to_use: >-
+  Use when the user says things like "rebuild the database", "start the database from scratch", "the database is
+  corrupt", "I deleted the database", or when a command says the schema changed and the database must be rebuilt.
+allowed-tools: Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} doctor) Bash(git status *) Bash(git diff *)
+---
+
+# Rebuild the database
+
+The database comes back from two things: the sources (`ingest`), and the decisions in `curated/*.csv`, which `ingest`
+restores into a database that holds none. Nothing else is in it that a rebuild can't make again.
+
+1. **Check the decisions are safe.** `git status --short curated/` must be clean, and the files committed. If they
+   are not, show the user the changes (`git diff curated/`) and stop: the user commits them first, or says why not.
+{%- if backup %}
+2. **Back up**, if the database still opens: `uv run {{ project_name }} backup`. If it doesn't open, say so, and
+   name the newest backup (`uv run {{ project_name }} backups`): `/backup` can restore it instead of a rebuild.
+{%- else %}
+2. **Keep a copy.** If the database still opens, say that the rebuild replaces it, and ask before you go on.
+{%- endif %}
+3. **Ask the user** (AskUserQuestion) to rebuild. Say what is lost: only what neither the sources nor curated/ hold.
+4. **Move the database aside**, never delete it: rename `{{ db_file }}` in `data/` to `{{ db_file }}.old` (and its
+   `.wal`, if there is one).
+5. **Ingest everything**, as `/ingest` does. The output must say `restored from curated/:` with a count per table.
+6. **Check:**
+   - each count against its file: the rows of `curated/<table>.csv` (without the header). A keyed table can restore
+     fewer when some of its sources aren't there any more: say which.
+   - `git status --short curated/` is still clean: the restore wrote back exactly what was there.
+   - `uv run {{ project_name }} status` and `uv run {{ project_name }} doctor`.
+7. **Report** what came back, and tell the user they can delete `data/{{ db_file }}.old` once they've checked the
+   app. Do not delete it yourself.

@@ -30,5 +30,5 @@ SPEC = AppSpec(
     # Settings that are personal: (section, key, environment variable, what). privacy-check refuses them in git.
     private_settings=(),
     # The ingestion side, which the browser app must never import
-    forbidden=("ingest", "db", "cli"{% for a in extra_apps if not a.hosted | default(false) %}, "{{ a.name }}"{% endfor %}),
+    forbidden=("ingest", "db", "cli"{% if curations %}, "curated"{% endif %}{% for a in extra_apps if not a.hosted | default(false) %}, "{{ a.name }}"{% endfor %}),
 )

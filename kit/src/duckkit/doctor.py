@@ -46,6 +46,8 @@ EXPECTED = [
     ("docs/hosting.md", "cloud_run"),
     ("Dockerfile", "cloud_run"),
     (".gcloudignore", "cloud_run"),
+    ("curated/README.md", "curations"),
+    (".claude/skills/rebuild-database/SKILL.md", "curations"),
     (".githooks/pre-commit", None),
     ("config.example.toml", None),
 ]

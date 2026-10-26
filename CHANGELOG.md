@@ -11,7 +11,23 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   database. `export` never lets a database without decisions replace files that hold some. `restore` loads the files
   into a rebuilt database in one transaction. `not_manual()` is the SQL for decisions a model may redo.
 - duckkit: `spec.curated_dir` (`<root>/curated`); `testing.isolate` points it into the test's folder.
-- duckkit: `doctor --remote` fails when git holds `curated/` and the GitHub repo is public.
+- duckkit: `doctor --remote` fails when git holds `curated/` and the GitHub repo is public. With `curations` on,
+  `doctor` expects `curated/README.md` and `/rebuild-database`.
+- Template: a new option, **`curations`** (default off): decisions kept in `curated/*.csv`, committed, restored into
+  a rebuilt database; the repo must stay private.
+  - Managed: the curated-decisions rule in CLAUDE.md, `curated/.*.tmp` in `.gitignore`, the `/rebuild-database`
+    skill.
+  - Seeded (new apps only): `src/<package>/curated.py` (the tables, `curating()`, `restore`), an example curated
+    table `labels` with `label` / `unlabel` commands and a status line, `ingest` restoring curated/,
+    `tests/test_curated.py`, `curated/README.md` and a `/fix` skill.
+- Template: the ignore files' comments name `config.toml` (all apps) and `curated/` (with `curations`).
+
+**Steps:**
+- To adopt curations in an app that already keeps decisions in `curated/`: answer `curations: true`
+  (`uvx copier update --trust -d curations=true`). Seeded files don't arrive with an update: write
+  `src/<package>/curated.py` with the app's `CuratedTable`s (the template's shows how), run every command that
+  changes a decision in its `curating()`, and call its `restore` at the end of `ingest`. Delete the app's own
+  export and restore code. Keep (or write) `curated/README.md`: `doctor` expects it.
 
 ## v0.4.0
 

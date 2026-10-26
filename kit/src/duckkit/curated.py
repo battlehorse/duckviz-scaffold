@@ -51,14 +51,16 @@ def holds_decisions(con: duckdb.DuckDBPyConnection, tables: list[CuratedTable]) 
     return any(_count(con, t) for t in tables)
 
 
-def export(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedTable]) -> bool:
+def export(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedTable],
+           removed: bool = False) -> bool:
     """Write each table to `directory`/<name>.csv, sorted. Each file is replaced atomically.
 
     A database with no decisions at all (new, or rebuilt and not restored yet) never replaces files that hold some:
-    returns False and writes nothing. A table emptied on purpose, while others still hold decisions, is written.
+    returns False and writes nothing. Unless `removed`: the decisions were there and a command removed them (what
+    `curating` passes when the database held decisions as the command began).
     """
     files = [directory / f"{t.name}.csv" for t in tables]
-    if not holds_decisions(con, tables) and any(_has_rows(f) for f in files):
+    if not removed and not holds_decisions(con, tables) and any(_has_rows(f) for f in files):
         return False
     directory.mkdir(parents=True, exist_ok=True)
     for table, target in zip(tables, files):
@@ -103,6 +105,7 @@ def curating(spec: AppSpec, connect: Callable[[], duckdb.DuckDBPyConnection], ta
                          "database only")
     directory = directory or spec.curated_dir
     with connect() as con:
+        held = holds_decisions(con, tables)  # then an empty export is a removal, not a database without decisions
         try:
             yield con
         except BaseException:
@@ -110,9 +113,9 @@ def curating(spec: AppSpec, connect: Callable[[], duckdb.DuckDBPyConnection], ta
                 con.rollback()  # drop a half-finished transaction before exporting
             except duckdb.TransactionException:
                 pass  # none open
-            export(con, directory, tables)
+            export(con, directory, tables, removed=held)
             raise
-        export(con, directory, tables)
+        export(con, directory, tables, removed=held)
 
 
 def _select(table: CuratedTable) -> str:

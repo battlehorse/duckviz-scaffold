@@ -14,6 +14,18 @@ CREATE TABLE IF NOT EXISTS ingest_runs (
     ok BOOLEAN NOT NULL DEFAULT false,
     detail VARCHAR
 );
+{%- if curations %}
+
+-- Curated: decisions kept in curated/labels.csv (curated.py), restored by `ingest` into a rebuilt database. A label
+-- says what was special about a day (a holiday, a broken meter).
+CREATE TABLE IF NOT EXISTS labels (
+    day DATE PRIMARY KEY,
+    label VARCHAR NOT NULL,
+    classified_by VARCHAR NOT NULL,   -- 'manual' (by hand) or 'llm' (a model): a model never overwrites 'manual'
+    classified_at TIMESTAMP NOT NULL,
+    note VARCHAR
+);
+{%- endif %}
 
 -- ─── The contract ───
 

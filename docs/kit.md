@@ -323,9 +323,10 @@ The functions:
 - `curating(spec, connect, tables)`: the connection for every command that changes a decision. It exports the
   tables after the command, and after a failure too (it rolls back the half-finished transaction, and exports what
   earlier batches committed). It refuses a demo database (`ValueError`).
-- `export(con, directory, tables)`: writes `<name>.csv` per table, sorted by `order_by`, each file replaced
-  atomically. A database with no decisions at all (new, or rebuilt and not restored yet) never replaces files that
-  hold some: it writes nothing and returns False.
+- `export(con, directory, tables, removed=False)`: writes `<name>.csv` per table, sorted by `order_by`, each file
+  replaced atomically. A database with no decisions at all (new, or rebuilt and not restored yet) never replaces
+  files that hold some: it writes nothing and returns False. `removed=True` writes anyway: a command removed the
+  last decisions. `curating` passes it when the database held decisions as the command began.
 - `restore(con, directory, tables, after=None)`: loads the files into a database with no decisions yet, in one
   transaction, and returns the rows per table (None when there was nothing to do). Run it at the end of the
   ingestion. A file written before a column existed restores the column empty; a missing file is skipped.

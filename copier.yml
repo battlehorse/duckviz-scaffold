@@ -102,6 +102,12 @@ demo_data:
   type: bool
   help: A synthetic demo database (`demo`, `app --demo`, data/demo.duckdb)?
   default: false
+curations:
+  type: bool
+  help: >-
+    Decisions kept in git (curated/*.csv: categories chosen by hand or by a model, which a rebuild from the sources
+    can't give back)? The repo must then stay private.
+  default: false
 
 # ─── Deviations ───
 opt_out:
@@ -137,6 +143,8 @@ _exclude:
     .claude/skills/ingest/SKILL.md
     .claude/skills/ask/SKILL.md
     .claude/skills/demo-data/SKILL.md
+    .claude/skills/fix/SKILL.md
+    curated/README.md
     src/{{ package }}/**
     tests/conftest.py
     tests/test_*.py
@@ -162,6 +170,8 @@ _skip_if_exists:
   - .claude/skills/ingest/SKILL.md
   - .claude/skills/ask/SKILL.md
   - .claude/skills/demo-data/SKILL.md
+  - .claude/skills/fix/SKILL.md
+  - curated/README.md
   - "src/{{ package }}/**"
   - tests/conftest.py
   - tests/test_*.py

@@ -1,4 +1,4 @@
-# Only the code goes into the image: never data/, backups/ or secrets (see Dockerfile).
+# Only the code goes into the image: never data/, backups/{% if curations %}, curated/{% endif %} or config.toml (see Dockerfile).
 *
 !pyproject.toml
 !uv.lock

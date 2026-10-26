@@ -1,0 +1,21 @@
+---
+name: fix
+description: Make one correction to a curated decision of {{ project_name }} from a plain-English request (label a day, change or remove a label), with the app's commands. Use when the user says a decision is wrong or missing.
+when_to_use: >-
+  Use when the user says things like "that day was a holiday", "label the 3rd as away", "remove the label of
+  Monday", "that label is wrong".
+argument-hint: "<what is wrong>"
+allowed-tools: Bash(uv run {{ project_name }} sql *) Bash(uv run {{ project_name }} label *) Bash(uv run {{ project_name }} unlabel *) Bash(git diff *)
+---
+
+# Fix a decision
+
+Request: $ARGUMENTS
+
+1. **Find what it is about**: `uv run {{ project_name }} sql "SELECT * FROM labels WHERE …"`. If the request could
+   mean more than one thing, ask.
+2. **Say the change** in one line (before → after), and make it with the command: `label <day> "<text>"` or
+   `unlabel <day>`. Never edit `curated/*.csv` by hand: the command writes them.
+3. **Show** `git diff curated/`: the one decision that changed. Do not commit unless the user asks.
+
+(Name this app's own decisions and their commands here, as the app gets them.)
