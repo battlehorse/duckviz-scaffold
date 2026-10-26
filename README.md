@@ -9,13 +9,10 @@ app:
    check;
 3. shows it in a **Streamlit app that reads only the contract**, never the tables.
 
-Optional parts:
-- **MotherDuck** publishing, so a hosted app or Claude can read the contract from anywhere;
-- **Cloud Run** hosting behind Google sign-in;
-- **Tailscale** serving to your own devices;
-- verified **Parquet backups**;
-- a **privacy check** that keeps personal data out of git;
-- **Claude Code** skills for the everyday tasks.
+Every app also gets **Tailscale** serving to your own devices, a **privacy check** that keeps personal data out of
+git, and **Claude Code** skills for the everyday tasks. Options add **MotherDuck** publishing, **Cloud Run** hosting
+behind Google sign-in, verified **Parquet backups**, a **demo database** and **curations** (see
+[Start a new app](#start-a-new-app)).
 
 ```mermaid
 flowchart LR
@@ -54,7 +51,7 @@ You need [uv](https://docs.astral.sh/uv/) and git. One command makes the app, an
 
 ```sh
 uvx copier copy --trust gh:battlehorse/duckviz-scaffold my-app
-cd my-app && git init -b main && uv sync && uv run pytest -q
+cd my-app && git init -b main && git config core.hooksPath .githooks && uv sync && uv run pytest -q
 printf 'day,value\n2026-01-01,3\n' > sample.csv
 uv run my-app ingest sample.csv    # the example app ingests day,value CSV files
 uv run my-app app                  # http://localhost:<port>
@@ -65,9 +62,11 @@ example with your own data (see [Develop an app](#develop-an-app)).
 
 ### What Copier asks
 
-1. **Names and values:** the project's name (the repo and the command), the Python package, a one-line description,
-   the browser app's title, the contract's name, the time zone, the port on localhost, and more browser apps if the
-   app has several.
+1. **Names and values.** The main ones: the project's name (the repo and the command), the Python package, a
+   one-line description, the browser app's title, the contract's name, the time zone, the port on localhost, and
+   more browser apps if the app has several. Others have a default: the author, the prefix of the environment
+   variables, the database file's name. An option can ask more when it is on: the MotherDuck database, the Google
+   Cloud project and region.
 2. **Options:** the features below, each a yes or no.
 3. **Opt-outs:** template files the app doesn't want (usually none).
 
@@ -86,23 +85,24 @@ There is no question for these. Every app gets:
 - **CI**, and a weekly workflow that opens a PR when a new scaffold release is out;
 - **the Claude Code setup:** CLAUDE.md, skills for the everyday tasks (`/ingest`, `/ask`, `/app`, `/app-check`,
   `/catch-up`, `/scaffold-update`, `/deliver-outcome`), the `reviewer` agent, and the prompts before a hard stop;
-- **the spec's docs:** architecture, contract, dashboard, browser checks, `docs/spec.md`.
+- **the docs:** the app's architecture, contract, dashboard, commands and browser checks, how we work and the
+  review standards, and `docs/spec.md`, which lists the spec. docs/template.md ("Capabilities") has the full list.
 
 ### Optional features
 
 | Option | Default | Adds |
 |---|---|---|
 | `motherduck` | on | `publish` and `/publish`: the contract's views go to MotherDuck, so a hosted app or Claude can read them from anywhere |
-| `cloud_run` | off | hosting on Cloud Run behind Google sign-in: the Dockerfile, `/hosting`, docs/hosting.md (needs `motherduck`) |
+| `cloud_run` | off | hosting on Cloud Run behind Google sign-in: the Dockerfile, `/hosting`, docs/hosting.md, the idle pause (needs `motherduck`) |
 | `backup` | on | verified Parquet backups: `backup`, `backups`, `restore` and `/backup` |
 | `demo_data` | off | a synthetic demo database: `demo`, `app --demo` |
-| `curations` | off | decisions kept in `curated/*.csv` in git (categories chosen by hand or by a model), restored into a rebuilt database. The repo must stay private. |
+| `curations` | off | decisions kept in `curated/*.csv` in git (categories chosen by hand or by a model), restored into a rebuilt database: `curated-check` in the pre-commit hook, `/rebuild-database`, `/fix-curation`. The repo must stay private. |
 
 ### Opt-outs
 
 An app that truly can't have a capability lists the file in `opt_out` (for example
-`[.claude/skills/catch-up/SKILL.md]`). Copier then never writes it. The app says why in `docs/deviations.md`, and
-`doctor` checks that every opt-out is explained there. Opt out rarely: a file that several apps opt out of is a sign
+`[.claude/skills/catch-up/SKILL.md]`). Copier then never writes it, and the app says why in `docs/deviations.md`
+([Keep apps current](#keep-apps-current)). Opt out rarely: a file that several apps opt out of is a sign
 that the scaffold should change.
 
 ## Develop an app
@@ -119,9 +119,9 @@ description:
 - **The hard stops.** An action that cannot be undone, such as publishing, deploying or deleting data, needs your
   yes first.
 
-The first outcome of a new app is usually to replace the example with its own data: the sources in `ingest/`, the
-tables and views in `db/schema.sql`, the contract in `contract/schema.sql` and `docs/contract.md`, and the pages in
-`app/views/`. docs/architecture.md says what each file is for.
+The first outcome of a new app is usually to replace the example with its own data. In `src/<package>/`: the sources
+in `ingest/`, the tables and views in `db/schema.sql`, the contract in `contract/schema.sql`, and the pages in
+`app/views/`. The contract is also described in `docs/contract.md`. docs/architecture.md says what each file is for.
 
 ## Keep apps current
 
@@ -146,7 +146,7 @@ difference in its `docs/deviations.md`, and `doctor` checks that the opt-outs ar
 kit/                     duckkit (src/duckkit/) and its tests
 template/                the Copier template: the app's files, rendered with the answers
 copier.yml               the questions (answers and options), and which files are seeded once
-docs/                    architecture, kit, template, upgrading; how-we-work and review (links to template/docs/)
+docs/                    architecture, kit, template, upgrading; how-we-work and review (symlinks to template/docs/)
 scripts/render.sh        renders a sample app with every option on and one with every option off, and tests both
 scripts/release.py       sets the release version (on a branch), then tags it (on main)
 .claude/skills/upstream  the skill that brings a capability from an app into the scaffold
