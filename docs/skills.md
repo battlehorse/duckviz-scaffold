@@ -15,7 +15,7 @@ docs/architecture.md how the skills fit in an app.
 | `/ingest` | seeded | bring in new data with `ingest`, report what was added, and check the contract |
 | `/ask` | seeded | answer a question with read-only SQL on the contract views (`sql`) |
 | `/app` | managed | start, stop or restart a Streamlit app, on localhost or on the tailnet |
-| `/app-check` | managed | walk the browser checks of docs/browser-checks.md in light and dark mode, with screenshots of failures |
+| `/app-check` | managed | walk the browser checks of docs/browser-checks.md in light mode, dark mode or both, with screenshots of failures |
 | `/catch-up` | managed | brief the start of a session: git, PRs and issues, the database status, the published copy, the hosted app, and a newer scaffold release (`doctor --remote`) |
 | `/deliver-outcome` | managed | work on an outcome issue, from the brief to the report, as docs/how-we-work.md describes |
 | `/scaffold-update` | managed | move the repo to a newer scaffold release, or turn an option on, and open a PR |
@@ -33,9 +33,10 @@ docs/architecture.md how the skills fit in an app.
 
 ## Kinds
 
-- **Managed:** `copier update` merges the template's changes into the skill and keeps the app's edits.
-- **Seeded:** the template writes the skill once, as an example. Then the app owns it and fills in its domain: its
-  sources, its questions, its decisions. An update never touches it.
+- **Managed** and **seeded** are two of the kinds of file in docs/template.md ("Three kinds of file"). A seeded
+  skill is an example: the app fills in its domain, such as its sources, its questions or its decisions.
+- A seeded skill of an option arrives only in a new app. An app that turns the option on later copies it from a
+  fresh render, as `/scaffold-update` does.
 - **The user starts it:** the skill sets `disable-model-invocation`, so Claude never starts it on its own. These
   skills send data out or rebuild the database.
 

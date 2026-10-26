@@ -37,7 +37,8 @@ In each app, either:
 - or run `/scaffold-update` (in Claude Code). It updates, resolves conflicts using docs/deviations.md, follows the
   CHANGELOG's steps, runs ruff, the tests and `doctor`, and opens a PR.
 
-To turn on a feature an app lacks: `/scaffold-update -d cloud_run=true`, then the feature's docs (docs/hosting.md).
+To turn on an option that an app does not have: `/scaffold-update turn on cloud_run`, then the option's docs
+(docs/hosting.md).
 
 ## Adopting the scaffold in an existing repo
 

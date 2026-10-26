@@ -65,7 +65,9 @@ These come with an option, and are asked only when it is on:
 
 ## Options: where apps truly differ
 
-Each option adds files, commands and skills (docs/skills.md). To turn one on later, ask Claude in plain words, such
+Each option adds files, commands and skills (docs/skills.md). An update never writes seeded files, so an app that
+turns `demo_data` or `curations` on later copies their seeded files from a fresh render (`/scaffold-update` does
+this). To turn one on later, ask Claude in plain words, such
 as `/scaffold-update turn on cloud_run`. The skill reads its arguments as text, and runs `copier update` with
 `-d cloud_run=true`. Without Claude, run `uvx copier update --trust -d <option>=true`. Then review the diff like any
 update, and follow the docs it adds.
@@ -172,7 +174,7 @@ There is no question for these. An app that truly can't have one lists it in `op
 | Serving on the tailnet | `app --tailnet`: `tailscale serve` to your own devices, for as long as the app runs |
 | CI | lint, tests and `doctor` on every PR, and the `spec` job that labels a PR that changes the spec (`.github/workflows/tests.yml`) |
 | Scaffold updates | the weekly `scaffold-update` workflow and `/scaffold-update` |
-| Claude Code | CLAUDE.md with the shared rules, and the skills of every app (docs/skills.md): `/app`, `/app-check`, `/catch-up`, `/deliver-outcome`, `/scaffold-update`, `/ingest`, `/ask` |
+| Claude Code | CLAUDE.md with the shared rules, and the skills of every app (docs/skills.md) |
 | Docs | architecture, contract, dashboard, cli, getting-started, browser checks, scaffold, deviations |
 | How we work | docs/how-we-work.md (the cycle: outcomes, the spec, merges, the report), docs/spec.md and `.claude/spec-paths` (the app's spec, seeded), docs/review.md (the standards), the `reviewer` agent, the `/deliver-outcome` skill, the PR template, and `.claude/settings.json` (Claude Code prompts before a hard stop) |
 

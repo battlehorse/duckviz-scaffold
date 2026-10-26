@@ -149,7 +149,7 @@ calls `duckkit.cli.add_standard_commands`, which adds the commands every app has
 | `privacy-check` | fail when a file git would commit contains personal data |
 | `doctor [--remote]` | compare the repo with the scaffold release it comes from. `--remote` also asks GitHub whether a newer release is out, and whether a repo that holds `curated/` is public. |
 | `spec-diff [--base]` | list what a branch changes in the app's spec (docs/how-we-work.md) |
-| `curated-check [--base]` | what a commit does to the curated files (the `curations` option) |
+| `curated-check [--base]` | show what a commit does to the curated files, and fail on a large loss (the `curations` option) |
 
 The template writes `docs/cli.md` for each app, and the Claude Code skills (docs/skills.md) run these commands.
 

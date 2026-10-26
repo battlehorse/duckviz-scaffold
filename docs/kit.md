@@ -24,7 +24,8 @@ see where the modules fit in an app, read docs/architecture.md first.
 
 ## The AppSpec: one description, passed everywhere
 
-duckkit has no settings and no global state. Each app describes itself once, in `src/<package>/spec.py`, as an `AppSpec`:
+duckkit has no settings and no global state. Each app describes itself once, in `src/<package>/spec.py`, as an
+`AppSpec`:
 
 ```python
 SPEC = AppSpec(
@@ -275,7 +276,7 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 | `app [name] [--tailnet] [--demo]` | serves an app | `serve.run_app` |
 | `privacy-check` | fails when a committable file holds personal data | `privacy.check` |
 | `doctor [--remote]` | compares the repo with the scaffold | `doctor.diagnose` |
-| `spec-diff [--base]` | lists what a branch changes in the spec, and exits 1 if anything | `specdiff.spec_diff` |
+| `spec-diff [--base]` | lists what a branch changes in the app's spec, and exits 1 if anything | `specdiff.spec_diff` |
 | `curated-check [--base]` | what a commit (or a branch) does to the curated files; fails on a large loss | `curated.file_changes` |
 
 Three parameters take functions from the app's own code (its [hooks](#hooks-where-an-apps-domain-goes-in)):
@@ -420,7 +421,7 @@ its own.
 ## `duckkit.testing`
 
 **What it is for:** tests that can't touch real data, and tests for the browser app that need no ingestion.
-- `isolate(spec, tmp_path, monkeypatch, env=())` points every path of the spec into `tmp_path`: the database,
+- `isolate(spec, tmp_path, monkeypatch, env=())` points every path of the AppSpec into `tmp_path`: the database,
   `data/`, `curated/`, `config.toml` and the backups. It also unsets `MOTHERDUCK_TOKEN`, `<PREFIX>_APP_DB`, the
   privacy terms, and any `env` you name. Call it from an autouse fixture in `tests/conftest.py`.
 - `contract_db(spec, path)` creates a database with the contract's exact shape and its `v_contract` row, still
@@ -458,7 +459,7 @@ There are also smaller helpers: `app_files`, `app_tests`, `sql_strings`, `tables
 | Privacy | `cli.py` | `add_standard_commands(…, privacy_terms=fn(spec) -> {term: what})` |
 | Schema | `db/store.py` | `store.connect(SPEC, schema.sql, SCHEMA_VERSION, MIGRATIONS)` |
 | Personal settings | `spec.py` | `AppSpec(private_settings=…)` |
-| Pages | `app/common.py` | binds duckkit's helpers to the spec and adds the app's own |
+| Pages | `app/common.py` | binds duckkit's helpers to the AppSpec and adds the app's own |
 
 When an app needs something that no hook allows, that is a candidate for a new hook. Upstream it as
 docs/upgrading.md explains.
@@ -466,5 +467,5 @@ docs/upgrading.md explains.
 ## Compatibility
 
 duckkit's version is the release version. Within a major version (in 0.x, each minor counts as a major), a
-release only adds: new functions, new optional parameters, new spec fields with defaults. When a change needs an
+release only adds: new functions, new optional parameters, new `AppSpec` fields with defaults. When a change needs an
 app to change its code, CHANGELOG.md lists it under **Steps**.
