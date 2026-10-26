@@ -9,8 +9,11 @@ in groups:
     docs/contract.md
 
 A change is a spec change when it changes a file that a pattern matches, or a **spec test**: a test marked
-`@pytest.mark.spec` (or in a module whose `pytestmark` holds that mark). A new spec test is not a spec change. A
-spec test that changed, was removed or lost its mark is. Dependency changes are reported, not counted.
+`@pytest.mark.spec` (or in a class or a module whose `pytestmark` holds that mark). A new spec test is not a spec
+change. A spec test that changed, was removed or lost its mark is. A spec test's code includes the module-level names
+it uses (helpers, constants, the lists that `parametrize` reads). A change to the pytest settings
+(`[tool.pytest.ini_options]`) is a spec change too: they choose which tests run. Dependency changes are reported, not
+counted.
 
 The diff runs from the merge base with `base` to the working tree, so it covers commits and uncommitted changes.
 """
@@ -100,16 +103,20 @@ def spec_diff(root: Path, base: str = "origin/main") -> SpecDiff:
         raise ValueError(f"no common commit of {base} and HEAD ({e.stderr.strip() or 'git merge-base failed'}): "
                          "fetch the base branch, or pass another --base") from e
     result = SpecDiff(base=base)
-    for status, path in _changed_files(root, merge_base):
+    changes, renamed_from = _changed_files(root, merge_base)
+    renamed = set(renamed_from.values())
+    for status, path in changes:
         group = paths.group_of(path)
         if group:
             result.files.setdefault(group, []).append(f"{status} {path}")
-        if PurePosixPath(path).name.startswith("test_") and path.endswith(".py"):
-            changed, new = _spec_test_changes(root, merge_base, path)
+        if PurePosixPath(path).name.startswith("test_") and path.endswith(".py") and path not in renamed:
+            changed, new = _spec_test_changes(root, merge_base, renamed_from.get(path, path), path)
             result.spec_tests += changed
             result.new_spec_tests += new
-    result.dependencies = _dependency_changes(_read_at(root, merge_base, "pyproject.toml"),
-                                              _read_now(root, "pyproject.toml"))
+    before, after = _read_at(root, merge_base, "pyproject.toml"), _read_now(root, "pyproject.toml")
+    if _pytest_settings(before) != _pytest_settings(after):
+        result.spec_tests.append("pyproject.toml [tool.pytest.ini_options]: changed")
+    result.dependencies = _dependency_changes(before, after)
     return result
 
 
@@ -117,15 +124,17 @@ def _git(root: Path, *args: str) -> str:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=True).stdout
 
 
-def _changed_files(root: Path, merge_base: str) -> list[tuple[str, str]]:
+def _changed_files(root: Path, merge_base: str) -> tuple[list[tuple[str, str]], dict[str, str]]:
     """(status, path) for each file changed since `merge_base`: committed, uncommitted and untracked. A renamed file
-    counts under both its old and its new path."""
-    changes = []
+    counts under both its old and its new path. Also: each renamed file's old path, by its new one."""
+    changes, renamed_from = [], {}
     for line in _git(root, "diff", "--name-status", "-M", merge_base).splitlines():
         status, *names = line.split("\t")
         changes += [(status[0], name) for name in names]
+        if status.startswith("R"):
+            renamed_from[names[1]] = names[0]
     changes += [("A", name) for name in _git(root, "ls-files", "--others", "--exclude-standard").splitlines()]
-    return changes
+    return changes, renamed_from
 
 
 def _read_at(root: Path, commit: str, path: str) -> str | None:
@@ -141,9 +150,10 @@ def _read_now(root: Path, path: str) -> str | None:
 
 # ─── Spec tests ───
 
-def _spec_test_changes(root: Path, merge_base: str, path: str) -> tuple[list[str], list[str]]:
-    """The spec tests of one test file that changed, were removed or lost their mark; and the new ones."""
-    before_marked, _ = _tests(_read_at(root, merge_base, path))
+def _spec_test_changes(root: Path, merge_base: str, old_path: str, path: str) -> tuple[list[str], list[str]]:
+    """The spec tests of one test file (at `old_path` before a rename) that changed, were removed or lost their
+    mark; and the new ones."""
+    before_marked, _ = _tests(_read_at(root, merge_base, old_path))
     after_marked, after_all = _tests(_read_now(root, path))
     changed = []
     for name, body in before_marked.items():
@@ -156,10 +166,12 @@ def _spec_test_changes(root: Path, merge_base: str, path: str) -> tuple[list[str
 
 
 def _tests(source: str | None) -> tuple[dict[str, str], set[str]]:
-    """The spec tests in a test module (name → its code, without line numbers), and the names of all its tests."""
+    """The spec tests in a test module (name → its code, with the module-level code it uses, without line numbers),
+    and the names of all its tests."""
     if source is None:
         return {}, set()
     module = ast.parse(source)
+    definitions = _module_definitions(module)
     module_marked = any(_holds_spec_mark(node.value) for node in module.body
                         if isinstance(node, ast.Assign) and any(_is_name(t, "pytestmark") for t in node.targets))
     marked, names = {}, set()
@@ -167,8 +179,42 @@ def _tests(source: str | None) -> tuple[dict[str, str], set[str]]:
         name = prefix + node.name
         names.add(name)
         if module_marked or class_marked or any(_holds_spec_mark(d) for d in node.decorator_list):
-            marked[name] = ast.dump(node)
+            used = sorted(_uses(node, definitions) - {node.name})
+            marked[name] = ast.dump(node) + "".join(ast.dump(definitions[n]) for n in used)
     return marked, names
+
+
+def _module_definitions(module: ast.Module) -> dict[str, ast.AST]:
+    """The node of each name the module defines at its top level: functions, classes, assignments and imports."""
+    found: dict[str, ast.AST] = {}
+    for node in module.body:
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            found[node.name] = node
+        elif isinstance(node, ast.Assign | ast.AnnAssign):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                found |= {name.id: node for name in ast.walk(target) if isinstance(name, ast.Name)}
+        elif isinstance(node, ast.Import | ast.ImportFrom):
+            found |= {(alias.asname or alias.name).split(".")[0]: node for alias in node.names}
+    return found
+
+
+def _uses(node: ast.AST, definitions: dict[str, ast.AST]) -> set[str]:
+    """The module-level names that `node` uses, and the names those use in turn. A function's arguments count: a
+    fixture defined in the module is a function of that name."""
+    def direct(of: ast.AST) -> set[str]:
+        names = {n.id for n in ast.walk(of) if isinstance(n, ast.Name)}
+        if isinstance(of, ast.FunctionDef | ast.AsyncFunctionDef):
+            names |= {a.arg for a in of.args.args}
+        return names & definitions.keys()
+
+    found: set[str] = set()
+    todo = direct(node)
+    while todo:
+        name = todo.pop()
+        found.add(name)
+        todo |= direct(definitions[name]) - found
+    return found
 
 
 def _test_functions(module: ast.Module):
@@ -199,7 +245,14 @@ def _is_name(expr: ast.expr, name: str) -> bool:
     return isinstance(expr, ast.Name) and expr.id == name
 
 
-# ─── Dependencies ───
+# ─── pytest settings and dependencies ───
+
+def _pytest_settings(pyproject: str | None) -> dict:
+    """The `[tool.pytest.ini_options]` table: it chooses which tests run (markers, `addopts`, paths)."""
+    if pyproject is None:
+        return {}
+    return tomllib.loads(pyproject).get("tool", {}).get("pytest", {}).get("ini_options", {})
+
 
 def _dependency_changes(before: str | None, after: str | None) -> list[str]:
     """The dependencies added, removed or changed in pyproject.toml, in every list (the project's, its extras, its
@@ -232,6 +285,9 @@ def _dependencies(pyproject: str | None) -> dict[tuple[str, str], str]:
 if __name__ == "__main__":  # a repo without an app CLI (the scaffold itself): python -m duckkit.specdiff [base]
     import sys
 
-    from duckkit.cli import print_spec_diff
-
-    print_spec_diff(Path.cwd(), sys.argv[1] if len(sys.argv) > 1 else "origin/main")
+    try:
+        found = spec_diff(Path.cwd(), sys.argv[1] if len(sys.argv) > 1 else "origin/main")
+    except ValueError as e:
+        sys.exit(f"✗ {e}")
+    print("\n".join(found.lines()))
+    sys.exit(1 if found.changed else 0)

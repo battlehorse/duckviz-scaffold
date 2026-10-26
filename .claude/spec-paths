@@ -23,6 +23,10 @@ template/docs/review.md
 template/.claude/settings.json
 template/.claude/hooks/**
 template/.claude/agents/**
+template/.claude/spec-paths.jinja
+template/.claude/skills/outcome/**
+template/docs/spec.md.jinja
 template/.github/**
+kit/src/duckkit/specdiff.py
 .github/workflows/**
 scripts/render.sh

@@ -141,3 +141,59 @@ def test_spec_paths_must_start_with_a_group(tmp_path):
 def test_a_repo_without_spec_paths_is_an_error(tmp_path):
     with pytest.raises(ValueError, match="no .claude/spec-paths"):
         read_spec_paths(tmp_path)
+
+
+def test_a_change_to_what_a_spec_test_uses_is_a_spec_change(repo):
+    (repo / "tests" / "test_cases.py").write_text(dedent('''\
+        import pytest
+
+        CASES = [(1, 2), (2, 3)]
+
+
+        def plus_one(x):
+            return x + 1
+
+
+        @pytest.mark.spec
+        @pytest.mark.parametrize("x, y", CASES)
+        def test_plus_one(x, y):
+            assert plus_one(x) == y
+        '''))
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "cases")
+    git(repo, "switch", "-q", "-c", "later")
+    edit(repo, "tests/test_cases.py", "CASES = [(1, 2), (2, 3)]", "CASES = []")  # the test now runs nothing
+    assert spec_diff(repo, "work").spec_tests == ["tests/test_cases.py::test_plus_one: changed"]
+    edit(repo, "tests/test_cases.py", "CASES = []", "CASES = [(1, 2), (2, 3)]")
+    edit(repo, "tests/test_cases.py", "return x + 1", "return 2 * x")
+    assert spec_diff(repo, "work").spec_tests == ["tests/test_cases.py::test_plus_one: changed"]
+
+
+def test_a_renamed_test_file_compares_with_its_old_path(repo):
+    git(repo, "mv", "tests/test_logic.py", "tests/test_rules.py")
+    diff = spec_diff(repo, "main")
+    assert diff.spec_tests == [] and diff.new_spec_tests == []
+
+
+def test_a_change_to_the_pytest_settings_is_a_spec_change(repo):
+    edit(repo, "pyproject.toml", "[dependency-groups]", '[tool.pytest.ini_options]\naddopts = "-m \'not spec\'"\n\n[dependency-groups]')
+    assert spec_diff(repo, "main").spec_tests == ["pyproject.toml [tool.pytest.ini_options]: changed"]
+
+
+def test_the_scaffold_spec_holds_every_file_that_defines_a_spec_or_a_guardrail():
+    """A PR that weakens the spec of every app must itself be a spec change of the scaffold."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    paths = read_spec_paths(root)
+    guardrails = [
+        "CLAUDE.md", ".claude/settings.json", ".claude/spec-paths", "copier.yml", "scripts/render.sh",
+        ".github/workflows/ci.yml", "kit/src/duckkit/specdiff.py", "kit/src/duckkit/spec.py",
+        "template/CLAUDE.md.jinja", "template/docs/working.md", "template/docs/review.md",
+        "template/docs/spec.md.jinja", "template/.claude/spec-paths.jinja", "template/.claude/settings.json",
+        "template/.claude/hooks/hard_stops.py", "template/.claude/agents/reviewer.md",
+        "template/.claude/skills/outcome/SKILL.md.jinja", "template/.github/workflows/tests.yml.jinja",
+        "template/.github/pull_request_template.md",
+    ]
+    assert all((root / path).exists() for path in guardrails)
+    assert [path for path in guardrails if paths.group_of(path) is None] == []

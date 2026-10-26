@@ -41,8 +41,9 @@ adds the `spec-change` label when the spec changes.
      the user approves, the work on top is ready. When the user rejects it, Claude closes the PR and drops or redoes
      the PRs on top. `main` never held the change, so nothing needs a revert.
    - Work that doesn't depend on a waiting spec change goes on from `main`.
-   - The data stays safe. Claude runs `backup` before any command that changes data, and tries things on copies of
-     the database. The hard stops (below) need the user's yes.
+   - The data stays safe. Before any command that changes data, Claude runs `backup` (or, in an app without
+     backups, copies the database file), and it tries things on copies of the database. The hard stops (below) need
+     the user's yes.
 4. **Claude posts the report** on the issue, and closes it:
    - each acceptance criterion, with its evidence;
    - "the spec is unchanged", shown by: `spec-diff` with no changes over the merged PRs; the same tests passing,
@@ -66,10 +67,19 @@ left, Claude stops and asks the user. The PR text lists the findings Claude did 
 ## The hard stops
 
 A Claude Code hook (`.claude/hooks/hard_stops.py`) checks each shell command:
-- **refused in every mode:** pushing to `main`, force-pushing, moving or deleting a pushed tag, a hard reset on
-  `main`;
+- **refused in every mode:** pushing to `main` (`--all` too), force-pushing, moving or deleting a tag, a hard reset
+  on `main`, and a merge that is not a merge commit;
 - **the user confirms in a prompt:** publishing, deploying, changing who can open the hosted app, a paid
   classification, deleting or moving `data/`, `backups/`, `curated/` or a database file, and merging a PR that
   changes the spec (or whose spec check has not passed yet).
 
 `uv add`, `uv remove` and new tags need no prompt: the PR and the report list them.
+
+The hook reads each command as a shell would, closely enough for a command written in good faith. It follows `cd`,
+`git -C`, `gh -R`, `bash -c`, `env`, `xargs`, `eval` and `uv run`. It does not catch a command hidden on purpose:
+backticks or `$(…)`, a git alias, `python -c` with `subprocess`, or `gh api` to merge. Those break the rules, not
+the hook.
+
+`spec-diff` counts a spec test's code with the module-level names it uses, and `conftest.py` is spec as a whole. It
+does not follow a helper imported from another module: if a spec test relies on one, add that module to
+`.claude/spec-paths`.

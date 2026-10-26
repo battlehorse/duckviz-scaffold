@@ -6,9 +6,12 @@ on:
   push:
     branches: [main]
   pull_request:
+    # edited: a PR's base can change (a stacked PR retargeted to main), and the spec job must look again
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   test:
+    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -25,7 +28,7 @@ jobs:
   # Labels a PR that changes the spec (docs/spec.md) with spec-change: only the user merges those
   # (docs/working.md). Claude's merge hook reads the label, and this job's result.
   spec:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
     permissions:
       contents: read

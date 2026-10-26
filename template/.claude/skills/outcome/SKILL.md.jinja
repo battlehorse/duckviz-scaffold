@@ -40,12 +40,17 @@ For each PR of the plan:
    reviewer. After 3 rounds with blocking findings left, stop and ask the user. Put the findings you don't fix in
    the PR text, with the reason.
 5. Wait for CI.
-   - **No spec change:** merge it (`gh pr merge <number> --merge`), and go on.
+   - **No spec change:** merge it with a merge commit (`gh pr merge <number> --merge`), and go on.
    - **A spec change:** the PR waits for the user. Send a push notification that names the change. Go on with the
      next PRs, stacked on it. If the user rejects it, close it, and drop or redo the PRs on top.
 
+{% if backup -%}
 Before any command that changes the data, run `uv run {{ project_name }} backup`. Try risky changes on a copy of the
-database. When the hook asks for a hard stop, the user decides in the prompt.
+database.
+{%- else -%}
+This app has no backups: before any command that changes the data, copy the database file (`data/{{ db_file }}`) to
+`data/{{ db_file }}.before`, and try risky changes on another copy.
+{%- endif %} When the hook asks for a hard stop, the user decides in the prompt.
 
 ## 3. The report
 

@@ -1,14 +1,19 @@
 """The hard stops of docs/working.md, as a Claude Code hook (PreToolUse, on Bash).
 
 Claude Code sends each Bash command as JSON on stdin, and runs it only after this hook answers:
-- **deny**: never, in any permission mode. Pushing to main, force-pushing, moving a tag, a hard reset on main.
+- **deny**: never, in any permission mode. Pushing to main, force-pushing, moving or deleting a tag, a hard reset on
+  main, and a merge that is not a merge commit.
 - **ask**: the user must confirm in a prompt. Publishing, deploying, changing who can open the hosted app, a paid
   classification, deleting or moving the data, and merging a PR that changes the spec.
 - **no answer**: the normal permission rules decide.
 
-The hook is plain Python with no dependencies, so it runs before `uv sync` and outside the app's environment. It
-reads the app's command name from `.copier-answers.yml`. In the scaffold repo, which has none, the app rules are off.
-It runs on the system's `python3`, which can be old (3.9 on macOS): keep to Python 3.9.
+The hook reads the command as a shell would, closely enough for a command written in good faith: `cd`, `git -C`,
+`gh -R`, `bash -c`, `env`, `xargs`, `eval` and `uv run` are followed. It finds the repo and the app (its
+`.copier-answers.yml`) from the folder each command runs in. In the scaffold repo, which has no answers file, the
+app rules are off. docs/working.md names what the hook does not catch.
+
+It is plain Python with no dependencies, so it runs before `uv sync` and outside the app's environment. It runs on
+the system's `python3`, which can be old (3.9 on macOS): keep to Python 3.9.
 """
 
 from __future__ import annotations  # annotations such as `str | None` on Python 3.9
@@ -19,14 +24,30 @@ import re
 import shlex
 import subprocess
 import sys
+from dataclasses import dataclass, field
+from functools import cache
 from pathlib import Path
 
 DENY, ASK = "deny", "ask"
 PROTECTED_DIRS = ("data", "backups", "curated")
 PROTECTED_SUFFIXES = (".duckdb", ".duckdb.wal")
 MAIN_BRANCHES = ("main", "master")
-WRAPPERS = {"sudo", "command", "time", "env", "nohup", "exec"}
+RELEASE_TAG = re.compile(r"v\d+(\.\d+)*")
+WRAPPERS = {"sudo", "command", "time", "env", "nohup", "exec", "{", "}"}
 OPERATORS = {";", "&&", "||", "|", "&", "(", ")", "|&", ";;"}
+UV_OPTIONS_WITH_A_VALUE = {"--project", "--directory", "--with", "--with-editable", "--with-requirements", "--python",
+                           "--package", "-p", "--env-file", "--extra", "--group", "--only-group", "--no-group",
+                           "--index", "--default-index", "--index-url", "--extra-index-url", "--find-links"}
+XARGS_OPTIONS_WITH_A_VALUE = {"-I", "-n", "-P", "-L", "-d", "-E", "-s", "-a"}
+
+
+@dataclass
+class Command:
+    """A simple command: its words, the folder it runs in, and the variables set before it."""
+
+    words: list[str]
+    cwd: Path
+    env: dict[str, str] = field(default_factory=dict)
 
 
 def main() -> None:
@@ -43,38 +64,38 @@ def main() -> None:
 
 def decide(command: str, root: Path, cwd: Path) -> tuple[str, str] | None:
     """The strongest decision for any simple command in `command` (deny before ask), with its reason. None: no
-    hard stop applies."""
-    cli = app_command(root)
+    hard stop applies. `root` is the session's project folder, and `cwd` the folder the command starts in."""
     found = []
-    for words in simple_commands(command):
-        found += [result for rule in RULES if (result := rule(words, root, cwd, cli))]
+    for cmd in simple_commands(command, cwd):
+        found += [result for rule in RULES if (result := rule(cmd, root))]
     denied = [r for r in found if r[0] == DENY]
     return (denied or found or [None])[0]
 
 
-# ─── Parsing the command ───
+# ─── Reading the command ───
 
-def simple_commands(command: str) -> list[list[str]]:
-    """The words of each simple command in a shell command line. The text of a heredoc is not a command, so it is
-    left out. `bash -c "…"` counts as the commands in its string."""
-    lines = []
-    for line in strip_heredocs(command).splitlines():
-        lexer = shlex.shlex(line, posix=True, punctuation_chars=";&|()")
-        lexer.whitespace_split = True
-        try:
-            lines.append(list(lexer))
-        except ValueError:  # an unclosed quote: look at the words, unparsed
-            lines.append(line.split())
-    commands = []
-    for tokens in lines:
-        words: list[str] = []
-        for token in tokens + [";"]:
-            if token in OPERATORS:
-                if words:
-                    commands += expand(unwrap(words))
-                words = []
+def simple_commands(command: str, cwd: Path) -> list[Command]:
+    """Each simple command in a shell command line, with the folder it runs in (`cd` changes it for the commands
+    after it). The text of a heredoc is not a command, so it is left out."""
+    text = unquoted_newlines_to_semicolons(strip_heredocs(command.replace("\\\n", " ")))
+    lexer = shlex.shlex(text, posix=True, punctuation_chars=";&|()")
+    lexer.whitespace_split = True
+    try:
+        tokens = list(lexer)
+    except ValueError:  # an unclosed quote: look at the words, unparsed
+        tokens = text.split()
+    commands: list[Command] = []
+    words: list[str] = []
+    for token in tokens + [";"]:
+        if token not in OPERATORS:
+            words.append(token)
+            continue
+        for cmd in expand(unwrap(Command(words, cwd))):
+            if cmd.words[0] == "cd":
+                cwd = changed_dir(cmd.cwd, cmd.words[1:])
             else:
-                words.append(token)
+                commands.append(cmd)
+        words = []
     return commands
 
 
@@ -83,97 +104,192 @@ def strip_heredocs(command: str) -> str:
     return re.sub(r"<<-?\s*(['\"]?)(\w+)\1([^\n]*)\n.*?\n\s*\2[ \t]*(?=\n|$)", r"\3", command, flags=re.DOTALL)
 
 
-def unwrap(words: list[str]) -> list[str]:
-    """The command itself, without the variable assignments, the wrappers (`sudo`, `env`, …) and `uv run` before
-    it."""
+def unquoted_newlines_to_semicolons(text: str) -> str:
+    """`text` with each newline outside quotes made a `;`, so that each line is a command of its own."""
+    out, quote = [], None
+    for i, char in enumerate(text):
+        if quote:
+            if char == quote and (quote == "'" or text[i - 1] != "\\"):
+                quote = None
+        elif char in "'\"":
+            quote = char
+        elif char == "\n":
+            char = ";"
+        out.append(char)
+    return "".join(out)
+
+
+def changed_dir(cwd: Path, args: list[str]) -> Path:
+    """The folder after `cd <args>`."""
+    target = next((a for a in args if not a.startswith("-")), "~")
+    return Path(os.path.normpath(cwd / os.path.expanduser(target)))
+
+
+def unwrap(cmd: Command) -> Command:
+    """The command itself, past the variable assignments, the wrappers (`sudo`, `env`, `xargs`, …) and `uv run`
+    before it. `python -m <package>` counts as the app's command."""
+    words, env = list(cmd.words), dict(cmd.env)
     while words:
         first = words[0]
-        if re.fullmatch(r"\w+=.*", first) or first in WRAPPERS:
+        if re.fullmatch(r"\w+=.*", first):
+            name, value = first.split("=", 1)
+            env[name] = value
             words = words[1:]
+        elif first in WRAPPERS:
+            words = words[1:]
+        elif first == "xargs":
+            words = skip_options(words[1:], XARGS_OPTIONS_WITH_A_VALUE)
         elif first == "uv" and len(words) > 1 and words[1] == "run":
-            words = words[2:]
-            while words and words[0].startswith("-"):  # uv's own options, and the value of --project and the like
-                takes_value = words[0] in ("--project", "--directory", "--with", "--python", "--package", "-p")
-                words = words[2:] if takes_value else words[1:]
+            words = skip_options(words[2:], UV_OPTIONS_WITH_A_VALUE)
+        elif Path(first).name.startswith("python") and len(words) > 2 and words[1] == "-m":
+            words = [package_command(cmd.cwd, words[2]), *words[3:]]
         else:
-            return words
+            break
+    return Command(words, cmd.cwd, env)
+
+
+def skip_options(words: list[str], with_a_value: set[str]) -> list[str]:
+    """`words` past the leading options, and the values of those that take one."""
+    while words and words[0].startswith("-"):
+        words = words[2:] if words[0] in with_a_value else words[1:]
     return words
 
 
-def expand(words: list[str]) -> list[list[str]]:
-    """A command, or the commands inside `bash -c "…"` (and sh, zsh)."""
-    if words and Path(words[0]).name in ("bash", "sh", "zsh") and "-c" in words[1:-1]:
-        return simple_commands(words[words.index("-c") + 1])
-    return [words] if words else []
+def expand(cmd: Command) -> list[Command]:
+    """A command, or the commands inside `bash -c "…"` (sh, zsh, `-lc` and the like) and `eval "…"`."""
+    words = cmd.words
+    if not words:
+        return []
+    if Path(words[0]).name in ("bash", "sh", "zsh"):
+        for i, word in enumerate(words[1:-1], start=1):
+            if re.fullmatch(r"-[a-z]*c[a-z]*", word):
+                return simple_commands(words[i + 1], cmd.cwd)
+    if words[0] == "eval":
+        return simple_commands(" ".join(words[1:]), cmd.cwd)
+    return [cmd]
 
 
-def app_command(root: Path) -> str | None:
-    """The app's command name (`project_name` in .copier-answers.yml), or None outside an app."""
-    answers = root / ".copier-answers.yml"
-    if not answers.exists():
-        return None
-    match = re.search(r"^project_name:\s*['\"]?([\w.-]+)", answers.read_text(), flags=re.MULTILINE)
+# ─── The repo and the app a command works on ───
+
+@cache
+def repo_root(directory: Path) -> Path | None:
+    done = subprocess.run(["git", "-C", str(directory), "rev-parse", "--show-toplevel"], capture_output=True,
+                          text=True, check=False)
+    return Path(done.stdout.strip()) if done.returncode == 0 else None
+
+
+def answers(directory: Path) -> str:
+    """The text of the `.copier-answers.yml` of the repo `directory` is in, or "" outside an app."""
+    top = repo_root(directory) or directory
+    path = top / ".copier-answers.yml"
+    return path.read_text() if path.exists() else ""
+
+
+def answer(directory: Path, key: str) -> str | None:
+    match = re.search(rf"^{key}:\s*['\"]?([\w.-]+)", answers(directory), flags=re.MULTILINE)
     return match.group(1) if match else None
 
 
-def is_tag(root: Path, name: str) -> bool:
-    done = subprocess.run(["git", "rev-parse", "-q", "--verify", f"refs/tags/{name}"], cwd=root, capture_output=True,
-                          check=False)
+def package_command(directory: Path, module: str) -> str:
+    """`python -m <module>`: the app's command when `module` is the app's package (or its cli)."""
+    package = answer(directory, "package")
+    if package and module.split(".")[0] == package:
+        return answer(directory, "project_name") or module
+    return f"python -m {module}"
+
+
+def is_tag(directory: Path, name: str) -> bool:
+    done = subprocess.run(["git", "-C", str(directory), "rev-parse", "-q", "--verify", f"refs/tags/{name}"],
+                          capture_output=True, check=False)
     return done.returncode == 0
 
 
-def current_branch(root: Path) -> str:
-    done = subprocess.run(["git", "branch", "--show-current"], cwd=root, capture_output=True, text=True, check=False)
+def current_branch(directory: Path) -> str:
+    done = subprocess.run(["git", "-C", str(directory), "branch", "--show-current"], capture_output=True, text=True,
+                          check=False)
     return done.stdout.strip()
+
+
+def git_args(cmd: Command, subcommand: str) -> tuple[Path, list[str]] | None:
+    """The folder git works in (`-C` changes it) and the arguments after `git <subcommand>`. None if `cmd` is
+    another command."""
+    if not cmd.words or cmd.words[0] != "git":
+        return None
+    directory, rest = cmd.cwd, cmd.words[1:]
+    while rest and rest[0].startswith("-"):
+        if rest[0] == "-C" and len(rest) > 1:
+            directory = Path(os.path.normpath(directory / os.path.expanduser(rest[1])))
+        rest = rest[2:] if rest[0] in ("-C", "-c") else rest[1:]
+    return (directory, rest[1:]) if rest and rest[0] == subcommand else None
 
 
 # ─── The rules: each returns (decision, reason) or None ───
 
-def git_push(words, root, cwd, cli):
-    args = git_args(words, "push")
-    if args is None:
+def git_push(cmd, root):
+    found = git_args(cmd, "push")
+    if found is None:
         return None
+    directory, args = found
     options = [a for a in args if a.startswith("-")]
     refspecs = [a for a in args if not a.startswith("-")][1:]  # the first one is the remote
     if any(o in ("-f", "--force", "--mirror") or o.startswith(("--force-with-lease", "--force-if-includes"))
            for o in options) or any(r.startswith("+") for r in refspecs):
         return DENY, "Force-pushing is a hard stop. Push a new commit instead, or ask the user."
+    if "--all" in options:
+        return DENY, "`git push --all` can push main. Push one branch, and open a PR."
     deleting = "-d" in options or "--delete" in options
     for refspec in refspecs:
-        target = refspec.split(":")[-1].removeprefix("refs/heads/")
+        target = refspec.split(":")[-1]
         if refspec.startswith(":") or deleting:
-            if target.startswith("refs/tags/") or is_tag(root, target):
+            if target.startswith("refs/tags/") or is_tag(directory, target) or RELEASE_TAG.fullmatch(target):
                 return DENY, "Deleting a pushed tag is a hard stop: apps depend on it. Ask the user."
             continue
+        target = target.removeprefix("refs/heads/")
         if target == "HEAD":
-            target = current_branch(root)
+            target = current_branch(directory)
         if target in MAIN_BRANCHES:
             return DENY, "Pushing to main is a hard stop. Push a branch and open a PR."
-    if not refspecs and current_branch(root) in MAIN_BRANCHES:
+    if not refspecs and current_branch(directory) in MAIN_BRANCHES:
         return DENY, "Pushing to main is a hard stop. Push a branch and open a PR."
     return None
 
 
-def git_tag_force(words, root, cwd, cli):
-    args = git_args(words, "tag")
-    if args is not None and ("-f" in args or "--force" in args):
+def git_tag(cmd, root):
+    found = git_args(cmd, "tag")
+    if found and ({"-f", "--force"} & set(found[1])):
         return DENY, "Moving a tag is a hard stop: apps depend on it. Make a new tag."
     return None
 
 
-def git_reset_hard_on_main(words, root, cwd, cli):
-    args = git_args(words, "reset")
-    if args is not None and "--hard" in args and current_branch(root) in MAIN_BRANCHES:
+def git_reset_hard_on_main(cmd, root):
+    found = git_args(cmd, "reset")
+    if found and "--hard" in found[1] and current_branch(found[0]) in MAIN_BRANCHES:
         return DENY, "A hard reset on main is a hard stop. Work on a branch."
     return None
 
 
-def merge_spec_pr(words, root, cwd, cli):
-    """`gh pr merge` on a PR that changes the spec, or whose spec check has not passed yet."""
+def merge_pr(cmd, root):
+    """`gh pr merge`: only as a merge commit, and only for a PR whose spec check passed with no spec change."""
+    words = cmd.words
     if words[:3] != ["gh", "pr", "merge"]:
         return None
-    target = [w for w in words[3:] if not w.startswith("-")][:1]
-    state = pr_spec_state(root, target)
+    args = words[3:]
+    if not {"--merge", "-m"} & set(args):
+        return DENY, "Merge with `--merge`: a merge commit reverts on its own (docs/working.md)."
+    repo = cmd.env.get("GH_REPO")
+    positional, i = [], 0
+    while i < len(args):
+        if args[i] in ("-R", "--repo") and i + 1 < len(args):
+            repo, i = args[i + 1], i + 2
+            continue
+        if args[i].startswith("--repo="):
+            repo = args[i].split("=", 1)[1]
+        elif not args[i].startswith("-"):
+            positional.append(args[i])
+        i += 1
+    if not positional:
+        return ASK, "Name the PR to merge (`gh pr merge <number> --merge`), so its spec check can be read."
+    state = pr_spec_state(cmd.cwd, positional[0], repo)
     if state == "unchanged":
         return None
     if state == "changed":
@@ -181,24 +297,25 @@ def merge_spec_pr(words, root, cwd, cli):
     return ASK, "The spec check of this PR has not passed yet, so it may change the spec. Ask the user."
 
 
-def pr_spec_state(root: Path, target: list[str]) -> str:
+def pr_spec_state(directory: Path, pr: str, repo: str | None) -> str:
     """"changed" (the PR has the spec-change label), "unchanged" (the spec check passed without it) or "unknown"."""
-    done = subprocess.run(["gh", "pr", "view", *target, "--json", "labels,statusCheckRollup"], cwd=root,
-                          capture_output=True, text=True, check=False)
+    command = ["gh", "pr", "view", pr, "--json", "labels,statusCheckRollup", *(["-R", repo] if repo else [])]
+    done = subprocess.run(command, cwd=directory, capture_output=True, text=True, check=False)
     if done.returncode != 0:
         return "unknown"
-    pr = json.loads(done.stdout)
-    if any(label["name"] == "spec-change" for label in pr.get("labels", [])):
+    found = json.loads(done.stdout)
+    if any(label["name"] == "spec-change" for label in found.get("labels", [])):
         return "changed"
-    checks = {c.get("name"): c.get("conclusion") for c in pr.get("statusCheckRollup", [])}
+    checks = {c.get("name"): c.get("conclusion") for c in found.get("statusCheckRollup", [])}
     return "unchanged" if checks.get("spec") == "SUCCESS" else "unknown"
 
 
-def app_commands(words, root, cwd, cli):
+def app_commands(cmd, root):
     """The app's commands that send data out or cost money."""
-    if not cli or not words or words[0] != cli or len(words) < 2:
+    cli = answer(cmd.cwd, "project_name")
+    if not cli or len(cmd.words) < 2 or cmd.words[0] != cli:
         return None
-    name, options = words[1], words[2:]
+    name, options = cmd.words[1], cmd.words[2:]
     if name == "publish" and not {"--check", "--dry-run"} & set(options):
         return ASK, "Publishing sends personal data to MotherDuck. Only the user starts it (/publish)."
     if name == "classify" and "--dry-run" not in options:
@@ -206,8 +323,9 @@ def app_commands(words, root, cwd, cli):
     return None
 
 
-def gcloud(words, root, cwd, cli):
+def gcloud(cmd, root):
     """Deploys, traffic, and who can open the hosted app."""
+    words = cmd.words
     if not words or words[0] != "gcloud":
         return None
     if "deploy" in words or "update-traffic" in words or ("services" in words and "delete" in words):
@@ -217,51 +335,56 @@ def gcloud(words, root, cwd, cli):
     return None
 
 
-def data_removal(words, root, cwd, cli):
+def data_removal(cmd, root):
     """Deleting or moving the database, the backups or the curated decisions."""
+    words = cmd.words
     if not words:
         return None
     if words[0] in ("rm", "rmdir", "mv", "trash", "unlink", "shred"):
         paths = [w for w in words[1:] if not w.startswith("-")]
+        if words[0] == "mv":
+            paths = paths[:-1]  # the destination
     elif words[:2] == ["git", "rm"]:
         paths = [w for w in words[2:] if not w.startswith("-")]
     elif words[:2] == ["git", "clean"] and any(o.startswith("-") and ("x" in o or "X" in o) for o in words[2:]):
         return ASK, "git clean -x deletes ignored files, the data and the backups too. Ask the user."
     elif words[0] == "find" and "-delete" in words:
-        paths = [w for w in words[1:] if not w.startswith("-")][:1]
+        starts = []
+        for word in words[1:]:
+            if word.startswith(("-", "(", "!")):
+                break
+            starts.append(word)
+        patterns = [w for w in words if any(name in w for name in ("duckdb", *PROTECTED_DIRS))]
+        if patterns or any(is_protected(cmd.cwd, start, whole_dir=False) for start in starts or ["."]):
+            return ASK, "This find deletes files in the data, the backups or the curated decisions. Ask the user."
+        return None
     else:
         return None
-    if words[0] == "mv":
-        paths = paths[:-1]  # the destination
-    if any(is_protected(root, cwd, p) for p in paths):
+    if any(is_protected(cmd.cwd, path) for path in paths):
         return ASK, "This deletes or moves the data, the backups or the curated decisions. Ask the user first."
     return None
 
 
-def is_protected(root: Path, cwd: Path, path: str) -> bool:
-    """Whether `path` is the database, or in data/, backups/ or curated/ of the repo at `root`."""
-    if path.endswith(PROTECTED_SUFFIXES):
-        return True
+def is_protected(cwd: Path, path: str, whole_dir: bool = True) -> bool:
+    """Whether `path` (from `cwd`) can hold the database, data/, backups/ or curated/ of its repo. With `whole_dir`,
+    the repo's folder itself (or a folder above it, or a glob in it) counts too: deleting it deletes them."""
+    if "$" in path or "`" in path or path.endswith(PROTECTED_SUFFIXES):
+        return True  # a variable may be anything
     full = Path(os.path.normpath(cwd / os.path.expanduser(path)))
+    glob = any(c in path for c in "*?[")
+    if glob:
+        full = full.parent
+    top = repo_root(cwd) or cwd
+    if (whole_dir or glob) and (top == full or full in top.parents):
+        return True
     try:
-        parts = full.relative_to(os.path.normpath(root)).parts
+        parts = full.relative_to(top).parts
     except ValueError:
         return False
     return bool(parts) and parts[0] in PROTECTED_DIRS
 
 
-def git_args(words: list[str], subcommand: str) -> list[str] | None:
-    """The arguments after `git <subcommand>`, past git's own options (`-C <dir>`, `-c <key=value>`). None if
-    `words` is another command."""
-    if not words or words[0] != "git":
-        return None
-    rest = words[1:]
-    while rest and rest[0].startswith("-"):
-        rest = rest[2:] if rest[0] in ("-C", "-c") else rest[1:]
-    return rest[1:] if rest and rest[0] == subcommand else None
-
-
-RULES = [git_push, git_tag_force, git_reset_hard_on_main, merge_spec_pr, app_commands, gcloud, data_removal]
+RULES = [git_push, git_tag, git_reset_hard_on_main, merge_pr, app_commands, gcloud, data_removal]
 
 if __name__ == "__main__":
     main()

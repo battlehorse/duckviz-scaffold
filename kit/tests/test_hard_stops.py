@@ -12,6 +12,7 @@ HOOK = Path(__file__).resolve().parents[2] / "template" / ".claude" / "hooks" / 
 sys.dont_write_bytecode = True  # no __pycache__ in template/: copier would copy it into every app
 spec = importlib.util.spec_from_file_location("hard_stops", HOOK)
 hard_stops = importlib.util.module_from_spec(spec)
+sys.modules["hard_stops"] = hard_stops  # a dataclass looks its module up
 spec.loader.exec_module(hard_stops)
 sys.dont_write_bytecode = False
 
@@ -23,7 +24,7 @@ def repo(tmp_path):
     subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty",
                     "-m", "start"], cwd=tmp_path, check=True)
     subprocess.run(["git", "tag", "v1.0.0"], cwd=tmp_path, check=True)
-    (tmp_path / ".copier-answers.yml").write_text("_commit: v1.0.0\nproject_name: shopviz\n")
+    (tmp_path / ".copier-answers.yml").write_text("_commit: v1.0.0\nproject_name: shopviz\npackage: shopviz\n")
     return tmp_path
 
 
@@ -46,6 +47,16 @@ def decision(repo, command, cwd=None):
     "git -C . push origin main",
     "git add . && git commit -m x && git push origin main",
     "bash -c 'git push origin main'",
+    "bash -lc 'git push origin main'",
+    "echo x | xargs -n 1 git push origin main",
+    "eval 'git push origin main'",
+    "{ git push origin main; }",
+    "git push \\\n  origin main",
+    "git push --all origin",
+    "git push --delete origin v2",
+    "git push origin :v2.1",
+    "gh pr merge 12 --squash",
+    "gh pr merge 12",
 ])
 def test_these_are_denied(repo, command):
     assert decision(repo, command) == "deny"
@@ -72,6 +83,14 @@ def test_pushing_on_main_without_a_refspec_is_denied(repo):
     "git rm -r curated",
     "git clean -fdx",
     "find curated -name '*.csv' -delete",
+    "find . -name '*.duckdb' -delete",
+    "rm -rf *",
+    "rm -rf .",
+    'rm -rf "$CLAUDE_PROJECT_DIR/data"',
+    "uv run --env-file .env shopviz publish",
+    "uv run python -m shopviz publish",
+    "uv run python -m shopviz.cli classify",
+    "gh pr merge --merge",
 ])
 def test_these_ask_the_user(repo, command):
     assert decision(repo, command) == "ask"
@@ -95,6 +114,9 @@ def test_these_ask_the_user(repo, command):
     "gcloud run services describe shopviz",
     "cat > body.md <<'EOF'\nThen run git push origin main and rm -rf data.\nEOF\ngh pr create --body-file body.md",
     "git commit -m 'do not git push --force'",
+    "git commit -m 'Fix it\n\ngit push origin main is refused now'",
+    "find . -name '*.pyc' -delete",
+    "rm -rf tmp/*",
 ])
 def test_these_pass(repo, command):
     assert decision(repo, command) is None
@@ -102,7 +124,7 @@ def test_these_pass(repo, command):
 
 def test_merging_a_pr_asks_unless_its_spec_check_passed_without_a_spec_change(repo, monkeypatch):
     for state, expected in [("changed", "ask"), ("unknown", "ask"), ("unchanged", None)]:
-        monkeypatch.setattr(hard_stops, "pr_spec_state", lambda root, target, state=state: state)
+        monkeypatch.setattr(hard_stops, "pr_spec_state", lambda directory, pr, repo, state=state: state)
         assert decision(repo, "gh pr merge 12 --merge") == expected
 
 
@@ -129,3 +151,28 @@ def test_the_hook_runs_on_the_systems_old_python():
     import ast
 
     ast.parse(HOOK.read_text(), feature_version=(3, 9))
+
+
+def test_the_branch_is_read_where_the_command_runs(repo, tmp_path_factory):
+    """A worktree on main, inside a session that started on another branch."""
+    worktree = tmp_path_factory.mktemp("wt") / "main-checkout"
+    subprocess.run(["git", "worktree", "add", "-q", "-b", "main", str(worktree)], cwd=repo, check=True)
+    assert decision(repo, "git push", cwd=worktree) == "deny"
+    assert decision(repo, "git reset --hard HEAD~1", cwd=worktree) == "deny"
+    assert decision(repo, f"cd {worktree} && git push") == "deny"
+    assert decision(repo, f"git -C {worktree} push") == "deny"
+    assert decision(repo, "git push") is None  # the session's own branch is `work`
+
+
+def test_the_app_is_found_from_the_folder_the_command_runs_in(repo, tmp_path):
+    parent = repo.parent
+    assert hard_stops.decide("uv run shopviz publish", parent, repo)[0] == "ask"
+    assert hard_stops.decide(f"cd {repo.name} && uv run shopviz publish", parent, parent)[0] == "ask"
+
+
+def test_a_merge_reads_the_spec_check_of_the_named_repo(repo, monkeypatch):
+    seen = []
+    monkeypatch.setattr(hard_stops, "pr_spec_state", lambda directory, pr, repo: seen.append((pr, repo)) or "unchanged")
+    decision(repo, "gh pr merge 25 --merge -R someone/other")
+    decision(repo, "GH_REPO=someone/else gh pr merge 26 --merge")
+    assert seen == [("25", "someone/other"), ("26", "someone/else")]
