@@ -1,5 +1,6 @@
 """The guard's parsing: tables, CTEs, table functions, f-strings and imports."""
 
+import re
 from pathlib import Path
 
 from duckkit.contract import Contract
@@ -31,6 +32,14 @@ def test_forbidden_modules(spec):
     banned = guard.forbidden_modules(spec)
     assert guard.forbidden("shop.db.store", banned) and guard.forbidden("duckkit.publish", banned)
     assert not guard.forbidden("duckkit.snapshot", banned) and not guard.forbidden("shop.dbx", banned)
+
+
+def test_the_guard_refuses_every_ingestion_module_of_the_kit_docs():
+    """docs/kit.md's "Which side may import what" is the list: each ingestion row is in KIT_SERVICE, and no other."""
+    table = (Path(__file__).parents[2] / "docs" / "kit.md").read_text().split("## Which side may import what")[1]
+    rows = re.findall(r"^\| \[`([\w.]+)`\]\(#[\w-]+\) \| (\w+) \|", table, re.M)
+    assert rows, "no module rows found in docs/kit.md"
+    assert {f"duckkit.{module}" for module, side in rows if side == "ingestion"} == guard.KIT_SERVICE
 
 
 def test_doc_problems(spec, tmp_path):
