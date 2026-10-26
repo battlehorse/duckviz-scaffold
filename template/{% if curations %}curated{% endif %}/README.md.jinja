@@ -3,7 +3,7 @@
 The decisions made about the data, by hand or by a model, that the sources can't give back: they cost time (yours)
 or money (a model's) to make. They are kept here, in git, as the copy of the database's curated tables.
 
-- **Written by the commands, never by hand.** Every command that changes a decision (`label`, `unlabel`, or `/fix`)
+- **Written by the commands, never by hand.** Every command that changes a decision (`label`, `unlabel`, or `/fix-curation`)
   rewrites the files. If you edit a file while the database is in use, the next command overwrites your edit.
 - **Restored on a rebuild.** `ingest` into a database without decisions loads them back (`/rebuild-database`).
 - **Sorted**, so `git diff` shows exactly which decisions changed.

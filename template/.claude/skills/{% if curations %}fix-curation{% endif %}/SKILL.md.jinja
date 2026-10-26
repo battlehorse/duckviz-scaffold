@@ -1,6 +1,6 @@
 ---
-name: fix
-description: Make one correction to a curated decision of {{ project_name }} from a plain-English request (label a day, change or remove a label), with the app's commands. Use when the user says a decision is wrong or missing.
+name: fix-curation
+description: Correct one curated decision in the {{ project_name }} database (a decision kept in curated/*.csv, such as a day's label) from a plain-English request, with the app's commands, which write curated/ too. Not for source data or code: those are fixed at their source and re-ingested. Use when the user says a decision is wrong or missing.
 when_to_use: >-
   Use when the user says things like "that day was a holiday", "label the 3rd as away", "remove the label of
   Monday", "that label is wrong".
@@ -8,7 +8,7 @@ argument-hint: "<what is wrong>"
 allowed-tools: Bash(uv run {{ project_name }} sql *) Bash(uv run {{ project_name }} label *) Bash(uv run {{ project_name }} unlabel *) Bash(git diff *)
 ---
 
-# Fix a decision
+# Fix a curated decision
 
 Request: $ARGUMENTS
 
