@@ -1,8 +1,8 @@
 # The spec
 
-The spec of duckviz-scaffold is what changes only with the user's approval. Inside it, Claude works on its own and
-merges its PRs (docs/how-we-work.md). A PR that changes it waits for the user. `.claude/spec-paths` holds the same
-list as patterns, for `spec-diff` and CI: keep the two in step.
+The spec of duckviz-scaffold is what the scaffold must keep doing. Each PR keeps it, and Claude merges a PR that
+leaves it unchanged or only extends it (docs/how-we-work.md). A PR that changes what it promises waits for the user.
+`.claude/spec-paths` holds the same list as patterns, for `spec-diff` and CI: keep the two in step.
 
 A release changes every app that updates to it. So the scaffold's spec is what the apps depend on: how an app is
 built, the interface that apps call, and the guardrails of every app and of this repo.

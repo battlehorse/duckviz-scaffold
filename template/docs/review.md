@@ -163,9 +163,11 @@ module). Good: `lines_in_scope`, `receipts_in_period`, `weekly_spend`.
 - **Keep the PR to its purpose.** Put an unrelated fix in its own PR, or name it in the PR text.
 - **Explain each change the reader did not ask for,** above all a removal: "The comment changed, the file did
   not." Without it, the reviewer has to ask.
-- **Declare spec changes** (docs/spec.md) in the PR's *Spec changes* section, each with its reason.
+- **Declare each spec file that the PR touches** (docs/spec.md) in its *Spec changes* section, marked *extends* or
+  *changes*, each with its reason.
 - **Report dependency changes and new tags** in the PR text.
-- **Give the evidence:** the tests that pass, the checks in the browser, the commands on real data.
+- **Give the evidence that the PR keeps the spec** (docs/how-we-work.md): the tests that pass, the checks in the
+  browser, the commands on real data.
 
 ## 8. Privacy
 

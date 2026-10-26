@@ -26,8 +26,14 @@ rules. Do not change any file, branch or PR, and do not post anything to GitHub.
    touch `data/`, `backups/`, `curated/` or a database file.
 2. **Lost data or a weakened guardrail:** a check, a refusal, a confirmation or a test that the change removes or
    makes weaker.
-3. **Spec changes the PR does not declare** in its *Spec changes* section, behaviour that changed without its spec
-   doc, and a spec test whose docstring does not state the rule that it enforces.
+3. **The spec** (docs/how-we-work.md, "Each PR keeps the spec", "Extensions and changes"):
+   - code that no longer does what a spec doc says, behaviour that changed without its spec doc, and a check or a
+     test made weaker so that it passes;
+   - evidence that the PR's *Evidence* section does not show, such as the browser checks of a page it changes;
+   - spec files the PR touches but does not declare in its *Spec changes* section, and a spec test whose docstring
+     does not state the rule that it enforces;
+   - for each spec file marked *extends*: whether it only adds, and keeps each promise that the spec already makes.
+     An edit to the Guardrails is never an extension. When you do not agree, that is a blocking finding.
 4. **The standards of docs/review.md:** language, canonical terms and docs, readable code, simple solutions,
    solutions that do not break, the PR's own text, privacy.
 

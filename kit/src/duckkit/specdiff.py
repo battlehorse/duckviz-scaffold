@@ -1,6 +1,6 @@
 """`spec-diff`: the parts of the spec that a change touches (docs/how-we-work.md).
 
-The spec is what changes only with the user's review: the docs that say what the app is for and how it is built,
+The spec is what the app must keep doing: the docs that say what the app is for and how it is built,
 the contracts and schemas, the browser checks, the guardrails, and some of the tests. `.claude/spec-paths` lists it,
 in groups:
 
@@ -14,6 +14,9 @@ change. A spec test that changed, was removed or lost its mark is. A spec test's
 it uses (helpers, constants, the lists that `parametrize` reads). A change to the pytest settings
 (`[tool.pytest.ini_options]`) is a spec change too: they choose which tests run. Dependency changes are reported, not
 counted.
+
+`spec-diff` lists the files and tests that a change touches. It does not tell an extension (it adds to the spec and
+keeps each promise) from a change (it alters or removes one): the reviewer judges that.
 
 The diff runs from the merge base with `base` to the working tree, so it covers commits and uncommitted changes.
 """

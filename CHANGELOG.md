@@ -3,6 +3,21 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- Template, how we work: **each PR keeps the spec, and extensions merge on their own.**
+  - docs/how-we-work.md, "Each PR keeps the spec": a PR merges only when it shows that the app still does all that
+    the spec says: the tests with `-m spec` and `-m realdata`, the contract check, `doctor`, `privacy-check`, the
+    browser checks of the pages it changes, and the architecture.
+  - "Extensions and changes": an extension adds to the spec and keeps each promise (a new browser check, a new
+    view with a minor version). Claude merges it with its feature when the reviewer agrees. A change alters or
+    removes a promise, or edits the Guardrails, and waits for the user as before.
+  - CLAUDE.md, `/deliver-outcome`, the reviewer agent, the PR template (*extends* or *changes*, and more evidence),
+    docs/review.md and docs/spec.md say the same. The `spec-change` label marks each PR that touches the spec.
+
+**Steps:**
+- `docs/spec.md` and `.claude/spec-paths` are seeded: change their first sentence by hand, as the template's do.
+
 ## v0.6.0
 
 **A new way of working** (docs/how-we-work.md): the user sets outcomes, Claude works on its own inside the app's spec,

@@ -1,4 +1,4 @@
-# The spec of duckviz-scaffold: what changes only with the user's approval. docs/spec.md explains each group: keep
+# The spec of duckviz-scaffold: what the scaffold must keep doing. docs/spec.md explains each group: keep
 # the two in step.
 # `uv run --project kit python -m duckkit.specdiff` and CI read it.
 
