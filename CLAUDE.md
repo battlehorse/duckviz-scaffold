@@ -26,8 +26,8 @@ sessions, and PRs you merge yourself. docs/working.md is the canonical descripti
   release PR and the tag once its changes are merged.
 - **Every change is a PR** that passes CI and the `reviewer` agent. Merge one that leaves the spec unchanged. A PR
   that changes the spec waits for the user, and you go on building on top of it.
-- **The hook** `template/.claude/hooks/hard_stops.py` runs here too: it refuses pushing to `main`, force-pushing and
-  moving a tag.
+- **The hard stops** (docs/working.md has the list): the hook `template/.claude/hooks/hard_stops.py` runs here too.
+  Never try to get around it.
 
 ## Rules
 

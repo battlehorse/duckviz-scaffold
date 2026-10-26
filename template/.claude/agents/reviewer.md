@@ -11,8 +11,10 @@ what you can read. Do not change any file, branch or PR, and do not post anythin
 
 1. `docs/review.md`: the standards. Apply them exactly.
 2. The PR: `gh pr view <number>` and `gh pr diff <number>`.
-3. `docs/spec.md` and `.claude/spec-paths`: what the spec is. Run `spec-diff` for the PR's branch (docs/working.md
-   says how) to see which spec files it changes.
+3. `docs/spec.md` and `.claude/spec-paths`: what the spec is. The PR's `spec` check and its `spec-change` label say
+   whether CI found a spec change: `gh pr view <number> --json labels,statusCheckRollup`. Compare them with the
+   files the diff changes, and with what the PR text declares. Do not switch the checkout: to run code from the PR,
+   use a temporary worktree (`git worktree add <tmp> <branch>`) and remove it after.
 4. The code and docs around each change. Read whole functions, not only the changed lines.
 
 ## What to look for, most important first

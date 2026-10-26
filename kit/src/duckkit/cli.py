@@ -60,13 +60,15 @@ def backups_line(spec: AppSpec) -> str:
 
 
 def print_spec_diff(root: Path, base: str) -> None:
-    """Print `spec-diff` for the repo at `root`, and exit 1 when the spec changed."""
+    """Print `spec-diff` for the repo at `root`. Exit 1 when the spec changed, and 2 when it can't tell (CI must not
+    take an error for a change)."""
     from duckkit.specdiff import spec_diff
 
     try:
         diff = spec_diff(root, base)
     except ValueError as e:
-        fail(str(e))
+        typer.echo(f"✗ {e}", err=True)
+        raise typer.Exit(2) from e
     for line in diff.lines():
         typer.echo(line)
     if diff.changed:

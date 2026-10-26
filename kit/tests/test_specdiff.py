@@ -197,3 +197,36 @@ def test_the_scaffold_spec_holds_every_file_that_defines_a_spec_or_a_guardrail()
     ]
     assert all((root / path).exists() for path in guardrails)
     assert [path for path in guardrails if paths.group_of(path) is None] == []
+
+
+def test_a_nested_conftest_matches_its_pattern():
+    from duckkit.specdiff import SpecPaths
+
+    paths = SpecPaths({"behaviour": ["tests/**/conftest.py"]})
+    assert paths.group_of("tests/conftest.py") == paths.group_of("tests/app/conftest.py") == "behaviour"
+
+
+def test_a_class_of_spec_tests_counts_its_own_names(repo):
+    (repo / "tests" / "test_class.py").write_text(dedent('''\
+        import pytest
+
+
+        class TestRules:
+            pytestmark = pytest.mark.spec
+            CASES = [1, 2]
+
+            def double(self, x):
+                return 2 * x
+
+            @pytest.mark.parametrize("x", CASES)
+            def test_double_is_even(self, x):
+                assert self.double(x) % 2 == 0
+        '''))
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "class")
+    git(repo, "switch", "-q", "-c", "later")
+    edit(repo, "tests/test_class.py", "CASES = [1, 2]", "CASES = []")
+    assert spec_diff(repo, "work").spec_tests == ["tests/test_class.py::TestRules::test_double_is_even: changed"]
+    edit(repo, "tests/test_class.py", "CASES = []", "CASES = [1, 2]")
+    edit(repo, "tests/test_class.py", "return 2 * x", "return 2 * x + 0")
+    assert spec_diff(repo, "work").spec_tests == ["tests/test_class.py::TestRules::test_double_is_even: changed"]

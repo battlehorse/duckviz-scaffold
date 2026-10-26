@@ -29,7 +29,7 @@ def repo(tmp_path):
 
 
 def decision(repo, command, cwd=None):
-    found = hard_stops.decide(command, repo, cwd or repo)
+    found = hard_stops.decide(command, cwd or repo)
     return found[0] if found else None
 
 
@@ -57,6 +57,11 @@ def decision(repo, command, cwd=None):
     "git push origin :v2.1",
     "gh pr merge 12 --squash",
     "gh pr merge 12",
+    "# push the branch\ngit push origin main",
+    "git push -fu origin work",
+    "git push -uf origin work",
+    "git tag -fa v1.2.3 -m again",
+    "git tag -af v1.2.3 -m again",
 ])
 def test_these_are_denied(repo, command):
     assert decision(repo, command) == "deny"
@@ -91,6 +96,8 @@ def test_pushing_on_main_without_a_refspec_is_denied(repo):
     "uv run python -m shopviz publish",
     "uv run python -m shopviz.cli classify",
     "gh pr merge --merge",
+    "find . -name '*.parquet' -delete",
+    "find . -path '*/backups/*' -delete",
 ])
 def test_these_ask_the_user(repo, command):
     assert decision(repo, command) == "ask"
@@ -116,7 +123,11 @@ def test_these_ask_the_user(repo, command):
     "git commit -m 'do not git push --force'",
     "git commit -m 'Fix it\n\ngit push origin main is refused now'",
     "find . -name '*.pyc' -delete",
+    "find . -name __pycache__ -delete",
+    "find . -path ./data -prune -o -path ./backups -prune -o -path ./curated -prune -o -name '*.tmp' -delete",
+    "find src/metadata -name '*.json' -delete",
     "rm -rf tmp/*",
+    "echo '# not a comment' && ls",
 ])
 def test_these_pass(repo, command):
     assert decision(repo, command) is None
@@ -130,8 +141,8 @@ def test_merging_a_pr_asks_unless_its_spec_check_passed_without_a_spec_change(re
 
 def test_outside_an_app_the_app_rules_are_off(tmp_path):
     subprocess.run(["git", "init", "-q", "-b", "work"], cwd=tmp_path, check=True)
-    assert hard_stops.decide("shopviz publish", tmp_path, tmp_path) is None
-    assert hard_stops.decide("git push origin main", tmp_path, tmp_path)[0] == "deny"
+    assert hard_stops.decide("shopviz publish", tmp_path) is None
+    assert hard_stops.decide("git push origin main", tmp_path)[0] == "deny"
 
 
 def test_the_hook_answers_claude_code_in_its_format(repo):
@@ -166,8 +177,8 @@ def test_the_branch_is_read_where_the_command_runs(repo, tmp_path_factory):
 
 def test_the_app_is_found_from_the_folder_the_command_runs_in(repo, tmp_path):
     parent = repo.parent
-    assert hard_stops.decide("uv run shopviz publish", parent, repo)[0] == "ask"
-    assert hard_stops.decide(f"cd {repo.name} && uv run shopviz publish", parent, parent)[0] == "ask"
+    assert hard_stops.decide("uv run shopviz publish", repo)[0] == "ask"
+    assert hard_stops.decide(f"cd {repo.name} && uv run shopviz publish", parent)[0] == "ask"
 
 
 def test_a_merge_reads_the_spec_check_of_the_named_repo(repo, monkeypatch):
@@ -176,3 +187,26 @@ def test_a_merge_reads_the_spec_check_of_the_named_repo(repo, monkeypatch):
     decision(repo, "gh pr merge 25 --merge -R someone/other")
     decision(repo, "GH_REPO=someone/else gh pr merge 26 --merge")
     assert seen == [("25", "someone/other"), ("26", "someone/else")]
+
+
+def test_a_merge_option_value_is_not_the_pr(repo, monkeypatch):
+    seen = []
+    monkeypatch.setattr(hard_stops, "pr_spec_state", lambda directory, pr, repo: seen.append(pr) or "unchanged")
+    assert decision(repo, "gh pr merge --merge --subject 'Merge it' 12") is None
+    assert seen == ["12"]
+
+
+def run(conclusion, started, status="COMPLETED"):
+    return {"name": "spec", "status": status, "conclusion": conclusion, "startedAt": started}
+
+
+@pytest.mark.parametrize("runs, expected", [
+    ([run("SKIPPED", "10:55:32"), run("SUCCESS", "10:55:10")], "unchanged"),  # an edit that didn't change the base
+    ([run("SUCCESS", "10:55:10"), run("FAILURE", "11:00:00")], "unknown"),  # the newest run is the one that counts
+    ([run("SUCCESS", "10:55:10"), run(None, "11:00:00", status="IN_PROGRESS")], "unknown"),  # a new base, still going
+    ([run("SKIPPED", "10:55:32")], "unknown"),
+])
+def test_the_newest_spec_run_that_ran_decides(repo, monkeypatch, runs, expected):
+    done = subprocess.CompletedProcess([], 0, stdout=json.dumps({"labels": [], "statusCheckRollup": runs}))
+    monkeypatch.setattr(hard_stops.subprocess, "run", lambda *a, **k: done)
+    assert hard_stops.pr_spec_state(repo, "12", None) == expected

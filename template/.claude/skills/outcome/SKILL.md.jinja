@@ -18,14 +18,8 @@ of `docs/working.md` hold at every step.
 
 1. Read the issue: `gh issue view <number> --comments`. If it has no `outcome` label, ask the user whether it is one.
 2. Read the parts of the spec that the outcome touches, and the code behind them.
-3. Post the brief as a comment on the issue (`gh issue comment <number> --body-file <file>`):
-   - **Acceptance criteria**, as scenarios a person can check: a question in `docs/dashboard.md`, a browser check, a
-     test. Name the new ones.
-   - **Expected spec changes**, each with its reason. Write "None" if there are none.
-   - **Guardrails it touches**: hard stops it needs (a publish, a deploy, a paid classification), and data it
-     changes.
-   - **The plan**: the PRs, in order. Put each expected spec change in a PR of its own.
-   - **Risks**, and how to roll back.
+3. Write the brief, with the parts that docs/working.md ("The cycle", step 2) lists. Post it as a comment on the
+   issue: `gh issue comment <number> --body-file <file>`.
 4. Stop, and ask the user to approve the brief. Do not start the work before a yes, in a comment or in the chat.
 
 ## 2. The work
@@ -54,14 +48,9 @@ This app has no backups: before any command that changes the data, copy the data
 
 ## 3. The report
 
-When every acceptance criterion holds, post the report as a comment on the issue:
-- **Each acceptance criterion**, with its evidence: a test, a screenshot, a query.
-- **The spec:** either "unchanged", shown by `spec-diff` over the merged PRs (no changes), the same tests passing
-  plus the new ones, `uv run pytest -m spec` and `uv run pytest -m realdata`, the browser checks of
-  `docs/browser-checks.md` walked in light and dark mode (`/app-check`), and `doctor` and `privacy-check` clean.
-  Or each spec change, with its PR, whether the user approved it, and the command that reverts it:
-  `git revert -m 1 <merge commit>`.
-- **Reported:** dependency changes and new tags.
-- **Left over:** what the outcome did not do, and why.
-
-Then close the issue, and send a push notification.
+When every acceptance criterion holds:
+1. Collect the evidence that docs/working.md ("The cycle", step 4) lists: `uv run {{ project_name }} spec-diff` for each
+   merged PR, `uv run pytest -q`, `uv run pytest -m spec`, `uv run pytest -m realdata`, `/app-check` in light and dark
+   mode, `uv run {{ project_name }} doctor` and `uv run {{ project_name }} privacy-check`.
+2. Post the report as a comment on the issue, with the parts that step 4 lists, and what the outcome did not do.
+3. Close the issue (`gh issue close <number>`), and send a push notification.

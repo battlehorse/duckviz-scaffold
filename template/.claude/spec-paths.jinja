@@ -25,9 +25,10 @@ src/{{ package }}/curated.py
 docs/browser-checks.md
 tests/test_real_data.py
 tests/app/test_contract_only.py
-tests/**conftest.py   # the fixtures the spec tests use
+tests/**/conftest.py   # the fixtures the spec tests use
 
 [guardrails]
+src/{{ package }}/spec.py   # the guard's rules: what the browser app may import and read
 CLAUDE.md
 .claude/project-rules.md
 .claude/settings.json

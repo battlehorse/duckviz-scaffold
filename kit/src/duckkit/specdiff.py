@@ -175,13 +175,28 @@ def _tests(source: str | None) -> tuple[dict[str, str], set[str]]:
     module_marked = any(_holds_spec_mark(node.value) for node in module.body
                         if isinstance(node, ast.Assign) and any(_is_name(t, "pytestmark") for t in node.targets))
     marked, names = {}, set()
-    for node, class_marked, prefix in _test_functions(module):
+    for node, owner, prefix in _test_functions(module):
         name = prefix + node.name
         names.add(name)
+        class_marked = owner is not None and _class_marked(owner)
         if module_marked or class_marked or any(_holds_spec_mark(d) for d in node.decorator_list):
-            used = sorted(_uses(node, definitions) - {node.name})
-            marked[name] = ast.dump(node) + "".join(ast.dump(definitions[n]) for n in used)
+            known = definitions | (_class_definitions(owner) if owner else {})  # a class's own names come first
+            used = sorted(_uses(node, known) - {node.name})
+            marked[name] = ast.dump(node) + "".join(ast.dump(known[n]) for n in used)
     return marked, names
+
+
+def _class_marked(cls: ast.ClassDef) -> bool:
+    """Whether a test class holds the spec mark: as a decorator, or in a `pytestmark` of its body."""
+    return any(_holds_spec_mark(d) for d in cls.decorator_list) or any(
+        _holds_spec_mark(node.value) for node in cls.body
+        if isinstance(node, ast.Assign) and any(_is_name(t, "pytestmark") for t in node.targets))
+
+
+def _class_definitions(cls: ast.ClassDef) -> dict[str, ast.AST]:
+    """The names a test class defines in its body: its attributes (a list that `parametrize` reads) and its methods
+    (a helper the tests call as `self.helper`)."""
+    return _module_definitions(ast.Module(body=cls.body, type_ignores=[]))
 
 
 def _module_definitions(module: ast.Module) -> dict[str, ast.AST]:
@@ -200,10 +215,12 @@ def _module_definitions(module: ast.Module) -> dict[str, ast.AST]:
 
 
 def _uses(node: ast.AST, definitions: dict[str, ast.AST]) -> set[str]:
-    """The module-level names that `node` uses, and the names those use in turn. A function's arguments count: a
-    fixture defined in the module is a function of that name."""
+    """The names of `definitions` that `node` uses, and the names those use in turn. A function's arguments count: a
+    fixture defined in the module is a function of that name. So does `self.<name>`: a method or an attribute of
+    the test's class."""
     def direct(of: ast.AST) -> set[str]:
         names = {n.id for n in ast.walk(of) if isinstance(n, ast.Name)}
+        names |= {n.attr for n in ast.walk(of) if isinstance(n, ast.Attribute) and _is_name(n.value, "self")}
         if isinstance(of, ast.FunctionDef | ast.AsyncFunctionDef):
             names |= {a.arg for a in of.args.args}
         return names & definitions.keys()
@@ -218,15 +235,14 @@ def _uses(node: ast.AST, definitions: dict[str, ast.AST]) -> set[str]:
 
 
 def _test_functions(module: ast.Module):
-    """Each test function: (its node, whether its class holds the spec mark, its class prefix)."""
+    """Each test function: (its node, its class or None, its class prefix)."""
     for node in module.body:
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith("test"):
-            yield node, False, ""
+            yield node, None, ""
         elif isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
-            class_marked = any(_holds_spec_mark(d) for d in node.decorator_list)
             for item in node.body:
                 if isinstance(item, ast.FunctionDef | ast.AsyncFunctionDef) and item.name.startswith("test"):
-                    yield item, class_marked, f"{node.name}::"
+                    yield item, node, f"{node.name}::"
 
 
 def _holds_spec_mark(expr: ast.expr) -> bool:
@@ -282,12 +298,16 @@ def _dependencies(pyproject: str | None) -> dict[tuple[str, str], str]:
     return found
 
 
-if __name__ == "__main__":  # a repo without an app CLI (the scaffold itself): python -m duckkit.specdiff [base]
+if __name__ == "__main__":  # a repo without an app CLI (the scaffold itself): python -m duckkit.specdiff [--base X]
+    import argparse
     import sys
 
+    parser = argparse.ArgumentParser(prog="python -m duckkit.specdiff", description="What a branch changes in the spec.")
+    parser.add_argument("--base", default="origin/main", help="The branch to compare with (from its merge base).")
     try:
-        found = spec_diff(Path.cwd(), sys.argv[1] if len(sys.argv) > 1 else "origin/main")
+        found = spec_diff(Path.cwd(), parser.parse_args().base)
     except ValueError as e:
-        sys.exit(f"✗ {e}")
+        print(f"✗ {e}", file=sys.stderr)
+        sys.exit(2)
     print("\n".join(found.lines()))
     sys.exit(1 if found.changed else 0)

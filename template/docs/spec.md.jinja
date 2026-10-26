@@ -10,7 +10,7 @@ as patterns, for `spec-diff` and CI: keep the two in step.
 | **Shape** | how the app is built: its parts, how data flows, the commands | `docs/architecture.md`, `docs/cli.md`{% if cloud_run %}, `docs/hosting.md`{% endif %} |
 | **Data** | the shape of the data: the contract the app reads, the database and its migrations{% if curations %}, the curated tables{% endif %} | `docs/contract.md`, `src/{{ package }}/contract/`, `src/{{ package }}/db/schema.sql` and `store.py`{% if curations %}, `src/{{ package }}/curated.py`{% endif %} |
 | **Behaviour** | what the app does: in the browser, on the real data, and the key rules of its logic | `docs/browser-checks.md`, `tests/test_real_data.py`, the spec tests (`@pytest.mark.spec`) and the fixtures they use (`conftest.py`), `tests/app/test_contract_only.py`, the pytest settings |
-| **Guardrails** | how the work is done, and what it must not do | CLAUDE.md, `.claude/project-rules.md`, `.claude/settings.json` and `.claude/hooks/`, `.claude/agents/`, `docs/working.md`, `docs/review.md`, `docs/deviations.md`, CI and the git hooks, this file |
+| **Guardrails** | how the work is done, and what it must not do | `src/{{ package }}/spec.py` (the guard's rules), CLAUDE.md, `.claude/project-rules.md`, `.claude/settings.json` and `.claude/hooks/`, `.claude/agents/`, `docs/working.md`, `docs/review.md`, `docs/deviations.md`, CI and the git hooks, this file |
 
 ## The spec tests
 

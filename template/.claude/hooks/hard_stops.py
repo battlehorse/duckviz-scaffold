@@ -1,16 +1,13 @@
-"""The hard stops of docs/working.md, as a Claude Code hook (PreToolUse, on Bash).
+"""The hard stops of docs/working.md, as a Claude Code hook (PreToolUse, on Bash). docs/working.md ("The hard
+stops") is the canonical list of what it refuses and what it asks the user about.
 
-Claude Code sends each Bash command as JSON on stdin, and runs it only after this hook answers:
-- **deny**: never, in any permission mode. Pushing to main, force-pushing, moving or deleting a tag, a hard reset on
-  main, and a merge that is not a merge commit.
-- **ask**: the user must confirm in a prompt. Publishing, deploying, changing who can open the hosted app, a paid
-  classification, deleting or moving the data, and merging a PR that changes the spec.
-- **no answer**: the normal permission rules decide.
+Claude Code sends each Bash command as JSON on stdin, and runs it only after this hook answers: **deny** (refused in
+every permission mode), **ask** (the user must confirm in a prompt), or nothing (the normal permission rules decide).
 
 The hook reads the command as a shell would, closely enough for a command written in good faith: `cd`, `git -C`,
-`gh -R`, `bash -c`, `env`, `xargs`, `eval` and `uv run` are followed. It finds the repo and the app (its
-`.copier-answers.yml`) from the folder each command runs in. In the scaffold repo, which has no answers file, the
-app rules are off. docs/working.md names what the hook does not catch.
+`gh -R`, `bash -c`, `env`, `xargs`, `eval` and `uv run` are followed, and comments are skipped. It finds the repo and
+the app (its `.copier-answers.yml`) from the folder each command runs in. In the scaffold repo, which has no answers
+file, the app rules are off.
 
 It is plain Python with no dependencies, so it runs before `uv sync` and outside the app's environment. It runs on
 the system's `python3`, which can be old (3.9 on macOS): keep to Python 3.9.
@@ -39,6 +36,9 @@ UV_OPTIONS_WITH_A_VALUE = {"--project", "--directory", "--with", "--with-editabl
                            "--package", "-p", "--env-file", "--extra", "--group", "--only-group", "--no-group",
                            "--index", "--default-index", "--index-url", "--extra-index-url", "--find-links"}
 XARGS_OPTIONS_WITH_A_VALUE = {"-I", "-n", "-P", "-L", "-d", "-E", "-s", "-a"}
+GH_MERGE_OPTIONS_WITH_A_VALUE = {"-R", "--repo", "-t", "--subject", "-b", "--body", "-F", "--body-file", "-A",
+                                 "--author-email", "--match-head-commit"}
+BUILD_ARTEFACTS = {"*.pyc", "*.pyo", "__pycache__", ".DS_Store", "*.egg-info", ".pytest_cache", ".ruff_cache"}
 
 
 @dataclass
@@ -53,23 +53,26 @@ class Command:
 def main() -> None:
     event = json.load(sys.stdin)
     command = event.get("tool_input", {}).get("command", "")
-    root = Path(os.environ.get("CLAUDE_PROJECT_DIR") or event.get("cwd") or ".")
-    cwd = Path(event.get("cwd") or root)
-    found = decide(command, root, cwd)
+    cwd = Path(event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or ".")
+    found = decide(command, cwd)
     if found:
         decision, reason = found
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision,
                                                  "permissionDecisionReason": reason}}))
 
 
-def decide(command: str, root: Path, cwd: Path) -> tuple[str, str] | None:
+def decide(command: str, cwd: Path) -> tuple[str, str] | None:
     """The strongest decision for any simple command in `command` (deny before ask), with its reason. None: no
-    hard stop applies. `root` is the session's project folder, and `cwd` the folder the command starts in."""
-    found = []
+    hard stop applies. `cwd` is the folder the command starts in."""
+    asked = None
     for cmd in simple_commands(command, cwd):
-        found += [result for rule in RULES if (result := rule(cmd, root))]
-    denied = [r for r in found if r[0] == DENY]
-    return (denied or found or [None])[0]
+        for rule in RULES:
+            result = rule(cmd)
+            if result and result[0] == DENY:
+                return result
+            if result and asked is None:
+                asked = result
+    return asked
 
 
 # ─── Reading the command ───
@@ -80,6 +83,7 @@ def simple_commands(command: str, cwd: Path) -> list[Command]:
     text = unquoted_newlines_to_semicolons(strip_heredocs(command.replace("\\\n", " ")))
     lexer = shlex.shlex(text, posix=True, punctuation_chars=";&|()")
     lexer.whitespace_split = True
+    lexer.commenters = ""  # unquoted_newlines_to_semicolons already took the comments out
     try:
         tokens = list(lexer)
     except ValueError:  # an unclosed quote: look at the words, unparsed
@@ -105,14 +109,25 @@ def strip_heredocs(command: str) -> str:
 
 
 def unquoted_newlines_to_semicolons(text: str) -> str:
-    """`text` with each newline outside quotes made a `;`, so that each line is a command of its own."""
-    out, quote = [], None
+    """`text` with each newline outside quotes made a `;`, so that each line is a command of its own, and without
+    its comments (an unquoted `#` that starts a word, to the end of its line)."""
+    out = []
+    quote = None
+    in_comment = False
     for i, char in enumerate(text):
+        if in_comment:
+            if char == "\n":
+                in_comment = False
+                out.append(";")
+            continue
         if quote:
             if char == quote and (quote == "'" or text[i - 1] != "\\"):
                 quote = None
         elif char in "'\"":
             quote = char
+        elif char == "#" and (i == 0 or text[i - 1] in " \t\n;&|("):
+            in_comment = True
+            continue
         elif char == "\n":
             char = ";"
         out.append(char)
@@ -198,6 +213,11 @@ def package_command(directory: Path, module: str) -> str:
     return f"python -m {module}"
 
 
+def forces(options: list[str]) -> bool:
+    """Whether the options hold `-f` or `--force`, alone or in a cluster of short options (`-fu`, `-af`)."""
+    return any(o == "--force" or re.fullmatch(r"-[a-zA-Z]*f[a-zA-Z]*", o) for o in options)
+
+
 def is_tag(directory: Path, name: str) -> bool:
     done = subprocess.run(["git", "-C", str(directory), "rev-parse", "-q", "--verify", f"refs/tags/{name}"],
                           capture_output=True, check=False)
@@ -225,15 +245,15 @@ def git_args(cmd: Command, subcommand: str) -> tuple[Path, list[str]] | None:
 
 # ─── The rules: each returns (decision, reason) or None ───
 
-def git_push(cmd, root):
+def git_push(cmd):
     found = git_args(cmd, "push")
     if found is None:
         return None
     directory, args = found
     options = [a for a in args if a.startswith("-")]
     refspecs = [a for a in args if not a.startswith("-")][1:]  # the first one is the remote
-    if any(o in ("-f", "--force", "--mirror") or o.startswith(("--force-with-lease", "--force-if-includes"))
-           for o in options) or any(r.startswith("+") for r in refspecs):
+    if (forces(options) or "--mirror" in options or any(o.startswith(("--force-with-lease", "--force-if-includes"))
+                                                          for o in options) or any(r.startswith("+") for r in refspecs)):
         return DENY, "Force-pushing is a hard stop. Push a new commit instead, or ask the user."
     if "--all" in options:
         return DENY, "`git push --all` can push main. Push one branch, and open a PR."
@@ -254,21 +274,21 @@ def git_push(cmd, root):
     return None
 
 
-def git_tag(cmd, root):
+def git_tag(cmd):
     found = git_args(cmd, "tag")
-    if found and ({"-f", "--force"} & set(found[1])):
+    if found and forces([a for a in found[1] if a.startswith("-")]):
         return DENY, "Moving a tag is a hard stop: apps depend on it. Make a new tag."
     return None
 
 
-def git_reset_hard_on_main(cmd, root):
+def git_reset_hard_on_main(cmd):
     found = git_args(cmd, "reset")
     if found and "--hard" in found[1] and current_branch(found[0]) in MAIN_BRANCHES:
         return DENY, "A hard reset on main is a hard stop. Work on a branch."
     return None
 
 
-def merge_pr(cmd, root):
+def merge_pr(cmd):
     """`gh pr merge`: only as a merge commit, and only for a PR whose spec check passed with no spec change."""
     words = cmd.words
     if words[:3] != ["gh", "pr", "merge"]:
@@ -277,15 +297,19 @@ def merge_pr(cmd, root):
     if not {"--merge", "-m"} & set(args):
         return DENY, "Merge with `--merge`: a merge commit reverts on its own (docs/working.md)."
     repo = cmd.env.get("GH_REPO")
-    positional, i = [], 0
+    positional = []
+    i = 0
     while i < len(args):
-        if args[i] in ("-R", "--repo") and i + 1 < len(args):
-            repo, i = args[i + 1], i + 2
+        arg = args[i]
+        if arg in GH_MERGE_OPTIONS_WITH_A_VALUE and i + 1 < len(args):
+            if arg in ("-R", "--repo"):
+                repo = args[i + 1]
+            i += 2
             continue
-        if args[i].startswith("--repo="):
-            repo = args[i].split("=", 1)[1]
-        elif not args[i].startswith("-"):
-            positional.append(args[i])
+        if arg.startswith("--repo="):
+            repo = arg.split("=", 1)[1]
+        elif not arg.startswith("-"):
+            positional.append(arg)
         i += 1
     if not positional:
         return ASK, "Name the PR to merge (`gh pr merge <number> --merge`), so its spec check can be read."
@@ -306,11 +330,14 @@ def pr_spec_state(directory: Path, pr: str, repo: str | None) -> str:
     found = json.loads(done.stdout)
     if any(label["name"] == "spec-change" for label in found.get("labels", [])):
         return "changed"
-    checks = {c.get("name"): c.get("conclusion") for c in found.get("statusCheckRollup", [])}
-    return "unchanged" if checks.get("spec") == "SUCCESS" else "unknown"
+    runs = [c for c in found.get("statusCheckRollup", []) if c.get("name") == "spec" and c.get("conclusion") != "SKIPPED"]
+    if not runs or any(run.get("status") != "COMPLETED" for run in runs):
+        return "unknown"  # no run yet, or one still going: a new base may change the answer
+    newest = max(runs, key=lambda run: run.get("startedAt") or "")
+    return "unchanged" if newest.get("conclusion") == "SUCCESS" else "unknown"
 
 
-def app_commands(cmd, root):
+def app_commands(cmd):
     """The app's commands that send data out or cost money."""
     cli = answer(cmd.cwd, "project_name")
     if not cli or len(cmd.words) < 2 or cmd.words[0] != cli:
@@ -323,7 +350,7 @@ def app_commands(cmd, root):
     return None
 
 
-def gcloud(cmd, root):
+def gcloud(cmd):
     """Deploys, traffic, and who can open the hosted app."""
     words = cmd.words
     if not words or words[0] != "gcloud":
@@ -335,7 +362,7 @@ def gcloud(cmd, root):
     return None
 
 
-def data_removal(cmd, root):
+def data_removal(cmd):
     """Deleting or moving the database, the backups or the curated decisions."""
     words = cmd.words
     if not words:
@@ -349,20 +376,37 @@ def data_removal(cmd, root):
     elif words[:2] == ["git", "clean"] and any(o.startswith("-") and ("x" in o or "X" in o) for o in words[2:]):
         return ASK, "git clean -x deletes ignored files, the data and the backups too. Ask the user."
     elif words[0] == "find" and "-delete" in words:
-        starts = []
-        for word in words[1:]:
-            if word.startswith(("-", "(", "!")):
-                break
-            starts.append(word)
-        patterns = [w for w in words if any(name in w for name in ("duckdb", *PROTECTED_DIRS))]
-        if patterns or any(is_protected(cmd.cwd, start, whole_dir=False) for start in starts or ["."]):
-            return ASK, "This find deletes files in the data, the backups or the curated decisions. Ask the user."
-        return None
+        return find_delete(cmd)
     else:
         return None
     if any(is_protected(cmd.cwd, path) for path in paths):
         return ASK, "This deletes or moves the data, the backups or the curated decisions. Ask the user first."
     return None
+
+
+def find_delete(cmd: Command):
+    """`find … -delete`: it asks unless it deletes only build artefacts, or prunes every protected folder."""
+    words = cmd.words
+    starts = []
+    for word in words[1:]:
+        if word.startswith(("-", "(", "!")):
+            break
+        starts.append(word)
+    patterns = [words[i + 1] for i, w in enumerate(words[:-1]) if w in ("-name", "-iname", "-path", "-ipath")]
+    reason = (ASK, "This find can delete the data, the backups or the curated decisions. Ask the user first.")
+    if "-prune" not in words and any(names_protected(p) for p in patterns):
+        return reason
+    if any(is_protected(cmd.cwd, start, whole_dir=False) for start in starts or ["."]):
+        return reason
+    holds_protected = any(is_protected(cmd.cwd, start) for start in starts or ["."])
+    pruned = "-prune" in words and all(any(d in p.split("/") for p in patterns) for d in PROTECTED_DIRS)
+    only_artefacts = bool(patterns) and all(p in BUILD_ARTEFACTS for p in patterns)
+    return reason if holds_protected and not (pruned or only_artefacts) else None
+
+
+def names_protected(pattern: str) -> bool:
+    """Whether a find pattern names a protected folder (as a whole part of the path) or a database file."""
+    return "duckdb" in pattern or any(part in PROTECTED_DIRS for part in pattern.split("/"))
 
 
 def is_protected(cwd: Path, path: str, whole_dir: bool = True) -> bool:

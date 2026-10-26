@@ -27,9 +27,8 @@ user's approval, but you go on building on top of it, in stacked PRs. docs/worki
   spec:** the user does, or approves it in the hook's prompt.
 - **Name each spec change** in the PR's *Spec changes* section, and keep it in a PR of its own.
 - **Report** dependency changes and new tags in the PR and in the outcome report.
-- **The hard stops** need the user's yes in a prompt (`.claude/hooks/hard_stops.py`): publishing, deploying,
-  changing access, a paid classification, deleting or moving the data. The hook refuses pushing to `main`,
-  force-pushing and moving a tag.
+- **The hard stops** (docs/working.md has the list): the hook `.claude/hooks/hard_stops.py` refuses some commands,
+  and asks the user's yes for others. Never try to get around it.
 
 ## Rules
 

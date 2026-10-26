@@ -43,11 +43,15 @@ jobs:
       - name: Spec diff
         id: diff
         run: |
-          if uv run {{ project_name }} spec-diff --base "origin/${{ '{{' }} github.base_ref {{ '}}' }}"; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
+          set +e
+          uv run {{ project_name }} spec-diff --base "origin/${{ '{{' }} github.base_ref {{ '}}' }}"
+          code=$?
+          set -e
+          case $code in
+            0) echo "changed=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "changed=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$code" ;;  # spec-diff could not tell: fail, so the hook's merge rule asks
+          esac
       - name: Label
         env:
           GH_TOKEN: ${{ '{{' }} github.token {{ '}}' }}
