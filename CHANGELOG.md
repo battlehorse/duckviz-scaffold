@@ -5,6 +5,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: `spec-diff` counts each imported name that a spec test uses on its own. Adding another name to a shared
+  `from … import a, b` line (for a new unit test) no longer shows as a change of the spec test.
 - duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`,
   one structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`;
   `Usage` and `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which runs a paid command only with

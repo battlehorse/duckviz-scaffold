@@ -219,8 +219,11 @@ def _module_definitions(module: ast.Module) -> dict[str, ast.AST]:
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             for target in targets:
                 found |= {name.id: node for name in ast.walk(target) if isinstance(name, ast.Name)}
-        elif isinstance(node, ast.Import | ast.ImportFrom):
-            found |= {(alias.asname or alias.name).split(".")[0]: node for alias in node.names}
+        elif isinstance(node, ast.Import):
+            found |= {(alias.asname or alias.name).split(".")[0]: ast.Import(names=[alias]) for alias in node.names}
+        elif isinstance(node, ast.ImportFrom):  # each name alone: another name on the same line is not this test's
+            found |= {alias.asname or alias.name: ast.ImportFrom(module=node.module, names=[alias], level=node.level)
+                      for alias in node.names}
     return found
 
 
