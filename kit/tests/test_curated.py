@@ -72,6 +72,24 @@ def test_restore_brings_back_every_decision(con, spec):
     assert {t.name: con.execute(f"FROM {t.name} ORDER BY ALL").fetchall() for t in TABLES} == before
 
 
+def test_restore_keeps_an_empty_text_apart_from_a_null(con, spec):
+    con.execute("UPDATE labels SET classified_by = CASE WHEN day = '2026-03-02' THEN '' END")
+    export(con, spec.curated_dir, TABLES)
+    con.close()
+    con = rebuilt(spec)
+    restore(con, spec.curated_dir, TABLES)
+    assert con.execute("SELECT classified_by FROM labels ORDER BY day").fetchall() == [(None,), ("",)]
+
+
+def test_restore_reads_an_empty_value_of_another_type_as_null(con, spec):
+    con.close()
+    con = rebuilt(spec)
+    spec.curated_dir.mkdir(parents=True, exist_ok=True)
+    (spec.curated_dir / "labels.csv").write_text('day,label,classified_by,classified_at\n2026-01-05,away,llm,""\n')
+    restore(con, spec.curated_dir, [LABELS])
+    assert con.execute("SELECT classified_at FROM labels").fetchall() == [(None,)]
+
+
 def test_restore_only_into_a_database_without_decisions(con, spec):
     export(con, spec.curated_dir, TABLES)
     assert restore(con, spec.curated_dir, TABLES) is None
