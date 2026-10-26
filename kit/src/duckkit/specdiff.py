@@ -212,6 +212,7 @@ def _class_definitions(cls: ast.ClassDef) -> dict[str, ast.AST]:
 def _module_definitions(module: ast.Module) -> dict[str, ast.AST]:
     """The node of each name the module defines at its top level: functions, classes, assignments and imports."""
     found: dict[str, ast.AST] = {}
+    roots: dict[str, ast.Import] = {}  # `import a.b, a.c` binds `a`: one node keeps every alias of that root
     for node in module.body:
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
             found[node.name] = node
@@ -219,9 +220,13 @@ def _module_definitions(module: ast.Module) -> dict[str, ast.AST]:
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             for target in targets:
                 found |= {name.id: node for name in ast.walk(target) if isinstance(name, ast.Name)}
+        # One node for each imported name: a name that another test adds to the same line does not change this test.
         elif isinstance(node, ast.Import):
-            found |= {(alias.asname or alias.name).split(".")[0]: ast.Import(names=[alias]) for alias in node.names}
-        elif isinstance(node, ast.ImportFrom):  # each name alone: another name on the same line is not this test's
+            for alias in node.names:
+                root = alias.asname or alias.name.split(".")[0]
+                found[root] = roots.setdefault(root, ast.Import(names=[]))
+                found[root].names.append(alias)
+        elif isinstance(node, ast.ImportFrom):
             found |= {alias.asname or alias.name: ast.ImportFrom(module=node.module, names=[alias], level=node.level)
                       for alias in node.names}
     return found
