@@ -107,9 +107,9 @@ flowchart LR
 - has a SQL string that names anything other than a contract view, or a column the contract doesn't have. Each
   query is parsed by DuckDB and run against the reference schema.
 - imports the ingestion side: the modules in `spec.forbidden` (`ingest`, `db`, `cli`, …), or duckkit's service
-  modules (`store`, `backup`, `privacy`, `publish`, `cli`, `doctor`, `serve`, `demo`, `curated`, `specdiff`). This
-  is checked in the source and again by importing the app in a fresh interpreter, which catches imports made
-  indirectly.
+  modules (`store`, `backup`, `privacy`, `publish`, `cli`, `doctor`, `serve`, `demo`, `curated`, `specdiff`,
+  `llm`). This is checked in the source and again by importing the app in a fresh interpreter, which catches
+  imports made indirectly.
 
 The app's tests (`tests/app/`) build their databases from the reference schema
 (`duckkit.testing.contract_db`), with synthetic rows from `tests/app/contract_data.py`. They never run the
@@ -162,7 +162,7 @@ The template writes `docs/cli.md` for each app, and the Claude Code skills (docs
   variables) set them. Then comes the default.
 - **Personal data never goes into git.** That covers secrets, addresses, names, readings and screenshots of real
   data. `privacy-check` scans every file git would commit for:
-  - the values of `spec.private_settings` and the MotherDuck token;
+  - the values of `spec.private_settings`, the MotherDuck token and the Anthropic API key;
   - the terms under `[privacy] terms`;
   - the app's own terms, such as names found in its database.
 

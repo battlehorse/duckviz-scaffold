@@ -17,6 +17,7 @@ see where the modules fit in an app, read docs/architecture.md first.
 - Modules: [spec](#duckkitspec) · [contract](#duckkitcontract) · [snapshot](#duckkitsnapshot) ·
   [store](#duckkitstore) · [publish](#duckkitpublish) · [backup](#duckkitbackup) · [privacy](#duckkitprivacy) ·
   [serve](#duckkitserve) · [cli](#duckkitcli) · [demo](#duckkitdemo) · [curated](#duckkitcurated) ·
+  [llm](#duckkitllm) ·
   [doctor](#duckkitdoctor) · [specdiff](#duckkitspecdiff) · [app.common](#duckkitappcommon) ·
   [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
 - [Hooks](#hooks-where-an-apps-domain-goes-in)
@@ -60,6 +61,7 @@ module belongs to one of them:
 | [`specdiff`](#duckkitspecdiff) | ingestion | list what a branch changes in the app's spec |
 | [`demo`](#duckkitdemo) | ingestion | build a demo database, and tell one apart from the real one |
 | [`curated`](#duckkitcurated) | ingestion | keep curated decisions in `curated/*.csv`, and restore them into a rebuilt database |
+| [`llm`](#duckkitllm) | ingestion | one structured call to Claude, its cost, and the gate before a paid run (the `llm` extra) |
 | [`spec`](#duckkitspec) | both | the `AppSpec`, the app's description: paths, ports, contract, settings |
 | [`contract`](#duckkitcontract) | both | the contract: reference schema, descriptions, conformance check |
 | [`snapshot`](#duckkitsnapshot) | both | read-only, in-memory copies of the database or of its contract views |
@@ -122,6 +124,8 @@ Methods:
   else `[section] key` in `config.toml`, else `default`. Empty values count as unset. Settings live in
   `config.toml` only. The variable is for CI, tests and Cloud Run, which passes secrets as variables.
 - `motherduck_token()` and `where_token()`: the token, and a sentence that says where the user puts it.
+- `anthropic_api_key()` and `where_anthropic_key()`: the same for `[anthropic] api_key` (`ANTHROPIC_API_KEY`), which
+  `duckkit.llm` uses.
 - `backup_dir()` and `backup_keep()`: from `[backup] dir` / `<PREFIX>_BACKUP_DIR` (default `backups/`) and
   `[backup] keep` (default 30).
 - `app(name)` returns an `AppEntry`. `main_script(name)` returns its entry point.
@@ -231,7 +235,7 @@ restore it with the new version into a new file.
 **What it is for:** keeping personal data out of the repo, so the repo is always safe to share.
 
 - `personal_terms(spec, extra=None)` collects `{term: what it is}` from:
-  - the values of `spec.private_settings` and the MotherDuck token on this machine;
+  - the values of `spec.private_settings`, the MotherDuck token and the Anthropic API key on this machine;
   - the terms under `[privacy] terms` (or `<PREFIX>_PRIVACY_TERMS`);
   - the app's own `extra(spec)` function, such as names found in its database.
 - `committable_files(root)` lists the files git tracks, plus the untracked files that aren't ignored.
@@ -313,6 +317,36 @@ file is.
 
 `publish` refuses a demo database, and `status` says "Demo: made-up data" for one. An app's own commands that send or
 curate data should refuse one too (`curated.curating` does).
+
+## `duckkit.llm`
+
+**What it is for:** an app's command that asks Claude to make decisions, such as classifying rows. The app keeps
+its prompts, its schemas and its batches. This module sends them with what every app wants, and keeps the cost in
+view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the anthropic package).
+
+- `Claude(spec, model=DEFAULT_MODEL, effort="low", client=None)`: Claude for one run. Without `client`, it makes an
+  anthropic client with `spec.anthropic_api_key()`, and raises `LLMError` with where to put the key when there is
+  none. A model with no price in `PRICES` is refused at once.
+- `Claude.call(system, user, schema, max_tokens=16000)` sends one request and returns the answer as a dict:
+  - structured output: the answer matches `schema`, so an enum keeps the model to the app's categories;
+  - the system prompt is marked for the cache: the first call writes it (at 1.25 times the input price), and the
+    calls of the next 5 minutes read it at a fraction of the input price. A short system prompt is not cached;
+  - the server-side fallback, on the models of `FALLBACK_MODELS` (Claude Opus 5.5 and Claude Sonnet 5.5; Claude Haiku
+    5.5 has none): a request that a safety classifier declines is retried on Anthropic's fallback model;
+  - every failure is an `LLMError` with a message for the user: a rejected key, an API error, no connection, a
+    refusal, an answer cut off by `max_tokens`, an answer with no text or not valid JSON.
+- `Claude.usage` (`Usage`) adds up the tokens of the run's calls: input, cache writes, cache reads and output.
+  `usage.cost` is their cost in $, and `usage.line()` is one line for the command's output. After a server-side
+  fallback, a call counts only the attempt that answered, at the requested model's prices: its cost is approximate.
+- `PRICES` gives $ per million tokens for each model: input, output and cache read. A cache write costs 1.25 times
+  the input price. `estimate_cost(model, input_tokens, output_tokens, cache_read_tokens=0, cache_write_tokens=0)`
+  prices one request's tokens. Over 100K prompt tokens, Claude Haiku 5.5 costs 5 times as much (`LONG_PRICES`), so
+  `Usage` prices each call by its own prompt size.
+- `cost_gate(spec, what, estimate, yes, command)`: whether a paid run may start, only with `--yes`. Without it, the
+  gate prints what the run would send and cost, and the command line that runs it, and sends nothing. The flag
+  keeps a run from starting by accident. A run that costs money is still a hard stop (docs/how-we-work.md): the
+  user says yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its
+  `.claude/settings.json` (docs/how-we-work.md, "What waits for the user").
 
 ## `duckkit.curated`
 
@@ -422,10 +456,14 @@ its own.
 
 **What it is for:** tests that can't touch real data, and tests for the browser app that need no ingestion.
 - `isolate(spec, tmp_path, monkeypatch, env=())` points every path of the AppSpec into `tmp_path`: the database,
-  `data/`, `curated/`, `config.toml` and the backups. It also unsets `MOTHERDUCK_TOKEN`, `<PREFIX>_APP_DB`, the
-  privacy terms, and any `env` you name. Call it from an autouse fixture in `tests/conftest.py`.
+  `data/`, `curated/`, `config.toml` and the backups. It also unsets `MOTHERDUCK_TOKEN`, `ANTHROPIC_API_KEY`,
+  `<PREFIX>_APP_DB`, the privacy terms, and any `env` you name. Call it from an autouse fixture in
+  `tests/conftest.py`.
 - `contract_db(spec, path)` creates a database with the contract's exact shape and its `v_contract` row, still
   open so the test can fill it. The browser app's tests build their data this way.
+- `FakeAnthropic(*replies)` stands in for the anthropic client: `Claude(spec, client=FakeAnthropic(...))` gets each
+  reply in turn (an exception reply is raised), and `requests` keeps what was sent. `claude_reply(payload)` builds a
+  reply whose answer is `payload`. No test needs the network or a key.
 
 ## `duckkit.testing.guard`
 
