@@ -1,5 +1,5 @@
-# The spec of duckviz-scaffold: what changes only with the user's approval (docs/how-we-work.md). A release changes every
-# app, so the scaffold's spec is its docs, its public API and its guardrails.
+# The spec of duckviz-scaffold: what changes only with the user's approval. docs/spec.md explains each group: keep
+# the two in step.
 # `uv run --project kit python -m duckkit.specdiff` and CI read it.
 
 [shape]
@@ -15,6 +15,7 @@ copier.yml
 
 [guardrails]
 CLAUDE.md
+docs/spec.md
 .claude/settings.json
 .claude/spec-paths
 template/CLAUDE.md.jinja

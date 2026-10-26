@@ -41,6 +41,7 @@ only its own code: what it ingests, its tables, its contract views and its pages
 | [docs/kit.md](docs/kit.md) | every duckkit module: what it is for, its functions, which command uses it, and the hooks where an app plugs in its domain |
 | [docs/template.md](docs/template.md) | the template: every answer and option and what it decides, options vs capabilities, which files it manages and which it seeds once, deviations |
 | [docs/upgrading.md](docs/upgrading.md) | the update cycle in detail, and adopting the scaffold in an existing repo |
+| [docs/spec.md](docs/spec.md) | this repo's spec: what changes only with the user's approval, and why |
 | [docs/how-we-work.md](docs/how-we-work.md) | how apps and this repo are developed: outcomes, the spec, the PRs Claude merges, what waits for the user |
 | [docs/review.md](docs/review.md) | the review standards for every change, with a bad and a good example of each |
 | [CHANGELOG.md](CHANGELOG.md) | what each release adds, and the steps an app must take by hand |
@@ -146,7 +147,7 @@ difference in its `docs/deviations.md`, and `doctor` checks that the opt-outs ar
 kit/                     duckkit (src/duckkit/) and its tests
 template/                the Copier template: the app's files, rendered with the answers
 copier.yml               the questions (answers and options), and which files are seeded once
-docs/                    architecture, kit, template, upgrading; how-we-work and review (symlinks to template/docs/)
+docs/                    architecture, kit, template, upgrading, spec; how-we-work and review (symlinks to template/docs/)
 scripts/render.sh        renders a sample app with every option on and one with every option off, and tests both
 scripts/release.py       sets the release version (on a branch), then tags it (on main)
 .claude/skills/upstream  the skill that brings a capability from an app into the scaffold

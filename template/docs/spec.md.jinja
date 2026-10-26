@@ -15,8 +15,9 @@ as patterns, for `spec-diff` and CI: keep the two in step.
 ## The spec tests
 
 A spec test is a functional test of a key rule of the business logic, marked `@pytest.mark.spec`: about one for each
-rule. Its docstring states the rule that it enforces, in one sentence. `uv run pytest -m spec` runs them. A new spec test is not a spec change. A spec test that changes, goes, or
-loses its mark is. The rest of the suite is not spec: it changes with the code.
+rule. Its docstring states the rule that it enforces, in one sentence. `uv run pytest -m spec` runs them. A new
+spec test is not a spec change. A spec test that changes, goes, or loses its mark is. The rest of the suite is not
+spec: it changes with the code.
 
 Mark a test as spec when its rule is one the user would name: the totals reconcile, ingesting twice adds nothing, a
 decision by hand is never overwritten, the browser app reads only the contract.

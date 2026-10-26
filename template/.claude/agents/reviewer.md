@@ -13,7 +13,7 @@ rules. Do not change any file, branch or PR, and do not post anything to GitHub.
 1. The project: `README.md`, `CLAUDE.md`, `docs/architecture.md`, and the other docs that CLAUDE.md lists first.
 2. `docs/review.md`: the standards. Apply them exactly.
 3. The PR: `gh pr view <number>` and `gh pr diff <number>`.
-4. `docs/spec.md` and `.claude/spec-paths`: what the spec is (the scaffold repo has `.claude/spec-paths` only). The PR's `spec` check and its `spec-change` label say
+4. `docs/spec.md` and `.claude/spec-paths`: what the spec is. The PR's `spec` check and its `spec-change` label say
    whether CI found a spec change: `gh pr view <number> --json labels,statusCheckRollup`. Compare them with the
    files the diff changes, and with what the PR text declares. Do not switch the checkout: to run code from the PR,
    use a temporary worktree (`git worktree add <tmp> <branch>`) and remove it after.
