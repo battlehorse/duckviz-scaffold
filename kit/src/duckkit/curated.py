@@ -150,7 +150,8 @@ def _has_rows(path: Path) -> bool:
 
 
 def _load(con: duckdb.DuckDBPyConnection, table: CuratedTable, path: Path) -> int:
-    source = f"read_csv({literal(str(path))}, header = true, all_varchar = true)"
+    # Quoted values stay text: COPY writes an empty text as "" and a NULL as nothing, so the two stay apart.
+    source = f"read_csv({literal(str(path))}, header = true, all_varchar = true, allow_quoted_nulls = false)"
     types = dict(con.execute("""
         SELECT column_name, data_type FROM duckdb_columns()
         WHERE database_name = current_database() AND schema_name = current_schema() AND table_name = ?
@@ -160,7 +161,9 @@ def _load(con: duckdb.DuckDBPyConnection, table: CuratedTable, path: Path) -> in
     def value(column: str) -> str:
         if column not in in_file:
             return f"CAST(NULL AS {types[column]})"
-        return f"CAST(nullif(c.{column}, '') AS {types[column]})"
+        if types[column] == "VARCHAR":
+            return f"c.{column}"
+        return f"CAST(nullif(c.{column}, '') AS {types[column]})"  # a hand-written "" in a date, say
 
     if table.key is None:
         cols = ", ".join(table.columns)

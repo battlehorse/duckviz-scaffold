@@ -23,6 +23,9 @@ and the user reviews only the changes to the spec.
 - Template, seeded: `docs/spec.md` and `.claude/spec-paths` (the app's spec), and the example's key tests marked
   `@pytest.mark.spec`, each with a docstring that states its rule.
 - duckkit: `doctor` expects the new managed files, `docs/spec.md` and `.claude/spec-paths`.
+- Fixes, `curations`:
+  - `restore` keeps an empty text apart from a NULL. Before, a decision with an empty text came back as NULL.
+  - `/rebuild-database` names the ingest command of `/ingest`, with the source files only when it takes them.
 
 **Steps:**
 - Seeded files don't arrive with an update. Write `docs/spec.md` and `.claude/spec-paths` (the template's show
