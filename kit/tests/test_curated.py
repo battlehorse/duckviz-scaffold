@@ -6,7 +6,7 @@ from datetime import date
 import duckdb
 import pytest
 
-from duckkit.curated import CuratedTable, curating, export, holds_decisions, not_manual, restore
+from duckkit.curated import CuratedTable, Refused, curating, export, holds_decisions, not_manual, restore
 from duckkit.demo import build_demo
 from duckkit.store import connect
 from tests.conftest import DB_SCHEMA
@@ -149,14 +149,25 @@ def test_curating_writes_the_removal_of_the_last_decision(con, spec):
     assert (spec.curated_dir / "labels.csv").read_text().splitlines() == ["day,label,classified_by,classified_at"]
 
 
-def test_curating_on_a_database_without_decisions_keeps_the_files(con, spec):
+def test_curating_refuses_a_database_not_restored_yet(con, spec):
     export(con, spec.curated_dir, TABLES)
-    saved = (spec.curated_dir / "labels.csv").read_text()
+    saved = {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES}
     con.close()
     rebuilt(spec).close()
-    with curating(spec, lambda: connect(spec, SCHEMA), TABLES):
-        pass  # a command run before `ingest` restored the decisions
-    assert (spec.curated_dir / "labels.csv").read_text() == saved
+    with pytest.raises(Refused, match="run `shop ingest` first"), curating(spec, lambda: connect(spec, SCHEMA),
+                                                                          TABLES) as c:
+        c.execute("INSERT INTO labels VALUES ('2026-04-01', 'new', 'manual', NULL)")  # would export this row only
+    assert {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES} == saved
+
+
+def test_ingest_curates_a_database_not_restored_yet_and_restores_it(con, spec):
+    export(con, spec.curated_dir, TABLES)
+    saved = {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES}
+    con.close()
+    rebuilt(spec).close()
+    with curating(spec, lambda: connect(spec, SCHEMA), TABLES, restores=True) as c:
+        assert restore(c, spec.curated_dir, TABLES)
+    assert {t.name: (spec.curated_dir / f"{t.name}.csv").read_text() for t in TABLES} == saved
 
 
 def test_curating_refuses_a_demo_database(con, spec):
@@ -164,7 +175,7 @@ def test_curating_refuses_a_demo_database(con, spec):
     build_demo(spec, lambda path: connect(spec, SCHEMA, path=path), lambda c: None, "", path=spec.demo_db_path)
     spec.db_path.unlink()
     spec.demo_db_path.rename(spec.db_path)
-    with pytest.raises(ValueError, match="is a demo database"), curating(spec, lambda: connect(spec, SCHEMA), TABLES):
+    with pytest.raises(Refused, match="is a demo database"), curating(spec, lambda: connect(spec, SCHEMA), TABLES):
         pass
     assert not spec.curated_dir.exists()
 

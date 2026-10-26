@@ -2,9 +2,10 @@
 
 The rest of the database comes again from the source files, but a decision costs time or money to make. So every
 command that changes one runs inside `curating`, which writes the curated tables to curated/<table>.csv after it,
-even when the command fails. `restore` loads the files back into a rebuilt database. The files are sorted, so a git
-diff shows exactly which decisions changed. They hold the user's decisions: a repo with curations stays private
-(`doctor --remote` checks).
+even when the command fails. `restore` loads the files back into a rebuilt database. Until it does, `curating`
+refuses every command except `ingest`: its export would replace the files with that command's decisions only. The
+files are sorted, so a git diff shows exactly which decisions changed. They hold the user's decisions: a repo with
+curations stays private (`doctor --remote` checks).
 
 A curated table is one of two kinds:
 - **its own rows** (no `key`): the decisions are the rows, made by the commands (a merchant's category). `restore`
@@ -24,6 +25,10 @@ import duckdb
 from duckkit.demo import is_demo
 from duckkit.snapshot import literal
 from duckkit.spec import AppSpec
+
+
+class Refused(ValueError):
+    """A command that changes decisions can't run on this database. The message says why, and what to do."""
 
 
 @dataclass(frozen=True)
@@ -52,15 +57,16 @@ def holds_decisions(con: duckdb.DuckDBPyConnection, tables: list[CuratedTable]) 
 
 
 def export(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedTable],
-           removed: bool = False) -> bool:
+           held_decisions_before: bool = False) -> bool:
     """Write each table to `directory`/<name>.csv, sorted. Each file is replaced atomically.
 
-    A database with no decisions at all (new, or rebuilt and not restored yet) never replaces files that hold some:
-    returns False and writes nothing. Unless `removed`: the decisions were there and a command removed them (what
-    `curating` passes when the database held decisions as the command began).
+    A database with no decisions at all (new, or rebuilt and not restored yet) never replaces files that hold some.
+    It returns False and writes nothing. When `held_decisions_before` is True, it writes the files anyway: the
+    database held decisions before the command, so no decisions now means the command removed them. `curating`
+    passes it.
     """
     files = [directory / f"{t.name}.csv" for t in tables]
-    if not removed and not holds_decisions(con, tables) and any(_has_rows(f) for f in files):
+    if not held_decisions_before and not holds_decisions(con, tables) and any(_has_rows(f) for f in files):
         return False
     directory.mkdir(parents=True, exist_ok=True)
     for table, target in zip(tables, files):
@@ -97,15 +103,23 @@ def restore(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[Curate
 
 @contextmanager
 def curating(spec: AppSpec, connect: Callable[[], duckdb.DuckDBPyConnection], tables: list[CuratedTable],
-             directory: Path | None = None) -> Iterator[duckdb.DuckDBPyConnection]:
-    """A connection for a command that changes decisions: exports them to curated/ after it, and after a failure too
-    (earlier batches may be committed). Refuses a demo database: its decisions must never reach curated/."""
+             directory: Path | None = None, restores: bool = False) -> Iterator[duckdb.DuckDBPyConnection]:
+    """A connection for a command that changes decisions. It exports them to curated/ after the command, and after a
+    failure too (earlier batches may be committed).
+
+    It raises `Refused` for a demo database: its decisions must never reach curated/. It also raises `Refused` for a
+    database that holds no decisions while curated/ holds some, unless `restores` is True. Only `ingest` passes
+    True: it calls `restore` before the export.
+    """
     if is_demo(spec):
-        raise ValueError(f"{spec.db_path} is a demo database: commands that change decisions work on your own "
-                         "database only")
+        raise Refused(f"{spec.db_path} is a demo database: commands that change decisions work on your own database"
+                      f" only (`{spec.cli} demo` rebuilds the demo)")
     directory = directory or spec.curated_dir
     with connect() as con:
-        held = holds_decisions(con, tables)  # then an empty export is a removal, not a database without decisions
+        held = holds_decisions(con, tables)
+        if not held and not restores and any(_has_rows(directory / f"{t.name}.csv") for t in tables):
+            raise Refused(f"the database holds no decisions yet, but {directory.name}/ holds some: run "
+                          f"`{spec.cli} ingest` first, which restores them")
         try:
             yield con
         except BaseException:
@@ -113,9 +127,9 @@ def curating(spec: AppSpec, connect: Callable[[], duckdb.DuckDBPyConnection], ta
                 con.rollback()  # drop a half-finished transaction before exporting
             except duckdb.TransactionException:
                 pass  # none open
-            export(con, directory, tables, removed=held)
+            export(con, directory, tables, held_decisions_before=held)
             raise
-        export(con, directory, tables, removed=held)
+        export(con, directory, tables, held_decisions_before=held)
 
 
 def _select(table: CuratedTable) -> str:

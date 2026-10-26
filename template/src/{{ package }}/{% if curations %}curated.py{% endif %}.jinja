@@ -21,10 +21,11 @@ TABLES = [
 
 
 @contextmanager
-def curating() -> Iterator[duckdb.DuckDBPyConnection]:
-    """The connection for a command that changes a decision: exports curated/ after it, even when it fails. Refuses
-    a demo database."""
-    with curated.curating(SPEC, connect, TABLES) as con:
+def curating(restores: bool = False) -> Iterator[duckdb.DuckDBPyConnection]:
+    """The connection for a command that changes a decision. It exports curated/ after the command, even when the
+    command fails. It refuses a demo database, and a rebuilt database that `ingest` has not restored yet. `ingest`
+    passes `restores=True`, because it restores the decisions itself."""
+    with curated.curating(SPEC, connect, TABLES, restores=restores) as con:
         yield con
 
 

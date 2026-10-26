@@ -3,6 +3,25 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- duckkit, **a fix for lost decisions**: `curating` now refuses a database that holds no decisions while curated/
+  holds some, such as a rebuilt database before `ingest`. Before this fix, a command on such a database (`label`,
+  say) replaced each file with that command's decisions only, and the next `ingest` did not restore the rest.
+  `curating(..., restores=True)` lets `ingest` run: it restores the decisions before the export.
+- duckkit: `curated.Refused` (a `ValueError`) is the error for both refusals: a demo database, and a database not
+  restored yet. The demo refusal now names the `demo` command.
+- duckkit: `export`'s parameter `removed` is now `held_decisions_before`.
+- Template, `curations`: `ingest` catches only `Refused`, so any other error keeps its traceback. `/rebuild-database`
+  is for the user to start only (`disable-model-invocation`). Its ingest step now says not to run the other steps
+  of `/ingest`, such as a paid classification.
+
+**Steps:**
+- With `curations` on: seeded files don't arrive with an update. In `src/<package>/curated.py`, give `curating` a
+  `restores` parameter and pass it to `duckkit.curated.curating` (the template's file shows how). In `ingest`, call
+  `curating(restores=True)`, and catch `duckkit.curated.Refused` there instead of every `ValueError`.
+- If the app calls `export(..., removed=...)`, rename the argument to `held_decisions_before`.
+
 ## v0.5.1
 
 - Template, `curations`: the seeded `/fix` skill is now `/fix-curation`, and says it corrects a curated decision in
