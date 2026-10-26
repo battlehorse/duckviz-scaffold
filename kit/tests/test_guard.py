@@ -39,9 +39,11 @@ def test_the_guard_refuses_every_ingestion_module_of_the_kit_docs():
     heading = "## Which side may import what"
     text = (Path(__file__).parents[2] / "docs" / "kit.md").read_text()
     assert heading in text, f"docs/kit.md has no {heading!r} section"
-    after = text.split(heading, 1)[1].lstrip("\n").split("\n\n", 1)[1]  # past the intro paragraph
-    table = [line for line in after.split("\n\n", 1)[0].splitlines() if line.startswith("|")][2:]  # no header rows
-    assert table, f"no table under {heading!r} in docs/kit.md"
+    lines = text.split(heading, 1)[1].splitlines()
+    start = next((i for i, line in enumerate(lines) if line.startswith("|")), None)
+    assert start is not None, f"no table under {heading!r} in docs/kit.md"
+    block = lines[start:]
+    table = block[2:block.index("")] if "" in block else block[2:]  # the rows, up to the blank line after the table
     rows = []
     for line in table:
         found = re.match(r"^\| \[`([\w.]+)`\]\(#[\w-]+\) \| (\w+) \|", line)
