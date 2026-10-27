@@ -83,6 +83,10 @@ Claude merges a PR that touches a spec file only when:
 Claude does not ask new reviewers until one agrees. A file that a reviewer does not agree is an extension stays a
 revision, unless a later commit changes that file. The PR text then lists the finding and the fix.
 
+**The label `merged-by-claude`.** Before Claude merges a PR on its own (the spec unchanged, or only extended), it
+adds the label `merged-by-claude` to it. The user finds every such PR with `is:pr label:merged-by-claude`, to look at
+the work that the user did not review. A PR that the user approved, or told Claude to merge, does not get the label.
+
 **A revision** alters or removes a promise: it edits or removes a browser check, a question, a test or a rule,
 renames or removes a view or column (a major version), changes what a command does, or changes the architecture.
 Any edit to the Guardrails is a revision, even one that only adds a rule: they define how Claude works. A revision
@@ -104,7 +108,8 @@ When an edit does both, it is a revision. When Claude is not sure, it is a revis
 3. **Claude works.**
    - Each change is a branch and a PR. A change in parts is a stack of PRs, each on the one before.
    - Each PR passes CI, `spec-diff` and an independent review (below), and shows that it keeps the spec.
-   - **Claude merges a PR that leaves the spec unchanged or extends it**, with a merge commit.
+   - **Claude merges a PR that leaves the spec unchanged or extends it**, with a merge commit, after it adds the
+     label `merged-by-claude` ("The merge rule").
    - **A PR that revises the spec waits for the user.** It holds only the revision, and says why. Claude sends a
      push notification, and goes on building on top of it, in PRs stacked on it. This is branch prediction: when
      the user approves, the work on top is ready. When the user rejects it, Claude closes the PR and drops or redoes

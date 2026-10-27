@@ -5,6 +5,10 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template, how we work: **the label `merged-by-claude`**. Before Claude merges a PR on its own (the spec unchanged,
+  or only extended), it adds the label, so the user can find the work that the user did not review
+  (`is:pr label:merged-by-claude`). CI creates the label with `spec-change`. docs/how-we-work.md ("The merge rule"),
+  CLAUDE.md and `/deliver-outcome` say the same.
 - Template: `/hosting` rollback lists the two newest revisions with their commits and asks the user with the
   previous one's commit; docs/hosting.md's manual rollback says the same.
 
