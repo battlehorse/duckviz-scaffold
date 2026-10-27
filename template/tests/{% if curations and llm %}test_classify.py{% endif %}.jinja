@@ -86,7 +86,7 @@ def test_a_limited_run_says_how_many_it_sent(tmp_path, monkeypatch):
     monkeypatch.setattr("duckkit.llm.Claude", lambda spec, model: Claude(spec, model=model, client=client))
     result = runner.invoke(app, ["classify", "--limit", "1"])
     assert result.exit_code == 0, result.output
-    assert "1 day of the 2 waiting" in result.output and "Labelled 1 of the day sent" in result.output
+    assert "1 day of the 2 waiting" in result.output and "Labelled 1 of the 1 day sent" in result.output
 
 
 def test_a_limited_run_prices_only_the_days_it_sends(tmp_path, monkeypatch):

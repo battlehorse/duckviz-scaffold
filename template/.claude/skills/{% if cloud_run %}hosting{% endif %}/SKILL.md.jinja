@@ -67,8 +67,9 @@ serving one and one to roll back to), so do not delete images.
 
 If the new version is broken, ask the user (AskUserQuestion), then send all traffic to the previous revision:
 `gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-revisions=<previous revision>=100`.
-Find the previous revision with `gcloud run revisions list --service={{ project_name }} … --limit=3`. Only the
-previous revision still has its image. The next deploy sends all traffic to the new revision again.
+The previous revision is the one deployed just before the serving one (the revision with the most traffic in
+`gcloud run services describe {{ project_name }} … --format="yaml(status.traffic)"`): find it in
+`gcloud run revisions list --service={{ project_name }} … --limit=3`. Only the previous revision still has its image. The next deploy sends all traffic to the new revision again.
 
 ## Add a person
 
@@ -99,11 +100,11 @@ Show the members of `roles/iap.httpsResourceAccessor`. Ignore other roles.
 ## Status
 
 Run `git fetch --prune` first: the comparison with `origin/main` is as of the last fetch. Then show in a few lines:
-- the URL, the serving revision, and when it was deployed
+- the URL, the serving revision (the one with the most traffic, as in *Deploy*, step 3), and when it was deployed
   (`gcloud run revisions list --service={{ project_name }} … --limit=3`);
-- the deployed commit against `origin/main`: `uv run {{ project_name }} status --remote` ("Deployed:"). Behind `main`: list
-  the commits not deployed (`git log --oneline <commit>..origin/main`). No commit label: a deploy from before
-  commits were recorded, so suggest `/hosting deploy`;
+- the deployed commit against `origin/main`: `uv run {{ project_name }} status --remote` ("Deployed:"). Behind
+  `origin/main`: list the commits not deployed (`git log --oneline <commit>..origin/main`). No commit label: a deploy
+  from before commits were recorded, so suggest `/hosting deploy`;
 - `Iap Enabled` from `gcloud run services describe {{ project_name }} …` (it must be `true`);
 - the people with access (*List the people*);
 - the warnings and errors of the last 24 hours (the logging command of *Deploy*, step 5, with `--freshness=24h`).

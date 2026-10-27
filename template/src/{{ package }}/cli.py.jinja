@@ -138,7 +138,7 @@ def classify(
             labelled = labeller.classify(con, claude, days)
         finally:
             typer.echo(claude.usage.line())
-    sent = "the day sent" if len(days) == 1 else f"the {len(days)} days sent"
+    sent = "the 1 day sent" if len(days) == 1 else f"the {len(days)} days sent"
     typer.echo(f"Labelled {len(labelled)} of {sent}: see them with `{{ project_name }} sql \"FROM labels\"`.")
     if missed := [f"{day:%Y-%m-%d}" for day, _ in days if day not in labelled]:
         typer.echo(f"No label for {', '.join(missed)}: Claude gave none, or the day was labelled by hand meanwhile. "
