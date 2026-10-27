@@ -38,6 +38,10 @@ user's approval, but you go on building on top of it, in stacked PRs. docs/how-w
   app, a command that costs money, anything sent to another person; deleting `data/`{% if backup %} or `backups/`{% endif %},
   `git clean`, a force-push, deleting a pushed tag. `.claude/settings.json` makes Claude Code prompt before the usual
   commands. Never write a command another way to avoid the prompt.
+{%- if curations and llm %}
+  The exception: a small classification (`classify`, at most 500 rows, redoing no decision) states its cost and
+  runs. A large one, or one split into small runs, is a hard stop.
+{%- endif %}
 
 ## Rules
 
