@@ -5,6 +5,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: `spec-diff` counts each imported name that a spec test uses on its own. Adding another name to a shared
+  `from … import a, b` line (for a new unit test) no longer shows as a change of the spec test.
 - duckkit: the guard also fails a browser app that uses `snapshot.database_snapshot` (`guard.WHOLE_DATABASE`), by
   import or as an attribute: a copy of the whole database, which a hosted app cannot read. The browser app reads the
   contract through `contract_snapshot` only.

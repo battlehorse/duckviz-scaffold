@@ -241,3 +241,41 @@ def test_a_class_of_spec_tests_counts_its_own_names(repo):
     edit(repo, "tests/test_class.py", "CASES = []", "CASES = [1, 2]")
     edit(repo, "tests/test_class.py", "return 2 * x", "return 2 * x + 0")
     assert spec_diff(repo, "work").spec_tests == ["tests/test_class.py::TestRules::test_double_is_even: changed"]
+
+
+def test_a_name_added_to_a_shared_import_line_is_not_a_change_of_a_spec_test(repo):
+    """A spec test counts the imported names it uses, not the whole line they share with other tests' names."""
+    (repo / "tests" / "test_imports.py").write_text(dedent('''\
+        import pytest
+        from math import ceil, floor
+
+
+        @pytest.mark.spec
+        def test_ceil():
+            assert ceil(1.5) == 2
+        '''))
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "imports")
+    git(repo, "switch", "-q", "-c", "later")
+    edit(repo, "tests/test_imports.py", "from math import ceil, floor", "from math import ceil, floor, sqrt")
+    assert spec_diff(repo, "work").spec_tests == []
+    edit(repo, "tests/test_imports.py", "from math import ceil, floor, sqrt", "from math import floor as ceil, sqrt")
+    assert spec_diff(repo, "work").spec_tests == ["tests/test_imports.py::test_ceil: changed"]
+
+
+@pytest.mark.parametrize("before, after", [
+    ("from .m import f", "from ..m import f"),  # the level
+    ("from .m import f", "from .n import f"),  # the module
+    ("import os.path, os.sep", "import os.sep"),  # one of two dotted names of the same root
+    ("import os.path, os.sep", "import os.curdir, os.sep"),
+])
+def test_a_change_of_where_an_imported_name_comes_from_is_a_change(repo, before, after):
+    """Each import a spec test uses counts, whatever its form."""
+    name = "f" if "from" in before else "os"
+    (repo / "tests" / "test_where.py").write_text(f"import pytest\n{before}\n\n\n@pytest.mark.spec\ndef test_it():\n"
+                                                  f"    assert {name}\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "where")
+    git(repo, "switch", "-q", "-c", "later")
+    edit(repo, "tests/test_where.py", before, after)
+    assert spec_diff(repo, "work").spec_tests == ["tests/test_where.py::test_it: changed"]
