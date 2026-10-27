@@ -14,8 +14,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 - duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`, one
   structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`; `Usage` and
   `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which shows a run's cost and starts a small run
-  (at most `SMALL_RUN`, 500 rows) at once, and a larger one, or one that redoes decisions (`redo=True`), only with
-  `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
+  (at most `SMALL_RUN`, 500 rows waiting) at once, and a larger one, or a full reclassification (`full=True`), only
+  with `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
 - duckkit: `[anthropic] api_key` (`ANTHROPIC_API_KEY`) is a standard private setting: `spec.anthropic_api_key()`,
   `privacy-check` refuses its value in git, and `testing.isolate` unsets it. The guard keeps `duckkit.llm` out of
   the browser app.

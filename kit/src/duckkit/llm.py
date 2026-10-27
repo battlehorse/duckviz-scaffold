@@ -12,8 +12,8 @@ only sends them, with the settings every app wants:
 - the tokens of every call in `Claude.usage`, and their cost.
 
 A large paid run is a hard stop (docs/how-we-work.md): the user says yes in the chat first. `cost_gate` shows the
-estimate of every run, starts a small one (at most `SMALL_RUN` rows) at once, and starts a larger one, or one that
-redoes decisions, only with `--yes`. The app adds the `--yes` command to the `ask` rules of its
+estimate of every run. It starts a small one at once (at most `SMALL_RUN` rows waiting), and a larger one, or a full
+reclassification, only with `--yes`. The app adds the `--yes` command to the `ask` rules of its
 `.claude/settings.json` (docs/how-we-work.md). Tests use `duckkit.testing.FakeAnthropic`: no network and no key.
 """
 
@@ -41,7 +41,7 @@ LONG_PROMPT = 100_000
 LONG_PRICES = {"claude-haiku-5-5": (Decimal("0.50"), Decimal("2.50"), Decimal("0.05"))}
 CACHE_WRITE = Decimal("1.25")
 FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5"}  # Claude Haiku 5.5 has no server-side fallback
-SMALL_RUN = 500  # rows: a run this small starts without --yes (cost_gate)
+SMALL_RUN = 500  # rows waiting: a run with this many or fewer starts without --yes (cost_gate)
 
 
 class LLMError(RuntimeError):
@@ -157,20 +157,21 @@ def _anthropic():
 
 
 def cost_gate(spec: AppSpec, what: str, rows: int, estimate: Decimal, yes: bool, command: str,
-              redo: bool = False) -> bool:
-    """Whether a paid run may start, after one line with what it sends and costs. A small run (at most `SMALL_RUN`
-    rows, and not `redo`) starts at once: the spending limit of the API key caps it. A larger run, or one that redoes
-    decisions already made (`redo`, such as an app's `--reclassify`), starts only with `yes`. Without it, print the
-    command that runs it, and send nothing. Such a run is a hard stop (docs/how-we-work.md): the user says yes in the
-    chat first, and the app adds the `--yes` command to the `ask` rules of its `.claude/settings.json`.
+              full: bool = False) -> bool:
+    """Whether a paid run may start, after one line with what it sends and costs. A small run starts at once: at most
+    `SMALL_RUN` rows waiting, and not a full reclassification. A larger run, or a full reclassification (`full`: every
+    decision made by the model is made again, such as an app's `--reclassify`), starts only with `yes`. Without it,
+    print the command that runs it, and send nothing. Such a run is a hard stop (docs/how-we-work.md): the user says
+    yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its `.claude/settings.json`.
 
-    `what` says what the run covers ("120 rows"), `rows` how many; `command` is the command line to run it
+    `what` says what the run sends ("120 rows"). `rows` counts every row waiting, not only the rows this run sends,
+    so a large run split into small ones (`--limit`) still needs `yes`. `command` is the command line to run it
     (`classify`)."""
     cost = "under $0.01" if estimate < Decimal("0.01") else f"about ${estimate:.2f}"
-    if yes or (rows <= SMALL_RUN and not redo):
+    if yes or (rows <= SMALL_RUN and not full):
         typer.echo(f"Sending {what} to Claude, for {cost}.")
         return True
-    why = "It redoes decisions already made" if redo else f"Over {SMALL_RUN} rows"
+    why = "It is a full reclassification" if full else f"Over {SMALL_RUN} rows wait"
     typer.echo(f"This run would send {what} to Claude, for {cost}. {why}, so it needs --yes. Nothing was sent.")
     typer.echo(f"To run it: uv run {spec.cli} {command} --yes")
     return False
