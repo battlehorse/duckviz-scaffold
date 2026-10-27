@@ -3,7 +3,7 @@ name: hosting
 description: Manage the {{ title }} app hosted on Google Cloud Run (project {{ gcp_project }}, behind Google sign-in). Deploy a new version (or roll back), add or remove a person who can open it, list who has access, or show its status. Asks before each deploy and each change of access.
 when_to_use: >-
   Use when the user says things like "deploy the app", "redeploy", "roll back the app", "give someone access", "remove someone from the app", "who can see the hosted app?", "is the cloud app OK?".
-argument-hint: "[deploy | rollback | add <email> | remove <email> | users | status]"
+argument-hint: "[deploy | rollback | add <email> | remove <email> | people | status]"
 allowed-tools: Bash(uv run {{ project_name }} status --remote) Bash(git status *) Bash(git fetch *) Bash(git rev-parse *) Bash(git log *) Bash(git rev-list *) Bash(uv run pytest -q) Bash(gcloud auth list *) Bash(gcloud run services describe {{ project_name }} *) Bash(gcloud run revisions list --service={{ project_name }} *) Bash(gcloud logging read *) Bash(gcloud iap web get-iam-policy --resource-type=cloud-run --service={{ project_name }} *) Bash(gcloud run deploy {{ project_name }} *) Bash(gcloud run services update-traffic {{ project_name }} *) Bash(gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} *) Bash(gcloud iap web remove-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} *)
 ---
 
@@ -20,8 +20,8 @@ explains the architecture and the one-time setup. This skill does the recurring 
 | Region | `{{ gcp_region }}` |
 | Service | `{{ project_name }}` |
 
-Add `--project={{ gcp_project }} --region={{ gcp_region }}` to every `gcloud` command below (the IAP commands take
-`--region` too). Do not depend on the gcloud defaults.
+Add `--project={{ gcp_project }} --region={{ gcp_region }}` to every `gcloud run` and `gcloud iap` command below.
+`gcloud logging read` takes `--project` only. Do not depend on the gcloud defaults.
 
 ## 0. Before each task
 
@@ -36,8 +36,10 @@ A deploy builds the code of this machine's working tree, so the tree must be the
    as `origin/main`. If it is not, tell the user what is different, and stop. Deploy another branch only if the user
    names it (to try a PR before its merge, say), and then say plainly that the app will run unmerged code.
 2. **Run the tests**: `uv run pytest -q`. If a test fails, stop.
-3. **Ask** the user (AskUserQuestion) to deploy. Show the commit (`git log --oneline -1`) and the serving revision
-   (`gcloud run services describe {{ project_name }} … --format="value(status.latestReadyRevisionName)"`).
+3. **Ask** the user (AskUserQuestion) to deploy. Show the commit (`git log --oneline -1`) and the revision that
+   serves traffic: the one with the most traffic in
+   `gcloud run services describe {{ project_name }} … --format="yaml(status.traffic)"` (after a rollback, it is not
+   the newest one).
 4. **Deploy.** Get the commit with `git rev-parse --short HEAD`, and write it in place of `<commit>` below (do not
    use `$(…)` in the command). It takes about 5 minutes. Keep all the flags: they hold the service's settings. The
    label records the commit for `status --remote` and `/catch-up`, and the variable shows it in the app's sidebar.
@@ -51,8 +53,8 @@ A deploy builds the code of this machine's working tree, so the tree must be the
    ```
 5. **Check the new version.**
    - The output must end with `has been deployed and is serving 100 percent of traffic`.
-   - `uv run {{ project_name }} status --remote` must show the commit you deployed ("Deployed: <commit>, the same as
-     origin/main").
+   - `uv run {{ project_name }} status --remote` must show the commit you deployed: "Deployed: <commit>, the same as
+     origin/main". For a branch the user named, it says "not on origin/main", with that branch's commit.
    - Read the warnings and errors since the deploy:
      `gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="{{ project_name }}" AND severity>=WARNING' --project={{ gcp_project }} --freshness=15m --limit=20 --format="value(timestamp,severity,textPayload)"`.
    - Tell the user to open the URL, check that the page loads, and click *Reload data* if they published new data.
@@ -70,23 +72,24 @@ previous revision still has its image. The next deploy sends all traffic to the 
 
 ## Add a person
 
-1. **Check the email.** It must be a Google account (Gmail, or an address registered with Google).
+1. **Check the email.** It must be a Google account (Gmail, or an address registered with Google). You cannot check
+   that from here: ask the user if it is.
 2. **Ask** the user (AskUserQuestion) to confirm. Say that this person will see **all** the data in the app, not
    only a part of it.
 3. **Add them**:
    `gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} --region={{ gcp_region }} --project={{ gcp_project }} --member=user:<email> --role=roles/iap.httpsResourceAccessor`.
 4. **Tell the user** what to send to the person: the URL, and that they sign in with that Google account. Access can
-   take a few minutes to start. If the sign-in screen refuses them, the OAuth app can still be in *Testing*: the
-   user then adds them as a test user (Google Auth Platform → Audience).
+   take a few minutes to start (docs/hosting.md, *Sharing it with someone*). If the sign-in screen refuses them, the
+   OAuth app can still be in *Testing*: the user then adds them as a test user (Google Auth Platform → Audience).
 
 ## Remove a person
 
-1. **Ask** the user (AskUserQuestion) to confirm the email.
-2. **Remove them**: the command of *Add a person*, with `remove-iam-policy-binding` in place of
+1. **Check** that the email is in the list (*List the people*). If it is not, say so, and change nothing.
+2. **Ask** the user (AskUserQuestion) to confirm the email.
+3. **Remove them**: the command of *Add a person*, with `remove-iam-policy-binding` in place of
    `add-iam-policy-binding`.
-3. **Tell the user**: the person cannot open the app again. A tab that is open now stops at its next reconnect
-   (after the idle pause, or one hour at most).
-4. If the email is not in the list, say so, and change nothing.
+4. **Tell the user**: the person cannot open the app again. A tab that is open now stops at its next reconnect
+   (docs/hosting.md, *Sharing it with someone*).
 
 ## List the people
 
@@ -95,10 +98,10 @@ Show the members of `roles/iap.httpsResourceAccessor`. Ignore other roles.
 
 ## Status
 
-Show in a few lines:
+Run `git fetch --prune` first: the comparison with `origin/main` is as of the last fetch. Then show in a few lines:
 - the URL, the serving revision, and when it was deployed
   (`gcloud run revisions list --service={{ project_name }} … --limit=3`);
-- the deployed commit against `main`: `uv run {{ project_name }} status --remote` ("Deployed:"). Behind `main`: list
+- the deployed commit against `origin/main`: `uv run {{ project_name }} status --remote` ("Deployed:"). Behind `main`: list
   the commits not deployed (`git log --oneline <commit>..origin/main`). No commit label: a deploy from before
   commits were recorded, so suggest `/hosting deploy`;
 - `Iap Enabled` from `gcloud run services describe {{ project_name }} …` (it must be `true`);

@@ -165,7 +165,8 @@ def cost_gate(spec: AppSpec, what: str, rows: int, estimate: Decimal, yes: bool,
     yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its `.claude/settings.json`.
 
     `what` says what the run sends ("120 rows"). `rows` counts every row waiting, not only the rows this run sends,
-    so a large run split into small ones (`--limit`) still needs `yes`. `command` is the command line to run it
+    so a large run split into small ones (`--limit`) still needs `yes`. For a reclassification, the rows that it
+    would decide again count as waiting. `command` is the command line to run it
     (`classify`)."""
     cost = "under $0.01" if estimate < Decimal("0.01") else f"about ${estimate:.2f}"
     if yes or (rows <= SMALL_RUN and not full):

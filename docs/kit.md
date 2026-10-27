@@ -346,9 +346,9 @@ view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the an
   `Usage` prices each call by its own prompt size.
 - `cost_gate(spec, what, rows, estimate, yes, command, full=False)`: whether a paid run may start. It prints what the
   run sends and costs. `rows` counts every row waiting, not only the rows this run sends, so a large run split into
-  small ones (`--limit`) is still large; for a reclassification, the rows it would decide again count as waiting. A
-  small run (at most `SMALL_RUN`, 500 rows waiting) starts at once. The user sets a spend limit in the Anthropic
-  Console before the first run: it caps what any run can cost. A larger run, or a full reclassification (`full=True`:
+  small ones (`--limit`) is still large. For a reclassification, the rows that it would decide again count as waiting.
+  A small run (at most `SMALL_RUN`, 500 rows waiting) starts at once. The user sets a spend limit in the Anthropic
+  Console before the first run: it caps what the runs can cost. A larger run, or a full reclassification (`full=True`:
   every decision the model made is made again, an app's `--reclassify`), starts only with `--yes`. Without it, the
   gate prints the command line that runs it, and sends nothing. Such a run is a hard stop (docs/how-we-work.md): the
   user says yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its
