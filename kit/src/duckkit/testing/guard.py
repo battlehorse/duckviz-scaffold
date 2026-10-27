@@ -154,16 +154,19 @@ def sql_problems(spec: AppSpec) -> tuple[int, list[str]]:
 
 def imports(path: Path) -> set[str]:
     """Every module that `path` imports, every `module.name` it imports from one, and every WHOLE_DATABASE name it
-    reaches as an attribute (`snapshot.database_snapshot`)."""
+    reaches another way: as an attribute (`snapshot.database_snapshot`), or as a bare name after `import *`. It reads
+    names, not values: `getattr` with a string is not caught, and any attribute or name of that spelling counts."""
     found = set()
-    attributes = {name.rsplit(".", 1)[1]: name for name in WHOLE_DATABASE}
+    short = {name.rsplit(".", 1)[1]: name for name in WHOLE_DATABASE}
     for node in ast.walk(ast.parse(path.read_text())):
         if isinstance(node, ast.Import):
             found |= {alias.name for alias in node.names}
         elif isinstance(node, ast.ImportFrom) and node.module:
             found |= {node.module} | {f"{node.module}.{alias.name}" for alias in node.names}
-        elif isinstance(node, ast.Attribute) and node.attr in attributes:
-            found.add(attributes[node.attr])
+        elif isinstance(node, ast.Attribute) and node.attr in short:
+            found.add(short[node.attr])
+        elif isinstance(node, ast.Name) and node.id in short:
+            found.add(short[node.id])
     return found
 
 

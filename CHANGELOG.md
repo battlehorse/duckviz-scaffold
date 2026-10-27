@@ -5,6 +5,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **`/hosting`** (`cloud_run`) does each task in full: the settings, the deploy checks (a clean `main`, the
+  tests, the user's OK), the new version checked with `status --remote`, a rollback, adding a person (a Google
+  account, all the data) and removing one (an open tab stops at its next reconnect), the people, and the status.
 - duckkit: `spec-diff` counts each imported name that a spec test uses on its own. Adding another name to a shared
   `from … import a, b` line (for a new unit test) no longer shows as a change of the spec test.
 - duckkit: the guard also fails a browser app that uses `snapshot.database_snapshot` (`guard.WHOLE_DATABASE`), by
@@ -21,12 +24,12 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which shows a run's cost and starts a small run
   (at most `SMALL_RUN`, 500 rows waiting) at once, and a larger one, or a full reclassification (`full=True`), only
   with `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
-- Template: a new option, **`llm`** (default off, asked only with `curations`): decisions made by Claude. It adds
-  the `llm` extra, `[anthropic] api_key` in `config.example.toml`, and, seeded: `classify.py` (an example that labels
-  the days whose value stands out), a `classify` command that shows the estimate and needs `--yes` over 500 days waiting,
-  its test with `FakeAnthropic`, and a `/classify` skill.
-  `.claude/settings.json` makes Claude Code ask before `classify --yes` (a large run). A small run is not a hard
-  stop (docs/how-we-work.md): a spend limit in the Anthropic Console caps it. `render.sh`'s all-on sample turns it on.
+- Template: a new option, **`llm`** (default off, asked only with `curations`): decisions made by Claude. It adds the
+  `llm` extra, `[anthropic] api_key` in `config.example.toml`, and, seeded: `classify.py` (an example that labels the
+  days whose value stands out), a `classify` command that shows the estimate and needs `--yes` over 500 days waiting,
+  its test with `FakeAnthropic`, and a `/classify` skill. `.claude/settings.json` makes Claude Code ask before
+  `classify --yes` (a large run). A small run is not a hard stop (docs/how-we-work.md): a spend limit in the Anthropic
+  Console caps it. `render.sh`'s all-on sample turns it on.
 - duckkit: `[anthropic] api_key` (`ANTHROPIC_API_KEY`) is a standard private setting: `spec.anthropic_api_key()`,
   `privacy-check` refuses its value in git, and `testing.isolate` unsets it. The guard keeps `duckkit.llm` out of
   the browser app.
@@ -41,9 +44,10 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   in the app, that edit revises a browser check, so its PR declares it (docs/how-we-work.md).
 
 **Steps:**
-- The guard now fails when the browser app's code (`app_code`: `app/`, `query/`, `analysis.py` by default) uses
-  `snapshot.database_snapshot`. A helper for a local-only app or a command that wraps it (in `query/`, say) moves
-  out of `app_code`, for example next to the local-only app.
+- The guard now fails when the browser app's code (`app_code`: `app/`, `query/`, `analysis.py` by default) or its
+  tests (`tests/app/`) use `snapshot.database_snapshot`. A helper that wraps `database_snapshot` for a local-only
+  app or a command (in `query/`, say) moves out of `app_code`, for example next to the local-only app. A test in
+  `tests/app/` that uses it moves out, or reads the contract with `contract_snapshot`.
 
 ## v0.6.1
 

@@ -165,13 +165,14 @@ def cost_gate(spec: AppSpec, what: str, rows: int, estimate: Decimal, yes: bool,
     yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its `.claude/settings.json`.
 
     `what` says what the run sends ("120 rows"). `rows` counts every row waiting, not only the rows this run sends,
-    so a large run split into small ones (`--limit`) still needs `yes`. `command` is the command line to run it
+    so a large run split into small ones (`--limit`) still needs `yes`. For a reclassification, the rows that it
+    would decide again count as waiting. `command` is the command line to run it
     (`classify`)."""
     cost = "under $0.01" if estimate < Decimal("0.01") else f"about ${estimate:.2f}"
     if yes or (rows <= SMALL_RUN and not full):
-        typer.echo(f"Sending {what} to Claude, for {cost}.")
+        typer.echo(f"This run: {what}, for {cost}.")  # before the key is checked: it says what, not that it was sent
         return True
-    why = "It is a full reclassification" if full else f"Over {SMALL_RUN} rows wait"
+    why = "It is a full reclassification" if full else f"More than {SMALL_RUN} are waiting"
     typer.echo(f"This run would send {what} to Claude, for {cost}. {why}, so it needs --yes. Nothing was sent.")
     typer.echo(f"To run it: uv run {spec.cli} {command} --yes")
     return False

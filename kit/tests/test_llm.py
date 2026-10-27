@@ -108,12 +108,12 @@ def test_without_a_key_claude_says_where_to_put_it(spec):
 
 def test_the_gate_starts_a_small_run_and_a_large_one_only_with_yes(spec, capsys):
     assert cost_gate(spec, "2 rows", 2, Decimal("0.004"), yes=False, command="classify")
-    assert capsys.readouterr().out == "Sending 2 rows to Claude, for under $0.01.\n"
+    assert capsys.readouterr().out == "This run: 2 rows, for under $0.01.\n"
     assert cost_gate(spec, "500 rows", SMALL_RUN, Decimal("0.65"), yes=False, command="classify")
     capsys.readouterr()
     assert not cost_gate(spec, "501 rows", SMALL_RUN + 1, Decimal("0.6512"), yes=False, command="classify --limit 501")
     out = capsys.readouterr().out
-    assert "501 rows" in out and "$0.65" in out and "Nothing was sent" in out
+    assert "501 rows" in out and "$0.65" in out and "More than 500 are waiting" in out and "Nothing was sent" in out
     assert f"uv run {spec.cli} classify --limit 501 --yes" in out
     assert cost_gate(spec, "501 rows", SMALL_RUN + 1, Decimal("0.6512"), yes=True, command="classify")
     capsys.readouterr()
@@ -123,6 +123,7 @@ def test_the_gate_stops_a_full_reclassification_even_when_small(spec, capsys):
     assert not cost_gate(spec, "2 rows", 2, Decimal("0.004"), yes=False, command="classify --reclassify", full=True)
     out = capsys.readouterr().out
     assert "full reclassification" in out and "Nothing was sent" in out
+    assert f"uv run {spec.cli} classify --reclassify --yes" in out
     assert cost_gate(spec, "2 rows", 2, Decimal("0.004"), yes=True, command="classify --reclassify", full=True)
 
 

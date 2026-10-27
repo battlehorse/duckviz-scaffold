@@ -238,14 +238,16 @@ status.
 
 ## Sharing it with someone
 
-Any Google account can get in. All viewers see all the data that `/publish` sends.
+Any Google account (Gmail, or an address registered with Google) can get in, and access can take a few minutes to
+start. All viewers see all the data that `/publish` sends.
 
 ```sh
 gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} \
     --region={{ gcp_region }} --project={{ gcp_project }} --member=user:THEIR_EMAIL --role=roles/iap.httpsResourceAccessor
 ```
 
-- **Remove a person:** run the same command with `remove-iam-policy-binding`.
+- **Remove a person:** run the same command with `remove-iam-policy-binding`. A tab that the person has open stops
+  at its next reconnect: after the idle pause, or after one hour at most (`--timeout=3600`).
 - **See who has access:** `gcloud iap web get-iam-policy --resource-type=cloud-run --service={{ project_name }}
   --region={{ gcp_region }} --project={{ gcp_project }}`.
 - **Testing mode:** if the OAuth app is still in *Testing* (step 7), also add the person as a test user.
