@@ -83,9 +83,10 @@ the whole database, which a hosted app cannot read.
 
 **`AppEntry(name, port, title="", hosted=True, tailnet_port=None)`** describes one Streamlit app of the project.
 Its entry point is `src/<package>/<name>/main.py`.
-- `hosted=False` marks an app that may read the whole database, such as a curation tool. `hosted=True` (the
-  default) means that it reads only the contract. Only the browser app (`app`) runs on Cloud Run: an extra app runs
-  on this machine, whatever its flag.
+- `hosted=False` marks an app that may read the whole database, such as a curation tool: the browser app may never
+  import it. `hosted=True` (`AppEntry`'s default) means that the app should read only the contract. An `extra_apps`
+  entry without `hosted` is `hosted: false` (the template's default). Only the browser app (`app`) runs on Cloud
+  Run: an extra app runs on this machine, whatever its flag.
 - `tailnet_port` is the HTTPS port `--tailnet` serves on. It defaults to the local port, not 443, because other
   apps on the machine may use 443.
 
@@ -172,7 +173,7 @@ read-only, copies what it needs into an in-memory database, and detaches. So `in
 |---|---|---|
 | `contract_snapshot(spec, source=None)` | only the contract's views, as tables with only the reference schema's columns. External access is off, so the copy can't read files. It refuses a database with another contract name or major version (`ContractError`). `source` defaults to `spec.app_db`, then the local database. | the browser app |
 | `contract_copy(spec, source=None)` | the same copy, with external access still on, so `publish` can attach its target | `publish` |
-| `database_snapshot(spec, path=None)` | everything: tables and views. External access is off. | `sql`, `status`, local-only apps |
+| `database_snapshot(spec, path=None)` | everything: tables and views. External access is off. | `sql`, `status`, `hosted: false` apps |
 | `attach(spec, source)` | an in-memory database with the source attached read-only as `src` | the above |
 | `motherduck(spec, con)` | loads the MotherDuck extension and signs in with the token, or says where to put one | the above, `publish` |
 | `memory(spec)`, `literal(text)` | an empty database in the app's time zone; a quoted SQL string | everywhere |

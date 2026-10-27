@@ -48,7 +48,7 @@ def contract_copy(spec: AppSpec, source: Path | str | None = None) -> duckdb.Duc
 
 
 def database_snapshot(spec: AppSpec, path: Path | None = None) -> duckdb.DuckDBPyConnection:
-    """An in-memory copy of the whole database (tables and views), for `sql`, `status` and local-only apps.
+    """An in-memory copy of the whole database (tables and views), for `sql`, `status` and `hosted: false` apps.
 
     The copy can't change the real database, and external file access is switched off, so queries can't read or
     write files either. Take a new snapshot to see newer data.
