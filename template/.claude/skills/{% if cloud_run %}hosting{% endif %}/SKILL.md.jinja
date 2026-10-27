@@ -76,7 +76,7 @@ If the new version is broken, send all traffic to the previous revision, after t
    `gcloud run services describe {{ project_name }} … --format="yaml(status.traffic)"`), and the second-newest is
    Ready: that is the previous revision. In any other case (a rollback was done already, or a deploy failed in
    between), say so, and stop. The fix is a deploy of a fixed commit.
-3. **Ask** the user (AskUserQuestion): "Roll back to commit <commit>? Do not pick a commit you rolled back from
+3. **Ask** the user (AskUserQuestion): "Roll back to commit <commit>? Answer no if you rolled back from this commit
    before." Only the user knows that. If the user does not know, or says no, stop: the fix is a deploy of a fixed
    commit.
 4. **Roll back**:

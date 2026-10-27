@@ -21,9 +21,11 @@ TAILSCALE_APP = "/Applications/Tailscale.app/Contents/MacOS/Tailscale"  # the CL
 class AppEntry:
     """One Streamlit app of the project: `src/<package>/<name>/main.py`.
 
-    `hosted` apps read only the contract, so they may run on Cloud Run; the others (a curation app, say) read the
-    whole database and run on this machine only. `tailnet_port` is the HTTPS port `--tailnet` serves on (default:
-    the local port again, not 443, which other apps on this machine may serve)."""
+    An app with `hosted=False` (a curation app, say) may read the whole database, and the browser app may never
+    import it. The browser app may import an app with `hosted=True`, which should read only the contract (no test
+    checks that). Only the browser app (`app`) goes to Cloud Run. An extra app runs on this machine, whatever its
+    `hosted` flag. `tailnet_port` is the HTTPS port `--tailnet` serves on (default: the local port again, not 443,
+    which other apps on this machine may serve)."""
 
     name: str
     port: int

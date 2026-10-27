@@ -54,7 +54,7 @@ rename: see the last column.
 | `db_file` | `<project_name>.duckdb` | The database file in `data/`. `<PREFIX>_DB` overrides it. | Move the file, or keep the old name. An existing app sets its current file name here. |
 | `timezone` | `Europe/London` | The `TimeZone` of every connection duckkit opens (store, snapshots, backups). This decides what a "local day" is in the views. | The views' days and hours move. Check the contract's rules and tests. |
 | `app_port` | 8501 | The browser app's port on localhost. On the tailnet it is the HTTPS port too. Pick one that no other app on the machine uses. | Edit freely. Bookmarks change. |
-| `extra_apps` | `[]` | More Streamlit apps besides `app`, as a YAML list of `{name, port, title, hosted}`. Each one gets an `AppEntry`, a row in the app skill, `docs/cli.md` and CLAUDE.md. A `hosted: false` app (a curation tool, say) may read the whole database and never goes to Cloud Run, and the browser app may never import it. You write its code in `src/<package>/<name>/`. | Add or remove entries, then write or delete the code. |
+| `extra_apps` | `[]` | More Streamlit apps besides `app`, as a YAML list of `{name, port, title, hosted}`. Each one gets an `AppEntry`, a row in the app skill, `docs/cli.md` and CLAUDE.md. `hosted` defaults to `false`: such an app (a curation tool, say) may read the whole database, and the browser app may never import it. The browser app may import a `hosted: true` app, which should read only the contract. No extra app goes to Cloud Run: only `app` does (one hosted app for each project). You write its code in `src/<package>/<name>/`. | Add or remove entries, then write or delete the code. |
 
 These come with an option, and are asked only when it is on:
 
