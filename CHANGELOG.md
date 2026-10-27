@@ -5,6 +5,12 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **`docs/hosting.md`** (`cloud_run`) explains how the hosted app works, with diagrams: IAP and Google
+  sign-in, Cloud Run's instances and live connection, the idle pause, the token secret, Cloud Build and Artifact
+  Registry. It adds the costs, a step-by-step one-time setup (the billing link, the image cleanup policy, a budget
+  alert, a read-only (read-scaling) token pasted at a hidden prompt, the OAuth client for a project with no
+  organisation), updating, rolling back, sharing and deleting. An app that keeps its own `docs/hosting.md` (a
+  deviation) keeps its side of the conflict, or drops the deviation and takes this one.
 - duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`, one
   structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`; `Usage` and
   `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which shows a run's cost and starts a small run
@@ -13,10 +19,15 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 - duckkit: `[anthropic] api_key` (`ANTHROPIC_API_KEY`) is a standard private setting: `spec.anthropic_api_key()`,
   `privacy-check` refuses its value in git, and `testing.isolate` unsets it. The guard keeps `duckkit.llm` out of
   the browser app.
+- duckkit: **`status --remote`** says whether the published copy is current ("Published:", from `publish.compare`)
+  and, with `cloud_run`, whether the hosted app runs the latest commit ("Deployed:", from the service's `commit`
+  label against `origin/main`). A check that can't run says why in its line. `duckkit.hosting` reads the label.
+- Template: `/catch-up` runs `status --remote` in place of `publish --check` and its own `gcloud` lines.
 - duckkit: the guard (`testing.guard.KIT_SERVICE`) also keeps `duckkit.curated` and `duckkit.specdiff` out of the
   browser app, as docs/kit.md already says (both are ingestion-side).
 - Template: `/app-check` and the seeded browser checks switch the theme with the Light and Dark buttons of the ⋮
-  menu (Streamlit no longer has them under Settings). An app can fix its own `docs/browser-checks.md` the same way.
+  menu (Streamlit no longer has them under Settings). An app can fix its own `docs/browser-checks.md` the same way:
+  in the app, that edit revises a browser check, so its PR declares it (docs/how-we-work.md).
 
 ## v0.6.1
 

@@ -124,3 +124,10 @@ def test_the_gate_stops_a_run_that_redoes_decisions_even_when_small(spec, capsys
     out = capsys.readouterr().out
     assert "redoes decisions already made" in out and "Nothing was sent" in out
     assert cost_gate(spec, "2 rows", 2, Decimal("0.004"), yes=True, command="classify --reclassify", redo=True)
+
+
+def test_the_fake_says_when_a_test_runs_out_of_replies(spec):
+    c, _ = claude(spec, claude_reply({"label": "a"}))
+    c.call("s", "1", SCHEMA)
+    with pytest.raises(AssertionError, match="no reply left for request 2"):
+        c.call("s", "2", SCHEMA)
