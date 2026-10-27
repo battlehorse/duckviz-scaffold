@@ -5,6 +5,12 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **`docs/hosting.md`** (`cloud_run`) explains how the hosted app works, with diagrams: IAP and Google
+  sign-in, Cloud Run's instances and live connection, the idle pause, the token secret, Cloud Build and Artifact
+  Registry. It adds the costs, a step-by-step one-time setup (the billing link, the image cleanup policy, a budget
+  alert, a read-only (read-scaling) token pasted at a hidden prompt, the OAuth client for a project with no
+  organisation), updating, rolling back, sharing and deleting. An app that keeps its own `docs/hosting.md` (a
+  deviation) keeps its side of the conflict, or drops the deviation and takes this one.
 - duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`,
   one structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`;
   `Usage` and `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which runs a paid command only with
