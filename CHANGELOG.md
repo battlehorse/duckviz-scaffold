@@ -3,7 +3,10 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.8.0
+
+**One review for each PR** (on Sonnet, with no second review), a fuller **`/catch-up`** (a remote session, PR
+stacks, tests after a pull), and wording fixes for the `hosted` flag.
 
 - Template: **`/catch-up` does more.** It asks first whether the session is a long-running remote one: if yes, it
   keeps the Mac awake (`caffeinate -is`, macOS only: the process keeps running after the session) and tells the user
