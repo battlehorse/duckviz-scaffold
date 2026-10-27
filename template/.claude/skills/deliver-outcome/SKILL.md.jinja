@@ -39,7 +39,7 @@ For each PR of the plan:
    reviewer. If you and the reviewer still disagree on a blocking finding after a few rounds, ask the user. Put the
    findings you don't fix in the PR text, with the reason.
 6. Wait for CI.
-   - **The spec is unchanged:** add the label (`gh pr edit <number> --add-label merged-by-claude`), merge it with a
+   - **The spec is unchanged:** merge it on your own: add the label (`gh pr edit <number> --add-label merged-by-claude`), merge it with a
      merge commit (`gh pr merge <number> --merge`), and go on.
    - **The spec is only extended:** follow the merge rule of docs/how-we-work.md ("The merge rule").
      Record each `Extension agreed` line, with the commit the review read, in the PR's *Evidence*, then add the

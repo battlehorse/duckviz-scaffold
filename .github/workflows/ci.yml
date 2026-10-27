@@ -38,7 +38,8 @@ jobs:
 
   # Labels a PR that touches the scaffold's spec (.claude/spec-paths) with spec-change. The PR says whether it
   # extends or revises the spec (docs/how-we-work.md). Before it merges, Claude reads the PR's *Spec changes*
-  # section and the reviewer's answer.
+  # section and the reviewer's answer. It also creates the label merged-by-claude, which Claude adds before a merge
+  # on its own.
   spec:
     if: github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
