@@ -34,6 +34,16 @@ def test_forbidden_modules(spec):
     assert not guard.forbidden("duckkit.snapshot", banned) and not guard.forbidden("shop.dbx", banned)
 
 
+def test_the_browser_app_may_not_copy_the_whole_database(spec, tmp_path):
+    path = tmp_path / "page.py"
+    path.write_text("from duckkit.snapshot import contract_snapshot\n")
+    assert not guard.import_problems(spec, path)
+    path.write_text("from duckkit.snapshot import database_snapshot\n")
+    assert guard.import_problems(spec, path) == {"duckkit.snapshot.database_snapshot"}
+    path.write_text("from duckkit import snapshot\n\ncon = snapshot.database_snapshot(SPEC)\n")
+    assert guard.import_problems(spec, path) == {"duckkit.snapshot.database_snapshot"}
+
+
 def test_the_guard_refuses_every_ingestion_module_of_the_kit_docs():
     """docs/kit.md's "Which side may import what" is the list: each ingestion row is in KIT_SERVICE, and no other."""
     heading = "## Which side may import what"

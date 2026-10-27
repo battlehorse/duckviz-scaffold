@@ -5,6 +5,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: the guard also fails a browser app that uses `snapshot.database_snapshot` (`guard.WHOLE_DATABASE`), by
+  import or as an attribute: a copy of the whole database, which a hosted app cannot read. The browser app reads the
+  contract through `contract_snapshot` only.
 - Template: **`docs/hosting.md`** (`cloud_run`) explains how the hosted app works, with diagrams: IAP and Google
   sign-in, Cloud Run's instances and live connection, the idle pause, the token secret, Cloud Build and Artifact
   Registry. It adds the costs, a step-by-step one-time setup (the billing link, the image cleanup policy, a budget
@@ -27,6 +30,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 - Template: `/app-check` and the seeded browser checks switch the theme with the Light and Dark buttons of the ⋮
   menu (Streamlit no longer has them under Settings). An app can fix its own `docs/browser-checks.md` the same way:
   in the app, that edit revises a browser check, so its PR declares it (docs/how-we-work.md).
+
+**Steps:**
+- The guard now fails when the browser app's code (`app_code`: `app/`, `query/`, `analysis.py` by default) uses
+  `snapshot.database_snapshot`. A helper for a local-only app or a command that wraps it (in `query/`, say) moves
+  out of `app_code`, for example next to the local-only app.
 
 ## v0.6.1
 
