@@ -233,17 +233,18 @@ status.
   `uv run {{ project_name }} publish --check` tells you if MotherDuck has the latest data.
 - **New code:** after a merge, `/hosting deploy` (or step 6 from `main`). `status --remote` and `/hosting status`
   compare the deployed commit with `origin/main`.
-- **Roll back** with no new build: `/hosting rollback`. By hand, find the previous revision's name, then send all
-  traffic to it:
+- **Roll back** with no new build: `/hosting rollback`. By hand, list the two newest revisions, with their commits:
+  the newest is the first line, and the previous revision is the second. Then send all traffic to it:
   ```sh
-  gcloud run revisions list --service={{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }}
+  gcloud run revisions list --service={{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} \
+      --limit=2 --format="table[no-heading](metadata.name, metadata.labels.commit, status.conditions[0].type, status.conditions[0].status)"
   gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} \
       --to-revisions=PREVIOUS_REVISION=100
   ```
   The cleanup policy keeps the 2 most recent images, so a rollback is safe only when the newest revision serves and
   the second-newest is Ready. In any other case (after a rollback, or after a failed deploy), deploy a fixed commit
-  instead. If a deploy after a
-  rollback does not serve 100 percent, send the traffic to it:
+  instead. Do not roll back to a commit that you rolled back from before. If a deploy after a rollback does
+  not serve 100 percent, send the traffic to it:
   `gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-latest`.
 - **A new MotherDuck token:** store it as a new version of the secret, then deploy again:
   ```sh
@@ -270,9 +271,9 @@ gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ pro
 ## One hosted app for each project
 
 A project hosts one app: this app's browser app. Its other Streamlit apps (`extra_apps`, a curation tool, say) run
-on your computer only: the image runs the browser app alone, even for an extra app with `hosted: true` (which only
-means that it reads only the contract). Another app of this kind gets its own project, with its own answers to
-`gcp_project` and `gcp_region`.
+on your computer only: the image runs the browser app alone, even for an extra app with `hosted: true`
+(`hosted: true` says only that the app reads the contract and nothing else). Another app of this kind gets its own
+project, with its own answers to `gcp_project` and `gcp_region`.
 
 ## Deleting it
 
