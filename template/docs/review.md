@@ -7,10 +7,10 @@ reviewer gets the PR and this file, and nothing of the author's reasoning.
 
 Each PR gets one review (docs/how-we-work.md, "The independent review"). Each finding has a level:
 
-- **Blocking**: the author fixes it before the merge, or says in the PR why the finding is wrong. A bug, personal data, a spec file the PR touches but
-  does not declare, a spec file marked *extends* that is not an extension, a weakened check, missing evidence for a
-  check that applies, a file marked *revises* in a PR that holds more than the revision, or code or text that a
-  reader cannot follow.
+- **Blocking**: the author fixes it before the merge. If the author finds that the finding is wrong, the author says
+  why, and the PR waits for the user. A bug, personal data, a spec file the PR touches but does not declare, a spec
+  file marked *extends* that is not an extension, a weakened check, missing evidence for a check that applies, a file
+  marked *revises* in a PR that holds more than the revision, or code or text that a reader cannot follow.
 - **Should**: fix it in this PR, or say in the PR why not.
 - **Nit**: cosmetic. Fix it only when the fix is trivial and goes in a commit that fixes something else.
 

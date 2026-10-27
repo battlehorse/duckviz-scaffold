@@ -31,7 +31,8 @@ rules. Do not change any file, branch or PR, and do not post anything to GitHub.
    - code that no longer does what a spec doc says, behaviour that changed without its spec doc, and a check or a
      test made weaker so that it passes;
    - evidence that the PR's *Evidence* section does not show, such as the browser checks of a page it changes. The
-     `Extension agreed` lines come after your review: their absence is not a finding;
+     `Extension agreed` lines are yours to write (see the end of this file): their absence in the PR is not a
+     finding;
    - spec files the PR touches but does not declare in its *Spec changes* section, and a spec test whose docstring
      does not state the rule that it enforces;
    - for each spec file marked *extends*: whether it only adds, and keeps each promise that the spec already makes.
@@ -53,7 +54,8 @@ A list, most severe first, at most 15 findings:
   docs/review.md (or "bug"). **Fix:** the change, concrete.
 
 Then the commit you reviewed, in one line: `Reviewed: <commit>`. Read it (`gh pr view <number> --json
-headRefOid`) before the diff, and again at the end. If it changed, review again.
+headRefOid`) before the diff, and again at the end. If it changed while you worked, start again, and review the new commit in
+this same answer.
 
 Then one line for each spec file that the PR marks *extends* and that you agree is an extension:
 `Extension agreed: <path>`. Your review is the only one: the author fixes the findings and does not ask you

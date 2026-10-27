@@ -37,7 +37,7 @@ For each PR of the plan:
 4. Open the PR, with the sections of `.github/pull_request_template.md`.
 5. When CI passes and the *Evidence* is complete, ask the `reviewer` agent to review the PR, once: give it the PR
    number only. Then decide what to do with each finding (docs/how-we-work.md, "The independent review"): fix each
-   blocking finding, or say why it is wrong; fix a should finding, or give the reason; fix a nit only when the fix
+   blocking finding (if you find that it is wrong, say why: the PR then waits for the user); fix a should finding, or give the reason; fix a nit only when the fix
    is trivial and goes in a commit that fixes something else. Do not ask for a second review. In the PR's *Review*
    section, list each blocking and should finding and what you did with it.
 6. Wait for CI.
@@ -45,7 +45,8 @@ For each PR of the plan:
      merge commit (`gh pr merge <number> --merge`), and go on.
    - **The spec is only extended:** follow the merge rule of docs/how-we-work.md ("The merge rule").
      Record each `Extension agreed` line, with the commit the review read, in the PR's *Evidence*, then add the
-     label `merged-by-claude` and merge.
+     label `merged-by-claude` and merge. A file marked *extends* that a commit after the review changed is a
+     revision.
    - **A revision:** the PR waits for the user. Send a push notification that names the revision. Go on with the
      next PRs, stacked on it. If the user rejects it, close it, and drop or redo the PRs on top.
 

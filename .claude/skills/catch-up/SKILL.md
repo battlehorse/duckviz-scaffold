@@ -14,7 +14,9 @@ allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bas
 2. **PRs.** `gh pr list --json number,title,labels,baseRefName,isDraft,body`. For each PR, say:
    - whether it waits for the user (docs/how-we-work.md, "The merge rule"). It waits when its *Spec changes*
      section marks a revision, or when it has the `spec-change` label and does not mark each spec file. It also
-     waits when a file marked *extends* has no `Extension agreed` line in its *Evidence*.
+     waits when a file marked *extends* has no `Extension agreed` line in its *Evidence*, or a commit after the
+     review changed it (`git diff --stat <reviewed commit>..HEAD`), or when its *Review* section leaves a blocking
+     finding not fixed.
    - whether another PR is its base (its base is not `main`).
 3. **Issues.** `gh issue list --limit 10`, and the open outcomes (`gh issue list --label outcome`).
 4. **CI on main.** `gh run list --branch main --limit 3`. Say if the last run failed.
