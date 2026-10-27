@@ -1,0 +1,31 @@
+---
+name: classify
+description: Let Claude make the {{ project_name }} decisions that have none yet (the labels of the days that stand out), with `{{ project_name }} classify`. It costs money and sends those days to Anthropic: it states the estimate, runs a small run at once, and waits for the user's yes before a run with over 500 days waiting. Never changes a decision made by hand.
+when_to_use: >-
+  Use when the user says things like "classify the new days", "label what's new", "let Claude label them".
+argument-hint: "[--limit N] [--model MODEL]"
+allowed-tools: Bash(uv run {{ project_name }} classify) Bash(uv run {{ project_name }} classify --limit *) Bash(uv run {{ project_name }} classify --model *) Bash(uv run {{ project_name }} sql *) Bash(git diff *)
+---
+
+# Classify with Claude
+
+Arguments: $ARGUMENTS
+
+A run costs money. A small run (at most 500 days waiting) is not a hard stop: the command states its cost and runs
+it, and a spend limit in the Anthropic Console caps it. A larger run is a hard stop (docs/how-we-work.md): the
+command sends nothing without `--yes`. A large run split into small ones (`--limit` again and again) is still a
+large run: ask first.
+
+1. **Run** `uv run {{ project_name }} classify $ARGUMENTS`, with any `--yes` taken out of the arguments. It states
+   how many days it sends and what that costs. A small run then goes ahead. With no day to label, say so and stop.
+   It needs `[anthropic] api_key` in config.toml (or `ANTHROPIC_API_KEY`): if it is missing, say where to put it,
+   and never print it.
+2. **A large run** (over 500 days waiting, even with `--limit`) sends nothing, and prints the command with `--yes`.
+   Ask the user (AskUserQuestion): the days, the estimate, and the model. For a first run or after a change to the
+   prompt, suggest a trial with `--limit 10`. Run the command with `--yes` only after the user's yes in the chat.
+   Claude Code asks too.
+3. **Report** what was labelled (`uv run {{ project_name }} sql "SELECT * FROM labels WHERE classified_by = 'llm'
+   ORDER BY classified_at DESC LIMIT 20"`), the API line (calls, tokens, cost), and `git diff --stat curated/`.
+   Offer `/fix-curation` for a label that looks wrong. Do not commit unless the user asks.
+
+(Name this app's own decisions here, as the app replaces the example in `src/{{ package }}/classify.py`.)
