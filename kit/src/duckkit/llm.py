@@ -11,8 +11,9 @@ only sends them, with the settings every app wants:
 - the API errors as one `LLMError`, with a message for the user;
 - the tokens of every call in `Claude.usage`, and their cost.
 
-A run that costs money is a hard stop (docs/how-we-work.md): the user says yes in the chat first. `cost_gate` keeps a
-run from starting by accident: without `--yes`, the command shows the estimate and sends nothing. The app adds the
+A large paid run is a hard stop (docs/how-we-work.md): the user says yes in the chat first. `cost_gate` shows the
+estimate of every run, starts a small one (at most `SMALL_RUN` rows) at once, and starts a larger one only with
+`--yes`. The app adds the
 `--yes` command to the `ask` rules of its `.claude/settings.json` (docs/how-we-work.md). Tests use
 `duckkit.testing.FakeAnthropic`: no network and no key.
 """
@@ -41,6 +42,7 @@ LONG_PROMPT = 100_000
 LONG_PRICES = {"claude-haiku-5-5": (Decimal("0.50"), Decimal("2.50"), Decimal("0.05"))}
 CACHE_WRITE = Decimal("1.25")
 FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5"}  # Claude Haiku 5.5 has no server-side fallback
+SMALL_RUN = 500  # rows: a run this small starts without --yes (cost_gate)
 
 
 class LLMError(RuntimeError):
@@ -155,15 +157,20 @@ def _anthropic():
     return anthropic
 
 
-def cost_gate(spec: AppSpec, what: str, estimate: Decimal, yes: bool, command: str) -> bool:
-    """Whether a paid run may start: only with `yes`. Without it, print what the run would send and cost, and the
-    command that runs it. The flag keeps a run from starting by accident; the hard stop is still the user's yes in
-    the chat, and the app adds the `--yes` command to the `ask` rules of its `.claude/settings.json`.
+def cost_gate(spec: AppSpec, what: str, rows: int, estimate: Decimal, yes: bool, command: str) -> bool:
+    """Whether a paid run may start, after one line with what it sends and costs. A small run (at most `SMALL_RUN`
+    rows) starts at once: the spending limit of the API key caps it. A larger run starts only with `yes`. Without
+    it, print the command that runs it, and send nothing. A large run is a hard stop (docs/how-we-work.md): the user
+    says yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its
+    `.claude/settings.json`.
 
-    `what` says what the run covers ("120 rows"); `command` is the command line to run it (`classify`)."""
-    if yes:
-        return True
+    `what` says what the run covers ("120 rows"), `rows` how many; `command` is the command line to run it
+    (`classify`)."""
     cost = "under $0.01" if estimate < Decimal("0.01") else f"about ${estimate:.2f}"
-    typer.echo(f"This run would send {what} to Claude, for {cost}. Nothing was sent.")
+    if yes or rows <= SMALL_RUN:
+        typer.echo(f"Sending {what} to Claude, for {cost}.")
+        return True
+    typer.echo(f"This run would send {what} to Claude, for {cost}. Over {SMALL_RUN} rows, it needs --yes. "
+               "Nothing was sent.")
     typer.echo(f"To run it: uv run {spec.cli} {command} --yes")
     return False

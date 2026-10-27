@@ -35,7 +35,7 @@ user's approval, but you go on building on top of it, in stacked PRs. docs/how-w
 - **Report** dependency changes and new tags in the PR and in the outcome report.
 - **The hard stops** (docs/how-we-work.md, "What waits for the user"): an action that cannot be undone needs the
   user's yes in the chat first, for that action. These are: publishing, deploying, changing who can open the hosted
-  app, a command that costs money, anything sent to another person; deleting `data/`{% if backup %} or `backups/`{% endif %},
+  app, a large paid run (over 500 rows, or the whole database), anything sent to another person; deleting `data/`{% if backup %} or `backups/`{% endif %},
   `git clean`, a force-push, deleting a pushed tag. `.claude/settings.json` makes Claude Code prompt before the usual
   commands. Never write a command another way to avoid the prompt.
 

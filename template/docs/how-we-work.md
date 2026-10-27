@@ -146,10 +146,12 @@ touches a spec file. The PR's *Spec changes* section says whether each one is an
 
 **The hard stops:** actions that cannot be undone. Claude never does them without the user's yes in the chat, for
 that action:
-- actions with consequences outside the repo: publishing, deploying, changing who can open the hosted app, a command
-  that costs money (a paid classification), anything sent to another person;
+- actions with consequences outside the repo: publishing, deploying, changing who can open the hosted app, a large
+  paid run (a classification of more than 500 rows, or of the whole database), anything sent to another person;
 - actions that destroy data that cannot be got back: deleting `data/` or `backups/`, `git clean` (it deletes the
   ignored files, and `data/` is one of them), a force-push, deleting a pushed tag.
+
+A small paid run is not a hard stop: Claude states its cost and runs it. The spending limit of the API key caps it.
 
 Everything else can be undone with git, a backup or a rebuild, so Claude goes on without asking.
 

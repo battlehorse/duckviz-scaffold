@@ -57,9 +57,10 @@ def test_a_label_set_by_hand_is_never_changed_by_the_model(tmp_path):
 
 
 @pytest.mark.spec
-def test_classify_without_yes_sends_nothing(tmp_path, monkeypatch):
-    """Without --yes, `classify` shows what it would send and cost, and sends nothing (it costs money)."""
+def test_a_large_run_without_yes_sends_nothing(tmp_path, monkeypatch):
+    """A run over duckkit's SMALL_RUN rows shows what it would send and cost, and sends nothing without --yes."""
     ingest(tmp_path)
+    monkeypatch.setattr("duckkit.llm.SMALL_RUN", 1)  # the 2 days of the test data make a large run
     monkeypatch.setattr("duckkit.llm.Claude", lambda *a, **k: pytest.fail("Claude was called without --yes"))
     result = runner.invoke(app, ["classify"])
     assert result.exit_code == 0, result.output

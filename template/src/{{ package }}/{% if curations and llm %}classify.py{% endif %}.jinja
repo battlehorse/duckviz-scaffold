@@ -4,7 +4,7 @@ This is the template's example of decisions that a model makes. Replace it with 
 what to send of each, the choices the model may make (the enum of the schema), and the prompt. Keep the rules:
 - a decision made by hand (`classified_by = 'manual'`) is never sent and never changed;
 - each batch is written as it comes back, so an interrupted run keeps its progress;
-- the run costs money: the command shows the estimate, and sends nothing without `--yes` (`cost_gate`).
+- the run costs money: the command shows the estimate, and a run over 500 days needs `--yes` (`cost_gate`).
 
 What leaves this computer: each day sent, its weekday and its value, and the median value. Nothing else.
 """

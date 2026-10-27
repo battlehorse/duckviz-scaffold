@@ -171,11 +171,12 @@ model makes them well enough for the user to check.
 - duckkit's `llm` extra (`duckkit[llm]` in `pyproject.toml`) and `duckkit.llm` in use;
 - `[anthropic] api_key` in `config.example.toml` (a private setting for every app: `privacy-check` refuses it);
 - seeded (the app's own once written): `src/<package>/classify.py`, an example that asks Claude for the label of
-  each day whose value stands out, a `classify` command that shows the estimate and sends nothing without `--yes`,
+  each day whose value stands out, a `classify` command that shows the estimate and needs `--yes` for a run over 500 rows,
   its test (`tests/test_classify.py`, with `duckkit.testing.FakeAnthropic`: no network, no key) and a `/classify`
   skill. The app replaces the example with its own decisions, its prompt and its schema.
 
-A run that costs money is a hard stop (docs/how-we-work.md): the user says yes in the chat first.
+A small run starts at once, as the API key's spending limit caps it. A large run (over 500 rows, or the whole
+database) is a hard stop (docs/how-we-work.md): the user says yes in the chat first.
 
 **Off:** no model: every decision is made by hand.
 
