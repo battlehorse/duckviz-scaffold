@@ -77,7 +77,7 @@ def test_a_small_run_starts_without_yes_and_states_its_cost(tmp_path, monkeypatc
     monkeypatch.setattr("duckkit.llm.Claude", lambda spec, model: Claude(spec, model=model, client=client))
     result = runner.invoke(app, ["classify"])
     assert result.exit_code == 0, result.output
-    assert "Sending 2 days to Claude, for under $0.01" in result.output and "Labelled 2 of 2 days" in result.output
+    assert "This run: 2 days, for under $0.01" in result.output and "Labelled 2 of the 2 days sent" in result.output
 
 
 def test_a_limited_run_prices_only_the_days_it_sends(tmp_path, monkeypatch):

@@ -169,9 +169,9 @@ def cost_gate(spec: AppSpec, what: str, rows: int, estimate: Decimal, yes: bool,
     (`classify`)."""
     cost = "under $0.01" if estimate < Decimal("0.01") else f"about ${estimate:.2f}"
     if yes or (rows <= SMALL_RUN and not full):
-        typer.echo(f"Sending {what} to Claude, for {cost}.")
+        typer.echo(f"This run: {what}, for {cost}.")  # before the key is checked: it says what, not that it was sent
         return True
-    why = "It is a full reclassification" if full else f"Over {SMALL_RUN} rows wait"
+    why = "It is a full reclassification" if full else f"More than {SMALL_RUN} are waiting"
     typer.echo(f"This run would send {what} to Claude, for {cost}. {why}, so it needs --yes. Nothing was sent.")
     typer.echo(f"To run it: uv run {spec.cli} {command} --yes")
     return False

@@ -113,9 +113,9 @@ def demo(
 def classify(
     limit: Annotated[int | None, typer.Option(min=1, help="Label at most this many days (a cheap trial).")] = None,
     model: Annotated[str, typer.Option(help="The Claude model.")] = DEFAULT_MODEL,
-    yes: Annotated[bool, typer.Option("--yes", help=f"Run even over {SMALL_RUN} days (it costs money).")] = False,
+    yes: Annotated[bool, typer.Option("--yes", help=f"Run even with over {SMALL_RUN} days waiting (it costs money).")] = False,
 ) -> None:
-    """Label the days whose value stands out, with Claude. Over 500 days waiting, a run needs --yes."""
+    """Label the days whose value stands out, with Claude. A large run needs --yes."""
     from duckkit.llm import Claude, LLMError, cost_gate
 
     from {{ package }} import classify as labeller
@@ -138,7 +138,8 @@ def classify(
             labelled = labeller.classify(con, claude, days)
         finally:
             typer.echo(claude.usage.line())
-    typer.echo(f"Labelled {len(labelled)} of {what}: see them with `{{ project_name }} sql \"FROM labels\"`.")
+    sent = "the day sent" if len(days) == 1 else f"the {len(days)} days sent"
+    typer.echo(f"Labelled {len(labelled)} of {sent}: see them with `{{ project_name }} sql \"FROM labels\"`.")
     if missed := [f"{day:%Y-%m-%d}" for day, _ in days if day not in labelled]:
         typer.echo(f"No label for {', '.join(missed)}: Claude gave none, or the day was labelled by hand meanwhile. "
                    "Run it again for the days with no label.")

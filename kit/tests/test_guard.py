@@ -42,6 +42,8 @@ def test_the_browser_app_may_not_copy_the_whole_database(spec, tmp_path):
     assert guard.import_problems(spec, path) == {"duckkit.snapshot.database_snapshot"}
     path.write_text("from duckkit import snapshot\n\ncon = snapshot.database_snapshot(SPEC)\n")
     assert guard.import_problems(spec, path) == {"duckkit.snapshot.database_snapshot"}
+    path.write_text("from duckkit.snapshot import *\n\ncon = database_snapshot(SPEC)\n")
+    assert guard.import_problems(spec, path) == {"duckkit.snapshot.database_snapshot"}
 
 
 def test_the_guard_refuses_every_ingestion_module_of_the_kit_docs():
