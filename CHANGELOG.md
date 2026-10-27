@@ -5,14 +5,19 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **`/catch-up` does more.** It asks first whether the session is a long-running remote one: if yes, it
+  keeps the Mac awake (`caffeinate -is`, macOS only: the process keeps running after the session) and tells the user
+  to type `/remote-control`. It shows PR stacks from bottom to top, lists the remote branches already merged (for
+  cleanup, never deleted), runs the tests after a pull that changed `src/` or `tests/`, and checks the health of each
+  extra app. **Steps:** an app that kept its own richer `/catch-up` (a deviation) takes the template's, and keeps
+  only its own lines.
 - Template, how we work: **one review for each PR.** The reviewer agent reviews a PR once, when CI passes and the
   *Evidence* is complete. Claude then decides what to do with each finding: it fixes a blocking finding, fixes a
-  should finding or gives the reason, and fixes a nit only in a commit that fixes something else. A blocking
-  finding that Claude finds wrong makes the PR wait for the user. The fixes need no second review, and there are no
-  rounds to count. The merge rule takes the one review's `Extension agreed` lines, so the reviewer writes them even
-  when it has blocking findings about other things. A file marked *extends* that a commit after the review changes
-  is a revision. The
-  PR template has a *Review* section that lists each finding and what was done with it. docs/how-we-work.md,
+  should finding or gives the reason, and fixes a nit only in a commit that fixes something else. A blocking finding
+  that Claude finds wrong makes the PR wait for the user. The fixes need no second review, and there are no rounds to
+  count. The merge rule takes the one review's `Extension agreed` lines, so the reviewer writes them even when it has
+  blocking findings about other things. A file marked *extends* that a commit after the review changes is a revision.
+  The PR template has a *Review* section that lists each finding and what was done with it. docs/how-we-work.md,
   docs/review.md, the reviewer agent, `/deliver-outcome`, CLAUDE.md and the PR template say the same.
 - Template: **the reviewer agent runs on Sonnet** (`model: sonnet`), which costs less. In a test on two earlier PRs,
   it found each blocking finding that Opus found, but it gave one of them a lower level. So Claude judges each level
