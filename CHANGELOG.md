@@ -7,12 +7,12 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 - duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`, one
   structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`; `Usage` and
-  `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which shows a run's cost, starts a small run (at
-  most `SMALL_RUN`, 500 rows) at once and a larger one only with `--yes`. `duckkit.testing` has `FakeAnthropic` and
-  `claude_reply`, so no test needs the network or a key.
+  `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which shows a run's cost and starts a small run
+  (at most `SMALL_RUN`, 500 rows) at once, and a larger one, or one that redoes decisions (`redo=True`), only with
+  `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
 - Template: a new option, **`llm`** (default off, asked only with `curations`): decisions made by Claude. It adds
   the `llm` extra, `[anthropic] api_key` in `config.example.toml`, and, seeded: `classify.py` (an example that labels
-  the days whose value stands out), a `classify` command that shows the estimate and needs `--yes` over 500 rows,
+  the days whose value stands out), a `classify` command that shows the estimate and needs `--yes` over 500 days,
   its test with `FakeAnthropic`, and a `/classify` skill.
   `.claude/settings.json` makes Claude Code ask before `classify --yes` (a large run). A small run is not a hard
   stop (docs/how-we-work.md): the spending limit of the API key caps it. `render.sh`'s all-on sample turns it on.
