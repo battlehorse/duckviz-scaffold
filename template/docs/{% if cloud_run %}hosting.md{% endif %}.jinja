@@ -115,7 +115,7 @@ flowchart LR
 | Artifact Registry (2 images kept, about 0.4 GB each) | a few cents a month (0.5 GB free) |
 | Cloud Build | nothing (free daily build minutes) |
 | Secret Manager (one secret) | nothing |
-| MotherDuck | free with the free plan's token; a paid (Business) plan, at MotherDuck's price, for the read-scaling token of step 4 |
+| MotherDuck | free on the free plan, with a read-write token (a deviation, step 4); the read-scaling token of step 4 needs a paid Business plan |
 
 The only cost that grows is an instance that an open tab keeps running: the idle pause limits it to 15 minutes,
 and with one instance, many tabs cost the same as one.
@@ -167,7 +167,7 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
        --project={{ gcp_project }} --data-file=-; unset TOKEN
    ```
    Read-scaling tokens need a paid MotherDuck plan. Without one, the hosted app would need the read-write token
-   that `publish` uses. docs/architecture.md promises a read-only token, so that is a deviation of this app: record
+   that `publish` uses. the scaffold promises a read-only token (its docs/architecture.md), so that is a deviation of this app: record
    it in docs/deviations.md. A read-scaling token reads replicas that take up to a minute to see a new `publish`.
 5. **Make a service account for the app.** It can read that one secret, and nothing else:
    ```sh
@@ -263,14 +263,14 @@ gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ pro
 ## Another app in the same project
 
 Another app of this kind shares the secret `motherduck-token`: the `/hosting` deploy command names it. So both apps
-publish to the same MotherDuck account, and if the first app stores a read-write token (step 4), the second app
-records the same deviation. For the second app:
-- skip step 4: the secret exists;
+must publish to the MotherDuck account of the token in the secret, each to its own database (`motherduck_db`). If
+the first app stores a read-write token (step 4), the second app records the same deviation. For the second app:
+- skip steps 1–4: the project, billing, the APIs, the registry and the secret exist;
 - run steps 5 and 6 with the app's own service name and service account (step 5 binds the new account to the same
   secret);
-- in step 7, skip *Branding* and *Audience*: the project has them. Use the same OAuth client (download its JSON again
-  from *Google Auth Platform → Clients*), add the redirect URI with the same client ID if it is not there, and run
-  the `iap settings set` command and the bindings with the new service name;
+- in step 7, skip *Branding*, *Audience* and the new client: use the project's OAuth client. `iap settings set` needs
+  its client secret: keep the first app's `client_secret_….json` until the second app is done, or add a new secret
+  to the client in the console. Then run `iap settings set` and the bindings with the new service name;
 - step 8 as written.
 
 ## Deleting it
