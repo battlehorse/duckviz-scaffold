@@ -116,3 +116,11 @@ def test_the_gate_starts_a_small_run_and_a_large_one_only_with_yes(spec, capsys)
     assert "501 rows" in out and "$0.65" in out and "Nothing was sent" in out
     assert f"uv run {spec.cli} classify --limit 501 --yes" in out
     assert cost_gate(spec, "501 rows", SMALL_RUN + 1, Decimal("0.6512"), yes=True, command="classify")
+    capsys.readouterr()
+
+
+def test_the_gate_stops_a_run_that_redoes_decisions_even_when_small(spec, capsys):
+    assert not cost_gate(spec, "2 rows", 2, Decimal("0.004"), yes=False, command="classify --reclassify", redo=True)
+    out = capsys.readouterr().out
+    assert "redoes decisions already made" in out and "Nothing was sent" in out
+    assert cost_gate(spec, "2 rows", 2, Decimal("0.004"), yes=True, command="classify --reclassify", redo=True)

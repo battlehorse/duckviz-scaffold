@@ -13,7 +13,7 @@ Arguments: $ARGUMENTS
 
 A run costs money. A small run (at most 500 rows) is not a hard stop: the command states its cost and runs it, and
 the API key's spending limit caps it. A larger run is a hard stop (docs/how-we-work.md): the command sends nothing
-without `--yes`.
+without `--yes`. A large run split into small ones (`--limit` again and again) is still a large run: ask first.
 
 1. **Run** `uv run {{ project_name }} classify $ARGUMENTS`, with any `--yes` taken out of the arguments. It states how
    many rows it sends and what that costs. A small run then goes ahead. With no row to classify, say so and stop.

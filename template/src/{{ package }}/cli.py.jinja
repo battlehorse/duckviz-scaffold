@@ -14,7 +14,7 @@ from duckkit.cli import add_standard_commands, contract_line
 from duckkit.curated import Refused
 {%- endif %}
 {%- if curations and llm %}
-from duckkit.llm import DEFAULT_MODEL
+from duckkit.llm import DEFAULT_MODEL, SMALL_RUN
 {%- endif %}
 
 {% if curations -%}
@@ -113,9 +113,9 @@ def demo(
 def classify(
     limit: Annotated[int | None, typer.Option(min=1, help="Label at most this many days (a cheap trial).")] = None,
     model: Annotated[str, typer.Option(help="The Claude model.")] = DEFAULT_MODEL,
-    yes: Annotated[bool, typer.Option("--yes", help="Run even over 500 days (it costs money).")] = False,
+    yes: Annotated[bool, typer.Option("--yes", help=f"Run even over {SMALL_RUN} days (it costs money).")] = False,
 ) -> None:
-    """Label the days whose value stands out, with Claude. A run over 500 days needs --yes."""
+    """Label the days whose value stands out, with Claude. A large run needs --yes (duckkit.llm.SMALL_RUN)."""
     from duckkit.llm import Claude, LLMError, cost_gate
 
     from {{ package }} import classify as labeller

@@ -67,6 +67,16 @@ def test_a_large_run_without_yes_sends_nothing(tmp_path, monkeypatch):
     assert "2 days" in result.output and "classify --yes" in result.output
 
 
+def test_a_small_run_starts_without_yes_and_states_its_cost(tmp_path, monkeypatch):
+    ingest(tmp_path)
+    client = FakeAnthropic(claude_reply({"days": [{"index": 0, "label": "unusual use"},
+                                                  {"index": 1, "label": "meter fault"}]}))
+    monkeypatch.setattr("duckkit.llm.Claude", lambda spec, model: Claude(spec, model=model, client=client))
+    result = runner.invoke(app, ["classify"])
+    assert result.exit_code == 0, result.output
+    assert "Sending 2 days to Claude" in result.output and "Labelled 2 of 2 days" in result.output
+
+
 def test_an_unknown_model_is_one_line_not_a_traceback(tmp_path):
     ingest(tmp_path)
     result = runner.invoke(app, ["classify", "--model", "claude-unknown"])
