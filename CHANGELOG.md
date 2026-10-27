@@ -3,6 +3,11 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- Template: `/hosting` rollback lists the two newest revisions with their commits and asks the user with the
+  previous one's commit; docs/hosting.md's manual rollback says the same.
+
 ## v0.7.0
 
 **Decisions made by Claude** (the `llm` option), **freshness** (`status --remote`), **hosting in full** (the

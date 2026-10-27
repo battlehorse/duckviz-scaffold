@@ -67,15 +67,18 @@ serving one and one to roll back to), so do not delete images.
 
 ## Roll back
 
-If the new version is broken, ask the user (AskUserQuestion), then send all traffic to the previous revision.
+If the new version is broken, send all traffic to the previous revision, after the user's yes (step 3).
 
-1. **List the two newest revisions**: `gcloud run revisions list --service={{ project_name }} … --limit=2`.
+1. **List the two newest revisions**, with their commits:
+   `gcloud run revisions list --service={{ project_name }} … --limit=2 --format="table[no-heading](metadata.name, metadata.labels.commit, status.conditions[0].type, status.conditions[0].status)"`.
 2. **Check that a rollback is possible.** The cleanup policy keeps the 2 most recent images, so only this case is
    safe: the newest revision serves (it has the most traffic in
    `gcloud run services describe {{ project_name }} … --format="yaml(status.traffic)"`), and the second-newest is
-   Ready. In any other case (a rollback was done already, or a deploy failed in between), say so, and stop. The fix
-   is a deploy of a fixed commit.
-3. **The previous revision** is the second-newest one.
+   Ready: that is the previous revision. In any other case (a rollback was done already, or a deploy failed in
+   between), say so, and stop. The fix is a deploy of a fixed commit.
+3. **Ask** the user (AskUserQuestion): "Roll back to commit <commit>? Do not pick a commit you rolled back from
+   before." Only the user knows that. If the user does not know, or says no, stop: the fix is a deploy of a fixed
+   commit.
 4. **Roll back**:
    `gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-revisions=<previous revision>=100`.
    The next deploy should take all the traffic again: *Deploy*, step 5, checks it, and sends the traffic to the new
