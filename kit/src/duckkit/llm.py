@@ -14,7 +14,8 @@ only sends them, with the settings every app wants:
 A large paid run is a hard stop (docs/how-we-work.md): the user says yes in the chat first. `cost_gate` shows the
 estimate of every run, starts a small one (at most `SMALL_RUN` rows) at once, and starts a larger one, or one that
 redoes decisions, only with `--yes`. The app adds the `--yes` command to the `ask` rules of its
-`.claude/settings.json` (docs/how-we-work.md). Tests use `duckkit.testing.FakeAnthropic`: no network and no key. """
+`.claude/settings.json` (docs/how-we-work.md). Tests use `duckkit.testing.FakeAnthropic`: no network and no key.
+"""
 
 import json
 from dataclasses import dataclass, field
