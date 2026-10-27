@@ -261,25 +261,11 @@ gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ pro
   --region={{ gcp_region }} --project={{ gcp_project }}`.
 - **Testing mode:** if the OAuth app is still in *Testing* (step 7), also add the person as a test user.
 
-## Another app in the same project
+## One hosted app for each project
 
-To host another app of this kind in the same project, answer `gcp_project` and `gcp_region` with the first app's
-values when you make it (the defaults are the app's own name and `europe-west2`). In an app that exists, commit
-your work first, then run `/scaffold-update` with those answers, or:
-`uvx copier update --trust -d gcp_project=<the first app's project> -d gcp_region=<its region>`.
-
-The two apps share the secret `motherduck-token`: the `/hosting` deploy command names it. So both apps must publish
-to the MotherDuck account of the token in the secret, each to its own database (`motherduck_db`, which
-defaults to the contract's name: give the second app another one if the two names are the same). If the first app
-stores a read-write token (step 4), the second app records the same deviation. For the second app:
-- skip steps 1–4: the project, billing, the APIs, the registry and the secret exist;
-- run steps 5 and 6 with the app's own service name and service account (step 5 binds the new account to the same
-  secret);
-- in step 7, skip *Branding*, *Audience* and the new client: use the project's OAuth client. `iap settings set`
-  needs its client secret, and step 7 deleted the first app's file: add a new secret to the client in the console
-  (*Google Auth Platform → Clients*), and download it. Then run `iap settings set` and the bindings with the new
-  service name;
-- step 8 as written.
+A project hosts one app: this app's browser app. Its other Streamlit apps (`extra_apps`, a curation tool, say) run
+on your computer only: the image holds the browser app alone. Another app of this kind gets its own project, with
+its own answers to `gcp_project` and `gcp_region`.
 
 ## Deleting it
 
