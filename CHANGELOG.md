@@ -40,17 +40,21 @@ guide and the `/hosting` skill) and a guard that keeps the browser app off the w
   and, with `cloud_run`, whether the hosted app runs the latest commit ("Deployed:", from the service's `commit`
   label against `origin/main`). A check that can't run says why in its line. `duckkit.hosting` reads the label.
 - Template: `/catch-up` runs `status --remote` in place of `publish --check` and its own `gcloud` lines.
-- duckkit: the guard (`testing.guard.KIT_SERVICE`) also keeps `duckkit.curated` and `duckkit.specdiff` out of the
-  browser app, as docs/kit.md already says (both are ingestion-side).
+- duckkit: the guard (`testing.guard.KIT_SERVICE`) also keeps `duckkit.curated`, `duckkit.specdiff` and
+  `duckkit.hosting` out of the browser app, as docs/kit.md already says (they are ingestion-side).
 - Template: `/app-check` and the seeded browser checks switch the theme with the Light and Dark buttons of the ⋮
-  menu (Streamlit no longer has them under Settings). An app can fix its own `docs/browser-checks.md` the same way:
-  in the app, that edit revises a browser check, so its PR declares it (docs/how-we-work.md).
+  menu (Streamlit no longer has them under Settings). An app's own `docs/browser-checks.md` is seeded: see Steps.
 
 **Steps:**
 - The guard now fails when the browser app's code (`app_code`: `app/`, `query/`, `analysis.py` by default) or its
   tests (`tests/app/`) use `snapshot.database_snapshot`. A helper that wraps `database_snapshot` for a local-only
   app or a command (in `query/`, say) moves out of `app_code`, for example next to the local-only app. A test in
   `tests/app/` that uses it moves out, or reads the contract with `contract_snapshot`.
+- The guard also fails a browser app, or a test in `tests/app/`, that imports `duckkit.curated`, `duckkit.specdiff`
+  or `duckkit.hosting`: move that code to the ingestion side.
+- `docs/browser-checks.md` is seeded, so an update does not change it. Edit its theme check by hand to "⋮, then
+  Light or Dark" (Streamlit no longer has the theme under Settings). In the app, that edit revises a browser check,
+  so its PR declares it *revises* (docs/how-we-work.md).
 
 ## v0.6.1
 
