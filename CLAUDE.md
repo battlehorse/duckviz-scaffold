@@ -25,9 +25,9 @@ Read these first:
 The user sets outcomes (GitHub issues with the label `outcome`). Inside the spec (docs/spec.md), you work on your
 own: long sessions, PRs you merge yourself. A revision of the spec waits for the user's approval, but you go on
 building on top of it, in stacked PRs. docs/how-we-work.md is the canonical description.
-- **Every change is a PR.** Each PR passes CI and the `reviewer` agent. Run
-  `uv run --project kit python -m duckkit.specdiff` on it: it lists the spec files that it touches, which the PR
-  must name.
+- **Every change is a PR.** Each PR passes CI and gets one review by the `reviewer` agent: you decide what to do
+  with its findings, with no second review. Run `uv run --project kit python -m duckkit.specdiff` on it: it lists
+  the spec files that it touches, which the PR must name.
 - **Each PR keeps the spec.** Run the checks of docs/how-we-work.md ("Each PR keeps the spec": in this repo, the
   kit's tests and ruff, `scripts/render.sh` and `spec-diff`), and show each result in the PR's *Evidence* section.
   When a check fails, fix the code. Never weaken a check so that it passes.
