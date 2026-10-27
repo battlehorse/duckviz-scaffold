@@ -14,10 +14,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   alert, a read-only (read-scaling) token pasted at a hidden prompt, the OAuth client for a project with no
   organisation), updating, rolling back, sharing and deleting. An app that keeps its own `docs/hosting.md` (a
   deviation) keeps its side of the conflict, or drops the deviation and takes this one.
-- duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`,
-  one structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`;
-  `Usage` and `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which runs a paid command only with
-  `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
+- duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`, one
+  structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`; `Usage` and
+  `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which shows a run's cost and starts a small run
+  (at most `SMALL_RUN`, 500 rows waiting) at once, and a larger one, or a full reclassification (`full=True`), only
+  with `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
 - duckkit: `[anthropic] api_key` (`ANTHROPIC_API_KEY`) is a standard private setting: `spec.anthropic_api_key()`,
   `privacy-check` refuses its value in git, and `testing.isolate` unsets it. The guard keeps `duckkit.llm` out of
   the browser app.
