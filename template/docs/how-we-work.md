@@ -151,12 +151,12 @@ that action:
 - actions that destroy data that cannot be got back: deleting `data/` or `backups/`, `git clean` (it deletes the
   ignored files, and `data/` is one of them), a force-push, deleting a pushed tag.
 
-The exception is a small classification, with the `llm` option: a run of `classify` of at most 500 rows
-(`duckkit.llm.SMALL_RUN`) that redoes no decision already made. Claude states its cost and runs it, and the spending
-limit of the API key caps it. A larger run, a run that redoes decisions, or a large run split into small ones is a
-hard stop.
-
 Everything else can be undone with git, a backup or a rebuild, so Claude goes on without asking.
+
+One paid action is not a hard stop, by choice: a small classification, with the `llm` option. That is a run of
+`classify` with at most 500 rows waiting (`duckkit.llm.SMALL_RUN`) that is not a full reclassification. Its cost
+cannot be undone, but it is small: Claude states it and runs. A spend limit in the Anthropic Console caps what any
+run can cost. A larger run, a full reclassification, or a large run split into small ones is a hard stop.
 
 The rule is in CLAUDE.md. `.claude/settings.json` backs it up: its `ask` rules make Claude Code prompt the user
 before the usual commands for these actions, in every permission mode. Claude Code matches each part of a compound
