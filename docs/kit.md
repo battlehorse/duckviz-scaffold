@@ -72,7 +72,8 @@ module belongs to one of them:
 | [`testing.guard`](#duckkittestingguard) | tests | keep the browser app on the contract |
 
 The browser app may import only the "both" and "browser" modules. `testing.guard` fails a build where it imports
-an ingestion module (`guard.KIT_SERVICE`).
+an ingestion module (`guard.KIT_SERVICE`), or uses `snapshot.database_snapshot` (`guard.WHOLE_DATABASE`): a copy of
+the whole database, which a hosted app cannot read.
 
 ---
 
@@ -343,9 +344,13 @@ view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the an
   the input price. `estimate_cost(model, input_tokens, output_tokens, cache_read_tokens=0, cache_write_tokens=0)`
   prices one request's tokens. Over 100K prompt tokens, Claude Haiku 5.5 costs 5 times as much (`LONG_PRICES`), so
   `Usage` prices each call by its own prompt size.
-- `cost_gate(spec, what, estimate, yes, command)`: whether a paid run may start, only with `--yes`. Without it, the
-  gate prints what the run would send and cost, and the command line that runs it, and sends nothing. The flag
-  keeps a run from starting by accident. A run that costs money is still a hard stop (docs/how-we-work.md): the
+- `cost_gate(spec, what, rows, estimate, yes, command, full=False)`: whether a paid run may start. It prints what the
+  run sends and costs. `rows` counts every row waiting, not only the rows this run sends, so a large run split into
+  small ones (`--limit`) is still large. For a reclassification, the rows that it would decide again count as waiting.
+  A small run (at most `SMALL_RUN`, 500 rows waiting) starts at once. The user sets a spend limit in the Anthropic
+  Console before the first run: it caps what the runs can cost. A larger run, or a full reclassification (`full=True`:
+  every decision the model made is made again, an app's `--reclassify`), starts only with `--yes`. Without it, the
+  gate prints the command line that runs it, and sends nothing. Such a run is a hard stop (docs/how-we-work.md): the
   user says yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its
   `.claude/settings.json` (docs/how-we-work.md, "What waits for the user").
 
@@ -490,8 +495,9 @@ the template keeps current, calls:
   - lists the tables each one names, using DuckDB's own parser (`json_serialize_sql`);
   - runs each one against the reference schema;
   - fails on anything that is not a contract view, or on a column the contract doesn't have.
-- `import_problems(spec, path)` lists the forbidden imports in one file: the modules in `spec.forbidden` and
-  duckkit's ingestion modules.
+- `import_problems(spec, path)` lists the forbidden imports in one file: the modules in `spec.forbidden`,
+  duckkit's ingestion modules, and the duckkit names the browser app may not use (`WHOLE_DATABASE`:
+  `snapshot.database_snapshot`), by import, as an attribute or as a bare name after `import *`.
 - `loaded_problems(spec)` imports the app and its tests in a fresh interpreter and lists every forbidden module
   that got loaded, which catches indirect imports.
 - `doc_problems(spec, doc)` checks that `docs/contract.md` has a section for every view, listing its columns in

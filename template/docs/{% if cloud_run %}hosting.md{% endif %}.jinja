@@ -240,7 +240,10 @@ status.
   gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} \
       --to-revisions=PREVIOUS_REVISION=100
   ```
-  Only the previous revision still has its image. The next deploy sends all traffic to the new revision.
+  Only the newest *Ready* revision before the serving one still has its image (the cleanup policy keeps the 2 most
+  recent images). After a rollback, no older revision has one: deploy a fixed commit instead. If a deploy after a
+  rollback does not serve 100 percent, send the traffic to it:
+  `gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-latest`.
 - **A new MotherDuck token:** store it as a new version of the secret, then deploy again:
   ```sh
   read -rs TOKEN && [ -n "$TOKEN" ] && printf %s "$TOKEN" |
@@ -249,14 +252,16 @@ status.
 
 ## Sharing it with someone
 
-You can add any Google account. Only the accounts you add can open the app, and they see all the data that `/publish` sends.
+You can add any Google account (Gmail, or an address registered with Google). Only the accounts you add can open the
+app, and they see all the data that `/publish` sends. Access can take a few minutes to start.
 
 ```sh
 gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} \
     --region={{ gcp_region }} --project={{ gcp_project }} --member=user:THEIR_EMAIL --role=roles/iap.httpsResourceAccessor
 ```
 
-- **Remove a person:** run the same command with `remove-iam-policy-binding`.
+- **Remove a person:** run the same command with `remove-iam-policy-binding`. A tab that the person has open stops
+  at its next reconnect: after the idle pause, or after one hour at most (`--timeout=3600`).
 - **See who has access:** `gcloud iap web get-iam-policy --resource-type=cloud-run --service={{ project_name }}
   --region={{ gcp_region }} --project={{ gcp_project }}`.
 - **Testing mode:** if the OAuth app is still in *Testing* (step 7), also add the person as a test user.

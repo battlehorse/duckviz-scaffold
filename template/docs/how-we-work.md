@@ -153,8 +153,13 @@ that action:
 
 Everything else can be undone with git, a backup or a rebuild, so Claude goes on without asking.
 
+One paid action is not a hard stop, by choice: a small classification, with the `llm` option. That is a run of
+`classify` with at most 500 rows waiting (`duckkit.llm.SMALL_RUN`) that is not a full reclassification. Its cost
+cannot be undone, but it is small: Claude states it and runs. A spend limit in the Anthropic Console caps what any
+run can cost. A larger run, a full reclassification, or a large run split into small ones is a hard stop.
+
 The rule is in CLAUDE.md. `.claude/settings.json` backs it up: its `ask` rules make Claude Code prompt the user
 before the usual commands for these actions, in every permission mode. Claude Code matches each part of a compound
 command (`cd x && …`) on its own. The rules match the command text, so they can miss a command written another way.
 That is acceptable: they are a safety net for a mistake, not the rule itself. An app adds the commands of its own
-(a paid command, say) to the list.
+(a large paid run, say) to the list.

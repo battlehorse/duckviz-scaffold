@@ -1,0 +1,91 @@
+"""Labels for the days whose value stands out, chosen by Claude (duckkit.llm): the `classify` command.
+
+This is the template's example of decisions that a model makes. Replace it with this app's own: which rows to send,
+what to send of each, the choices the model may make (the enum of the schema), and the prompt. Keep the rules:
+- a decision made by hand (`classified_by = 'manual'`) is never sent and never changed;
+- each batch is written as it comes back, so an interrupted run keeps its progress;
+- the run costs money: the command shows the estimate, and with over 500 days waiting, a run needs `--yes`
+  (`cost_gate`).
+
+What leaves this computer: each day sent, its weekday and its value, and the median value. Nothing else.
+"""
+
+from datetime import date
+from decimal import Decimal
+from statistics import median
+
+import duckdb
+from duckkit.llm import Claude, estimate_cost
+
+LABELS = ["holiday", "meter fault", "unusual use"]  # the choices the model may make
+BATCH_SIZE = 50  # days per request
+TOKENS_PER_DAY = (30, 20)  # input and output tokens of one day, for the estimate
+
+SYSTEM = f"""You label days from a household's daily meter readings. Each day's value is far from the usual one.
+Pick the most likely reason for each day:
+- "holiday": a low value, on a day or a run of days when the household was probably away;
+- "meter fault": a value that can't be real use (zero, negative, or many times the usual);
+- "unusual use": anything else.
+Answer with one of: {", ".join(LABELS)}."""
+
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        "days": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"index": {"type": "integer"}, "label": {"type": "string", "enum": LABELS}},
+                "required": ["index", "label"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["days"],
+    "additionalProperties": False,
+}
+
+
+def days_to_label(con: duckdb.DuckDBPyConnection) -> list[tuple[date, float]]:
+    """The days with no label whose value is more than twice the median, or less than half of it."""
+    values = [v for (v,) in con.execute("SELECT value FROM v_daily").fetchall()]
+    if not values:
+        return []
+    usual = median(values)
+    rows = con.execute("""
+        SELECT d.day, d.value FROM v_daily d LEFT JOIN labels l USING (day)
+        WHERE l.day IS NULL AND (d.value > 2 * ? OR d.value < ? / 2) ORDER BY d.day
+    """, [usual, usual]).fetchall()
+    return rows
+
+
+def estimate(days: list[tuple[date, float]], model: str) -> Decimal:
+    """What labelling `days` would cost with `model`, in $: each batch is one request, priced on its own."""
+    tokens_in, tokens_out = TOKENS_PER_DAY
+    total = Decimal(0)
+    for start in range(0, len(days), BATCH_SIZE):
+        size = len(days[start:start + BATCH_SIZE])
+        total += estimate_cost(model, len(SYSTEM) // 4 + size * tokens_in, size * tokens_out)
+    return total
+
+
+def classify(con: duckdb.DuckDBPyConnection, claude: Claude, days: list[tuple[date, float]]) -> set[date]:
+    """Ask Claude for a label for each of `days`, and store the answers as its decisions. Returns the days labelled.
+    A day labelled by hand meanwhile keeps its label."""
+    usual = median(v for (v,) in con.execute("SELECT value FROM v_daily").fetchall())
+    labelled = set()
+    for start in range(0, len(days), BATCH_SIZE):
+        batch = days[start:start + BATCH_SIZE]
+        user = f"The usual (median) value is {usual:g}.\n\n" + "\n".join(
+            f"{i}. {day:%Y-%m-%d} ({day:%A}): {value:g}" for i, (day, value) in enumerate(batch))
+        answer = claude.call(SYSTEM, user, SCHEMA)
+        rows = [(batch[a["index"]][0], a["label"]) for a in answer["days"] if 0 <= a["index"] < len(batch)]
+        for day, label in rows:
+            written = con.execute("""
+                INSERT INTO labels VALUES (?, ?, 'llm', now(), NULL)
+                ON CONFLICT (day) DO UPDATE SET label = excluded.label, classified_at = excluded.classified_at
+                WHERE labels.classified_by <> 'manual'
+                RETURNING day
+            """, [day, label]).fetchall()
+            labelled.update(d for (d,) in written)
+    return labelled
