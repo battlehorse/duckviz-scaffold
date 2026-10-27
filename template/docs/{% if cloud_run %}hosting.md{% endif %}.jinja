@@ -157,20 +157,16 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
        --budget-amount=5USD --threshold-rule=percent=0.5 --threshold-rule=percent=1.0
    ```
 4. **Store a read-only MotherDuck token as a secret.** Make a read-only token in MotherDuck's settings (a *read
-   scaling* token), so the hosted app cannot change your data. Paste it at the prompt: the screen does not show it.
+   scaling* token), so the hosted app cannot change your data. Paste it at the prompt: the screen does not show it,
+   and an empty paste stops the command before gcloud runs.
    ```sh
-   read -rs TOKEN && printf %s "$TOKEN" |
+   read -rs TOKEN && [ -n "$TOKEN" ] && printf %s "$TOKEN" |
        gcloud secrets create motherduck-token --replication-policy=user-managed --locations={{ gcp_region }} \
-       --project={{ gcp_project }} --data-file=- && unset TOKEN
+       --project={{ gcp_project }} --data-file=-; unset TOKEN
    ```
-   If your MotherDuck plan has no read-only token, use the token in `config.toml` (the one `publish` uses), piped so
-   the screen never shows it. The command fails if `config.toml` has no token:
-   ```sh
-   uv run python -c 'import sys; from {{ package }}.spec import SPEC; t = SPEC.motherduck_token();
-   sys.exit("no MotherDuck token in config.toml") if not t else print(t, end="")' |
-       gcloud secrets create motherduck-token --replication-policy=user-managed --locations={{ gcp_region }} \
-       --project={{ gcp_project }} --data-file=-
-   ```
+   Read-scaling tokens need a paid MotherDuck plan. Without one, the hosted app would need the read-write token
+   that `publish` uses. docs/architecture.md promises a read-only token, so that is a deviation of this app: record
+   it in docs/deviations.md. A read-scaling token reads replicas that take up to a minute to see a new `publish`.
 5. **Make a service account for the app.** It can read that one secret, and nothing else:
    ```sh
    gcloud iam service-accounts create {{ project_name }}-app --project={{ gcp_project }}
@@ -190,8 +186,7 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
        --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --timeout=3600 --session-affinity
    ```
    The label and the variable record the commit: `status --remote`, `/hosting status` and `/catch-up` compare the
-   label with `main`, and the sidebar shows the variable (*version …*). Without the repository of step 2, the
-   first deploy fails with a permission error.
+   label with `origin/main`, and the sidebar shows the variable (*version …*).
 7. **Turn on sign-in (IAP).** A project with no Google organisation needs its own OAuth client. Google's built-in
    client lets in only the users of an organisation (without one, the app shows *Empty Google Account OAuth
    client ID(s)/secret(s)*). gcloud cannot create the client, so start in the console:
@@ -231,15 +226,15 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
 `/hosting` in Claude Code deploys, rolls back, adds or removes a person, lists who has access, and shows the
 status.
 
-- **New data:** `/publish`, then *Reload data*. `{{ project_name }} publish --check` tells you if MotherDuck has
+- **New data:** `/publish`, then *Reload data* (with a read-scaling token, wait a minute first). `{{ project_name }} publish --check` tells you if MotherDuck has
   the latest data.
 - **New code:** after a merge, `/hosting deploy` (or step 6 from `main`). `status --remote` and `/hosting status`
-  compare the deployed commit with `main`.
+  compare the deployed commit with `origin/main`.
 - **Roll back** with no new build: `/hosting rollback`, or `gcloud run revisions list --service={{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }}`, then
   `gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-revisions=<previous revision>=100`. Only the
   previous revision still has its image. The next deploy sends all traffic to the new revision.
-- **A new MotherDuck token:** `gcloud secrets versions add motherduck-token --project={{ gcp_project }} --data-file=-` (with a
-  pipe of step 4), then deploy again.
+- **A new MotherDuck token:** `gcloud secrets versions add motherduck-token --project={{ gcp_project }} --data-file=-` (with the
+  prompt of step 4), then deploy again.
 
 ## Sharing it with someone
 
