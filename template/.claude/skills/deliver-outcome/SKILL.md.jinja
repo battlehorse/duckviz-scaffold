@@ -35,9 +35,11 @@ For each PR of the plan:
 3. Run `uv run {{ project_name }} spec-diff`, and mark each spec file that it lists *extends* or *revises*
    (docs/how-we-work.md, "Extensions and revisions"). A revision goes in a PR of its own.
 4. Open the PR, with the sections of `.github/pull_request_template.md`.
-5. Ask the `reviewer` agent to review the PR: give it the PR number only. Fix the blocking findings, then ask a new
-   reviewer. If you and the reviewer still disagree on a blocking finding after a few rounds, ask the user. Put the
-   findings you don't fix in the PR text, with the reason.
+5. When CI passes and the *Evidence* is complete, ask the `reviewer` agent to review the PR, once: give it the PR
+   number only. Then decide what to do with each finding (docs/how-we-work.md, "The independent review"): fix each
+   blocking finding, or say why it is wrong; fix a should finding, or give the reason; fix a nit only when the fix
+   is trivial and goes in a commit that fixes something else. Do not ask for a second review. In the PR's *Review*
+   section, list each blocking and should finding and what you did with it.
 6. Wait for CI.
    - **The spec is unchanged:** merge it on your own: add the label (`gh pr edit <number> --add-label merged-by-claude`), merge it with a
      merge commit (`gh pr merge <number> --merge`), and go on.

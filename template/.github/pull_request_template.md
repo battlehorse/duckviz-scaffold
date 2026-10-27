@@ -19,5 +19,9 @@ Extension agreed: <path> (review of <commit>), one line for each file marked *ex
 ✅ `doctor`, `privacy-check`
 -->
 
+## Review
+<!-- After the one review (docs/how-we-work.md, "The independent review"): the commit it read, the count at each
+     level, and each blocking and should finding with what was done: the commit that fixes it, or the reason. -->
+
 ## Reported
-<!-- Dependency changes and new tags, or "None". The reviewer's findings not fixed, with the reason. -->
+<!-- Dependency changes and new tags, or "None". -->

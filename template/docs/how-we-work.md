@@ -76,12 +76,12 @@ can undo it later with a revert, which removes the feature too.
 Claude merges a PR that touches a spec file only when:
 1. each file that `spec-diff` lists under "Spec changes" is marked *extends* in the PR's *Spec changes* section, and
    none of them is in the `[guardrails]` group;
-2. a review of the PR's current head commit has no blocking finding, and has an `Extension agreed: <path>` line for
-   each of those files;
-3. the PR's *Evidence* section records each of those lines, with the commit that the review read.
+2. the PR's review has an `Extension agreed: <path>` line for each of those files;
+3. the PR's *Evidence* section records each of those lines, with the commit that the review read;
+4. the PR's *Review* section says what Claude did with each blocking finding ("The independent review").
 
-Claude does not ask new reviewers until one agrees. A file that a reviewer does not agree is an extension stays a
-revision, unless a later commit changes that file. The PR text then lists the finding and the fix.
+The review is the only one: Claude does not ask another reviewer. A file that the review does not agree is an
+extension stays a revision.
 
 **The label `merged-by-claude`.** Before Claude merges a PR on its own (the spec unchanged, or only extended), it
 adds the label `merged-by-claude` to it. The user finds every such PR with `is:pr label:merged-by-claude`, to look at
@@ -135,11 +135,22 @@ follow, for simpler solutions, for brittle ones, for code that no longer does wh
 changes the PR does not declare. Each finding is *blocking*, *should* or *nit*. Its answer names the commit that it
 read. For each spec file that the PR marks *extends*, the answer has a line that agrees, or a blocking finding.
 
-A commit after the review needs a new review, in every PR.
+**Each PR gets one review.** Claude asks for it when the PR is ready: CI passes and the *Evidence* is complete.
+After the review, Claude decides what to do with each finding. Claude judges the level again: a should finding
+that shows a bug, or a gap in a guardrail, counts as blocking.
+- **Blocking:** Claude fixes it. If Claude finds that the finding is wrong, it says why.
+- **Should:** Claude fixes it, or leaves it and gives the reason.
+- **Nit:** cosmetic. Claude fixes a nit only when the fix is trivial and goes in a commit that fixes something else.
+  No commit is only for nits.
 
-Claude fixes the blocking findings, and asks a new reviewer to look again. When Claude and the reviewer still do
-not agree on a blocking finding after a few rounds, Claude asks the user. The PR text lists the findings Claude did
-not fix, with the reason.
+There is no second review: the commits that fix the findings do not need one. CI and the checks of "Each PR keeps
+the spec" still run on the head commit. The PR's *Review* section lists each blocking and should finding and what
+Claude did with it: the commit that fixes it, or the reason. The outcome report names each blocking finding that
+Claude did not fix.
+
+**The reviewer's model** is Sonnet (`model: sonnet` in the agent): it costs less than Opus, and on earlier PRs it
+found each blocking finding that Opus found. It sometimes gives a finding a lower level, so Claude judges the level
+again.
 
 ## What waits for the user
 
