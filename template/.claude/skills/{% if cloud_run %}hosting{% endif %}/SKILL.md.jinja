@@ -65,11 +65,19 @@ serving one and one to roll back to), so do not delete images.
 
 ## Roll back
 
-If the new version is broken, ask the user (AskUserQuestion), then send all traffic to the previous revision:
-`gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-revisions=<previous revision>=100`.
-The previous revision is the one deployed just before the serving one (the revision with the most traffic in
-`gcloud run services describe {{ project_name }} … --format="yaml(status.traffic)"`): find it in
-`gcloud run revisions list --service={{ project_name }} … --limit=3`. Only the previous revision still has its image. The next deploy sends all traffic to the new revision again.
+If the new version is broken, ask the user (AskUserQuestion), then send all traffic to the previous revision.
+
+1. **Find the serving revision.** It is the one with the most traffic in
+   `gcloud run services describe {{ project_name }} … --format="yaml(status.traffic)"`.
+2. **Find the previous revision.** It is the one deployed just before the serving one, in
+   `gcloud run revisions list --service={{ project_name }} … --limit=3`.
+3. **Check that a rollback is possible.** The cleanup policy keeps the images of the 2 most recent revisions only.
+   If the serving revision is not the newest one (a rollback was done already), no older revision has an image:
+   say so, and stop. The fix is a deploy of a fixed commit.
+4. **Roll back**:
+   `gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-revisions=<previous revision>=100`.
+   The next deploy sends all traffic to the new revision again: *Deploy*, step 5, checks that it serves 100
+   percent.
 
 ## Add a person
 

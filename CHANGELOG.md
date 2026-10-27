@@ -8,6 +8,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 - Template: **`/hosting`** (`cloud_run`) does each task in full: the settings, the deploy checks (a clean `main`, the
   tests, the user's OK), the new version checked with `status --remote`, a rollback, adding a person (a Google
   account, all the data) and removing one (an open tab stops at its next reconnect), the people, and the status.
+- duckkit: `spec-diff` counts each imported name that a spec test uses on its own. Adding another name to a shared
+  `from … import a, b` line (for a new unit test) no longer shows as a change of the spec test.
 - duckkit: the guard also fails a browser app that uses `snapshot.database_snapshot` (`guard.WHOLE_DATABASE`), by
   import or as an attribute: a copy of the whole database, which a hosted app cannot read. The browser app reads the
   contract through `contract_snapshot` only.
