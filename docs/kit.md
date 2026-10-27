@@ -72,7 +72,8 @@ module belongs to one of them:
 | [`testing.guard`](#duckkittestingguard) | tests | keep the browser app on the contract |
 
 The browser app may import only the "both" and "browser" modules. `testing.guard` fails a build where it imports
-an ingestion module (`guard.KIT_SERVICE`).
+an ingestion module (`guard.KIT_SERVICE`), or uses `snapshot.database_snapshot` (`guard.WHOLE_DATABASE`): a copy of
+the whole database, which a hosted app cannot read.
 
 ---
 
