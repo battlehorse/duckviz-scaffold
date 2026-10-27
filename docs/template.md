@@ -176,8 +176,8 @@ model makes them well enough for the user to check.
   waiting, its test (`tests/test_classify.py`, with `duckkit.testing.FakeAnthropic`: no network, no key) and a
   `/classify` skill. The app replaces the example with its own decisions, its prompt and its schema.
 
-A small run starts at once, as the API key's spending limit caps it. A larger run, a run that redoes decisions, or a
-large run split into small ones is a hard stop (docs/how-we-work.md): the user says yes in the chat first.
+Which runs wait for the user's yes is in docs/how-we-work.md ("What waits for the user"): a small run does not.
+Set a spend limit in the Anthropic Console before the first run: it caps what any run can cost.
 
 **Off:** no model: every decision is made by hand.
 

@@ -80,6 +80,17 @@ def test_a_small_run_starts_without_yes_and_states_its_cost(tmp_path, monkeypatc
     assert "Sending 2 days to Claude, for under $0.01" in result.output and "Labelled 2 of 2 days" in result.output
 
 
+def test_a_limited_run_prices_only_the_days_it_sends(tmp_path, monkeypatch):
+    ingest(tmp_path)
+    priced = []
+    estimate = labeller.estimate
+    monkeypatch.setattr(labeller, "estimate", lambda days, model: priced.append(len(days)) or estimate(days, model))
+    monkeypatch.setattr("duckkit.llm.Claude", lambda *a, **k: pytest.fail("Claude was called"))
+    monkeypatch.setattr("duckkit.llm.SMALL_RUN", 1)  # so the run stops at the gate, after the estimate
+    runner.invoke(app, ["classify", "--limit", "1"])
+    assert priced == [1]  # the day it sends, not the 2 waiting
+
+
 def test_an_unknown_model_is_one_line_not_a_traceback(tmp_path):
     ingest(tmp_path)
     result = runner.invoke(app, ["classify", "--model", "claude-unknown"])
