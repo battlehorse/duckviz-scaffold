@@ -6,7 +6,7 @@ import anthropic
 import httpx2
 import pytest
 
-from duckkit.llm import Claude, LLMError, cost_gate, estimate_cost
+from duckkit.llm import SMALL_RUN, Claude, LLMError, cost_gate, estimate_cost
 from duckkit.testing import FakeAnthropic, claude_reply
 
 SCHEMA = {"type": "object", "properties": {"label": {"type": "string", "enum": ["a", "b"]}}, "required": ["label"]}
@@ -106,12 +106,21 @@ def test_without_a_key_claude_says_where_to_put_it(spec):
         Claude(spec)
 
 
-def test_the_gate_runs_a_paid_command_only_with_yes(spec, capsys):
-    assert cost_gate(spec, "12 rows", Decimal("0.0312"), yes=True, command="classify")
-    assert capsys.readouterr().out == ""
-    assert not cost_gate(spec, "2 rows", Decimal("0.004"), yes=False, command="classify")
-    assert "for under $0.01" in capsys.readouterr().out
-    assert not cost_gate(spec, "12 rows", Decimal("0.0312"), yes=False, command="classify --limit 12")
+def test_the_gate_starts_a_small_run_and_a_large_one_only_with_yes(spec, capsys):
+    assert cost_gate(spec, "2 rows", 2, Decimal("0.004"), yes=False, command="classify")
+    assert capsys.readouterr().out == "Sending 2 rows to Claude, for under $0.01.\n"
+    assert cost_gate(spec, "500 rows", SMALL_RUN, Decimal("0.65"), yes=False, command="classify")
+    capsys.readouterr()
+    assert not cost_gate(spec, "501 rows", SMALL_RUN + 1, Decimal("0.6512"), yes=False, command="classify --limit 501")
     out = capsys.readouterr().out
-    assert "12 rows" in out and "$0.03" in out and "Nothing was sent" in out
-    assert f"uv run {spec.cli} classify --limit 12 --yes" in out
+    assert "501 rows" in out and "$0.65" in out and "Nothing was sent" in out
+    assert f"uv run {spec.cli} classify --limit 501 --yes" in out
+    assert cost_gate(spec, "501 rows", SMALL_RUN + 1, Decimal("0.6512"), yes=True, command="classify")
+    capsys.readouterr()
+
+
+def test_the_gate_stops_a_run_that_redoes_decisions_even_when_small(spec, capsys):
+    assert not cost_gate(spec, "2 rows", 2, Decimal("0.004"), yes=False, command="classify --reclassify", redo=True)
+    out = capsys.readouterr().out
+    assert "redoes decisions already made" in out and "Nothing was sent" in out
+    assert cost_gate(spec, "2 rows", 2, Decimal("0.004"), yes=True, command="classify --reclassify", redo=True)

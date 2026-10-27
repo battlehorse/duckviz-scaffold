@@ -342,11 +342,13 @@ view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the an
   the input price. `estimate_cost(model, input_tokens, output_tokens, cache_read_tokens=0, cache_write_tokens=0)`
   prices one request's tokens. Over 100K prompt tokens, Claude Haiku 5.5 costs 5 times as much (`LONG_PRICES`), so
   `Usage` prices each call by its own prompt size.
-- `cost_gate(spec, what, estimate, yes, command)`: whether a paid run may start, only with `--yes`. Without it, the
-  gate prints what the run would send and cost, and the command line that runs it, and sends nothing. The flag
-  keeps a run from starting by accident. A run that costs money is still a hard stop (docs/how-we-work.md): the
-  user says yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its
-  `.claude/settings.json` (docs/how-we-work.md, "What waits for the user").
+- `cost_gate(spec, what, rows, estimate, yes, command, redo=False)`: whether a paid run may start. It prints what
+  the run sends and costs. A small run (at most `SMALL_RUN`, 500 rows) starts at once: the API key's spending limit
+  caps it. A larger run, or one that redoes decisions already made (`redo=True`, for an app's `--reclassify`),
+  starts only with `--yes`; without it, the gate prints the command line that runs it, and sends nothing. Such a
+  run is a hard stop (docs/how-we-work.md): the user says yes in the chat first, and the app adds
+  the `--yes` command to the `ask` rules of its `.claude/settings.json` (docs/how-we-work.md, "What waits for the
+  user").
 
 ## `duckkit.curated`
 

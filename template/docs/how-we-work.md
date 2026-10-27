@@ -151,9 +151,10 @@ that action:
 - actions that destroy data that cannot be got back: deleting `data/` or `backups/`, `git clean` (it deletes the
   ignored files, and `data/` is one of them), a force-push, deleting a pushed tag.
 
-The exception is a small classification, with the `llm` option: a run of `classify` of at most 500 rows that
-redoes no decision already made. Claude states its cost and runs it, and the spending limit of the API key caps
-it. A larger run, a run that redoes decisions, or a large run split into small ones is a hard stop.
+The exception is a small classification, with the `llm` option: a run of `classify` of at most 500 rows
+(`duckkit.llm.SMALL_RUN`) that redoes no decision already made. Claude states its cost and runs it, and the spending
+limit of the API key caps it. A larger run, a run that redoes decisions, or a large run split into small ones is a
+hard stop.
 
 Everything else can be undone with git, a backup or a rebuild, so Claude goes on without asking.
 
