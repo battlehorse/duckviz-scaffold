@@ -3,6 +3,12 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- The `hosted` flag of `extra_apps` (`AppEntry`) says only whether an app reads the contract (`hosted: true`) or
+  the whole database. Only the browser app (`app`) goes to Cloud Run: one hosted app for each project. spec.py,
+  `copier.yml`, docs/kit.md, docs/template.md and docs/architecture.md say so.
+
 ## v0.7.0
 
 **Decisions made by Claude** (the `llm` option), **freshness** (`status --remote`), **hosting in full** (the

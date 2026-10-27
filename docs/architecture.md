@@ -130,8 +130,9 @@ ingestion.
 - The Cloud Run image has only the code: `.dockerignore` keeps out `data/`, the settings and the backups. The image
   scales to zero, and an idle tab goes to a static "Paused" page so the instance can stop.
 
-An app can have more than one Streamlit app (`extra_apps`), for example a curation tool. A `hosted: false` app is
-local-only: it may read the whole database (`database_snapshot`), and the browser app may never import it.
+An app can have more than one Streamlit app (`extra_apps`), for example a curation tool. A `hosted: false` app may
+read the whole database (`database_snapshot`), and the browser app may never import it. Only the browser app (`app`)
+goes to Cloud Run: an extra app runs on this machine, whatever its `hosted` flag.
 
 ## The command line
 

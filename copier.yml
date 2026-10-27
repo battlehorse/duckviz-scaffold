@@ -67,7 +67,7 @@ extra_apps:
   multiline: true
   help: >-
     More Streamlit apps besides `app`, as a YAML list of {name, port, title, hosted}. `hosted: false` reads the whole
-    database and never goes to Cloud Run (a curation app, say). Their code is yours to write: the scaffold lists
+    database (a curation app, say); `hosted: true` reads only the contract. Only `app` goes to Cloud Run. Their code is yours to write: the scaffold lists
     them in spec.py, the app skill and the docs.
   default: "[]"
 
