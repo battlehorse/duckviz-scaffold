@@ -84,9 +84,10 @@ the whole database, which a hosted app cannot read.
 **`AppEntry(name, port, title="", hosted=True, tailnet_port=None)`** describes one Streamlit app of the project.
 Its entry point is `src/<package>/<name>/main.py`.
 - `hosted=False` marks an app that may read the whole database, such as a curation tool: the browser app may never
-  import it. `hosted=True` (`AppEntry`'s default) means that the app should read only the contract. An `extra_apps`
-  entry without `hosted` is `hosted: false` (the template's default). Only the browser app (`app`) runs on Cloud
-  Run: an extra app runs on this machine, whatever its flag.
+  import it. `hosted=True` (`AppEntry`'s default) means that the browser app may import it, and that the app should
+  read only the contract (no test checks that). An `extra_apps` entry without `hosted` is `hosted: false` (the
+  template's default). Only the browser app (`app`) runs on Cloud Run: an extra app runs on this machine, whatever its
+  flag.
 - `tailnet_port` is the HTTPS port `--tailnet` serves on. It defaults to the local port, not 443, because other
   apps on the machine may use 443.
 

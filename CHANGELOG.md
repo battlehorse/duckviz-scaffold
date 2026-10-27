@@ -5,9 +5,13 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
-- The `hosted` flag of `extra_apps` (`AppEntry`) says only whether an app reads the contract (`hosted: true`) or
-  the whole database. Only the browser app (`app`) goes to Cloud Run: one hosted app for each project. spec.py,
-  `copier.yml`, docs/kit.md, docs/template.md and docs/architecture.md say so.
+- duckkit and template: the `hosted` flag of `extra_apps` (`AppEntry`) says what it does. With `hosted: false` (the
+  default in `extra_apps`), the app may read the whole database, and the browser app may never import it. With
+  `hosted: true`, the browser app may import it, and the app should read only the contract (no test checks that).
+  Only the browser app (`app`) goes to Cloud Run: one hosted app for each project. spec.py, `copier.yml`,
+  docs/kit.md, docs/template.md, docs/architecture.md and docs/hosting.md say so.
+- Template: `/hosting` rollback lists the two newest revisions with their commits and asks the user with the
+  previous one's commit; docs/hosting.md's manual rollback says the same.
 
 ## v0.7.0
 
