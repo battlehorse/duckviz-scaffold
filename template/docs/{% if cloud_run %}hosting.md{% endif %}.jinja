@@ -240,8 +240,9 @@ status.
   gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} \
       --to-revisions=PREVIOUS_REVISION=100
   ```
-  Only the newest *Ready* revision before the serving one still has its image (the cleanup policy keeps the 2 most
-  recent images). After a rollback, no older revision has one: deploy a fixed commit instead. If a deploy after a
+  The cleanup policy keeps the 2 most recent images, so a rollback is safe only when the newest revision serves and
+  the second-newest is Ready. In any other case (after a rollback, or after a failed deploy), deploy a fixed commit
+  instead. If a deploy after a
   rollback does not serve 100 percent, send the traffic to it:
   `gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-latest`.
 - **A new MotherDuck token:** store it as a new version of the secret, then deploy again:
@@ -269,8 +270,9 @@ gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ pro
 ## One hosted app for each project
 
 A project hosts one app: this app's browser app. Its other Streamlit apps (`extra_apps`, a curation tool, say) run
-on your computer only: the image holds the browser app alone. Another app of this kind gets its own project, with
-its own answers to `gcp_project` and `gcp_region`.
+on your computer only: the image runs the browser app alone, even for an extra app with `hosted: true` (which only
+means that it reads only the contract). Another app of this kind gets its own project, with its own answers to
+`gcp_project` and `gcp_region`.
 
 ## Deleting it
 
