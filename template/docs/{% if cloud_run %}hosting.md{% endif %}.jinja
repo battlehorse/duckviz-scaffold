@@ -272,8 +272,8 @@ gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ pro
 
 A project hosts one app: this app's browser app. Its other Streamlit apps (`extra_apps`, a curation tool, say) run
 on your computer only: the image runs the browser app alone, even for an extra app with `hosted: true` (an app that
-should read only the contract: docs/kit.md, `AppEntry`). Another app of this kind gets its own project, with its own
-answers to `gcp_project` and `gcp_region`.
+should read only the contract: the scaffold's docs/kit.md, `AppEntry`). Another app of this kind gets its own
+project, with its own answers to `gcp_project` and `gcp_region`.
 
 ## Deleting it
 
