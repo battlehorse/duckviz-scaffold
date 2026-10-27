@@ -115,20 +115,23 @@ def classify(
     model: Annotated[str, typer.Option(help="The Claude model.")] = DEFAULT_MODEL,
     yes: Annotated[bool, typer.Option("--yes", help=f"Run even over {SMALL_RUN} days (it costs money).")] = False,
 ) -> None:
-    """Label the days whose value stands out, with Claude. A large run needs --yes (duckkit.llm.SMALL_RUN)."""
+    """Label the days whose value stands out, with Claude. Over 500 days waiting, a run needs --yes."""
     from duckkit.llm import Claude, LLMError, cost_gate
 
     from {{ package }} import classify as labeller
 
     with friendly_errors(LLMError), friendly_errors(Refused), curating() as con:
-        days = labeller.days_to_label(con, limit)
+        waiting = labeller.days_to_label(con)
+        days = waiting[:limit]
         if not days:
             typer.echo("No day to label.")
             return
         command = "classify" + (f" --limit {limit}" if limit else "")
         command += f" --model {model}" if model != DEFAULT_MODEL else ""
         what = "1 day" if len(days) == 1 else f"{len(days)} days"
-        if not cost_gate(SPEC, what, len(days), labeller.estimate(days, model), yes, command):
+        what += f" of the {len(waiting)} waiting" if len(days) < len(waiting) else ""
+        # The gate counts every day waiting, so a large run split with --limit still needs --yes.
+        if not cost_gate(SPEC, what, len(waiting), labeller.estimate(days, model), yes, command):
             return
         claude = Claude(SPEC, model=model)
         try:
