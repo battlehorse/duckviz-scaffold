@@ -26,7 +26,8 @@ user's approval, but you go on building on top of it, in stacked PRs. docs/how-w
   it: it lists the spec files that it touches, which the PR must name.
 - **Each PR keeps the spec.** Run the checks of docs/how-we-work.md ("Each PR keeps the spec"), and show each
   result in the PR's *Evidence* section. When a check fails, fix the code. Never weaken a check so that it passes.
-- **Merge a PR that leaves the spec unchanged or extends it** (`gh pr merge --merge`). An extension adds to the spec
+- **Merge a PR that leaves the spec unchanged or extends it** (`gh pr merge --merge`), with the label
+  `merged-by-claude` added first (docs/how-we-work.md, "The merge rule"). An extension adds to the spec
   and keeps each promise that it already makes, such as a new browser check for a new page. It goes in the PR of
   its feature, and follows the merge rule of docs/how-we-work.md ("The merge rule").
 - **Never merge a PR that revises the spec**: one that alters or removes a promise, or edits the Guardrails. The

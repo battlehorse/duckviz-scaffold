@@ -3,6 +3,13 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- Template, how we work: **the label `merged-by-claude`**. Before Claude merges a PR on its own (the spec unchanged,
+  or only extended), it adds the label, so the user can find the work that no one else reviewed
+  (`is:pr label:merged-by-claude`). CI creates the label with `spec-change`. docs/how-we-work.md ("The merge rule"),
+  CLAUDE.md and `/deliver-outcome` say the same.
+
 ## v0.7.0
 
 **Decisions made by Claude** (the `llm` option), **freshness** (`status --remote`), **hosting in full** (the

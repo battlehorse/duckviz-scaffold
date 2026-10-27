@@ -31,7 +31,8 @@ building on top of it, in stacked PRs. docs/how-we-work.md is the canonical desc
 - **Each PR keeps the spec.** Run the checks of docs/how-we-work.md ("Each PR keeps the spec": in this repo, the
   kit's tests and ruff, `scripts/render.sh` and `spec-diff`), and show each result in the PR's *Evidence* section.
   When a check fails, fix the code. Never weaken a check so that it passes.
-- **Merge a PR that leaves the spec unchanged or extends it** (`gh pr merge --merge`). An extension adds to the spec
+- **Merge a PR that leaves the spec unchanged or extends it** (`gh pr merge --merge`), with the label
+  `merged-by-claude` added first (docs/how-we-work.md, "The merge rule"). An extension adds to the spec
   and keeps each promise that it already makes (docs/spec.md, "Extensions and revisions here"). It goes in the PR
   of its feature, and follows the merge rule of docs/how-we-work.md ("The merge rule").
 - **Never merge a PR that revises the spec**: one that alters or removes a promise, or edits the Guardrails. The

@@ -62,6 +62,7 @@ jobs:
           PR: ${{ '{{' }} github.event.pull_request.number {{ '}}' }}
         run: |
           gh label create spec-change --color D93F0B --description "Touches the spec: an extension or a revision (the PR says which)" --force
+          gh label create merged-by-claude --color 8957E5 --description "Merged by Claude without the user's review (docs/how-we-work.md, The merge rule)" --force
           if [ "${{ '{{' }} steps.diff.outputs.changed {{ '}}' }}" = true ]; then
             gh pr edit "$PR" --add-label spec-change
           else

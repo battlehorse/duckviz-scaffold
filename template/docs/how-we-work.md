@@ -83,6 +83,10 @@ Claude merges a PR that touches a spec file only when:
 Claude does not ask new reviewers until one agrees. A file that a reviewer does not agree is an extension stays a
 revision, unless a later commit changes that file. The PR text then lists the finding and the fix.
 
+**The label `merged-by-claude`.** Before Claude merges a PR on its own (the spec unchanged, or only extended), it
+adds the label `merged-by-claude` to it. The user finds every such PR with `is:pr label:merged-by-claude`, to look at
+the work that no one else reviewed. A PR that the user approved, or told Claude to merge, does not get the label.
+
 **A revision** alters or removes a promise: it edits or removes a browser check, a question, a test or a rule,
 renames or removes a view or column (a major version), changes what a command does, or changes the architecture.
 Any edit to the Guardrails is a revision, even one that only adds a rule: they define how Claude works. A revision
