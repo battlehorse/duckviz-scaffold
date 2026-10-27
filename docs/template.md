@@ -100,8 +100,8 @@ Cloud project. **Needs** `motherduck`.
 
 **On:**
 - a `Dockerfile` and its ignore files. The image holds the code only, never `data/` or the settings.
-- `docs/hosting.md`: how the hosted app works (IAP sign-in, Cloud Run, the token secret, the idle pause), the
-  costs, the one-time setup step by step, updating, rolling back and sharing.
+- `docs/hosting.md`: how the hosted app works (IAP sign-in, Cloud Run, the read-only token secret, the idle
+  pause), the costs, the one-time setup step by step, updating, rolling back and sharing.
 - `/hosting`: deploy, roll back, add or remove a person, status.
 - `app/static/paused.html`, the page an idle tab goes to so the instance can scale to zero.
 - the deployed version in `/catch-up`.

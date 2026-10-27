@@ -33,7 +33,7 @@ flowchart LR
 (`roles/run.invoker`). A browser with no IAP cookie goes to Google sign-in. Then IAP lets in only the accounts in
 its list (`roles/iap.httpsResourceAccessor`, see *Sharing it with someone*).
 
-**Google Auth Platform supplies the sign-in page** (OAuth), in three parts that you set up in the console (step 7):
+**Google Auth Platform supplies the sign-in page** (OAuth), in three parts that you make in the console (step 7):
 *Branding* (app name and contact email), *Audience* (**External** and published, so any Google account can sign
 in) and an *OAuth client* (IAP's credentials to ask Google who the person is).
 
@@ -69,15 +69,17 @@ sequenceDiagram
 **The idle pause.** After 15 minutes with no pointer, key, scroll or touch event, a tab goes to a static *Paused*
 page with no live connection, so the instance can stop. *Resume* loads the same page again. duckkit's
 `app.common.watch_idle` does this when `{{ env_prefix }}_APP_DB` is set (a hosted app). `{{ env_prefix }}_IDLE_MINUTES`
-changes the delay, and `0` turns it off.
+changes the delay (`--update-env-vars` on the deploy), and `0` turns it off.
 
-**Secret Manager holds the MotherDuck token.** The secret `motherduck-token` keeps the token out of the code and
-the image. The service account `{{ project_name }}-app` can only read that secret. At each instance start, Cloud
-Run reads it as that account into `MOTHERDUCK_TOKEN` (`--set-secrets`), which overrides `[motherduck] token` in
-config.toml.
+**Secret Manager holds the MotherDuck token**, a read-only token (step 4). The secret `motherduck-token` keeps
+the token out of the code and the image. The service account `{{ project_name }}-app` can only read that secret.
+At each instance start, Cloud Run reads it as that account into `MOTHERDUCK_TOKEN` (`--set-secrets`), which
+overrides `[motherduck] token` in config.toml.
 
-**MotherDuck holds the data**: the copy that `/publish` sends. The app attaches it `READ_ONLY`, because
-MotherDuck's free plan has no read-only tokens. Google Cloud stores no personal data.
+**MotherDuck holds the data**: the copy that `/publish` sends. The app attaches it `READ_ONLY` (as it does every
+source), but that guards only against the app's own code: a read-write token in the secret could still write to
+every database of the MotherDuck account. Google Cloud stores none of the app's data: only the viewers' email
+addresses (IAP) and the request logs.
 
 ### Deploying new code
 
@@ -120,8 +122,9 @@ and with one instance, many tabs cost the same as one.
 
 ## One-time setup
 
-Replace `ME` with your Google account, `BILLING_ACCOUNT_ID` with your billing account, and `5USD` with a budget
-in your currency.
+Replace `ME` with your Google account, `BILLING_ACCOUNT_ID` with your billing account, `5USD` with a budget in
+your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's ID and file (step 7), and
+`THEIR_EMAIL` with the account of a person you share the app with.
 
 1. **Install the gcloud CLI and sign in.**
    ```sh
@@ -132,21 +135,20 @@ in your currency.
    the billing account in the console (it asks for a card). Then:
    ```sh
    gcloud projects create {{ gcp_project }}
-   gcloud config set project {{ gcp_project }}
-   gcloud config set run/region {{ gcp_region }}
    gcloud billing accounts list
    gcloud billing projects link {{ gcp_project }} --billing-account=BILLING_ACCOUNT_ID
-   gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com \
+   gcloud services enable --project={{ gcp_project }} run.googleapis.com cloudbuild.googleapis.com \
+       artifactregistry.googleapis.com \
        secretmanager.googleapis.com iap.googleapis.com billingbudgets.googleapis.com \
        cloudresourcemanager.googleapis.com
    gcloud artifacts repositories create cloud-run-source-deploy --repository-format=docker \
-       --location={{ gcp_region }}
+       --location={{ gcp_region }} --project={{ gcp_project }}
    cat > cleanup.json <<'EOF'
    [{"name": "keep-2-most-recent", "action": {"type": "Keep"}, "mostRecentVersions": {"keepCount": 2}},
     {"name": "delete-older", "action": {"type": "Delete"}, "condition": {"tagState": "any"}}]
    EOF
    gcloud artifacts repositories set-cleanup-policies cloud-run-source-deploy --location={{ gcp_region }} \
-       --policy=cleanup.json --no-dry-run
+       --project={{ gcp_project }} --policy=cleanup.json --no-dry-run
    ```
    A *Keep* rule always wins over a *Delete* rule.
 3. **Make a budget alert** (an email at 50% and 100%):
@@ -154,22 +156,32 @@ in your currency.
    gcloud billing budgets create --billing-account=BILLING_ACCOUNT_ID --display-name={{ project_name }} \
        --budget-amount=5USD --threshold-rule=percent=0.5 --threshold-rule=percent=1.0
    ```
-4. **Store the MotherDuck token as a secret.** The command pipes it from `config.toml`, so the screen never shows it:
+4. **Store a read-only MotherDuck token as a secret.** Make a read-only token in MotherDuck's settings (a *read
+   scaling* token), so the hosted app cannot change your data. Paste it at the prompt: the screen does not show it.
    ```sh
-   uv run python -c 'from {{ package }}.spec import SPEC; print(SPEC.motherduck_token(), end="")' |
+   read -rs TOKEN && printf %s "$TOKEN" |
        gcloud secrets create motherduck-token --replication-policy=user-managed --locations={{ gcp_region }} \
-       --data-file=-
+       --project={{ gcp_project }} --data-file=- && unset TOKEN
+   ```
+   If your MotherDuck plan has no read-only token, use the token in `config.toml` (the one `publish` uses), piped so
+   the screen never shows it. The command fails if `config.toml` has no token:
+   ```sh
+   uv run python -c 'import sys; from {{ package }}.spec import SPEC; t = SPEC.motherduck_token();
+   sys.exit("no MotherDuck token in config.toml") if not t else print(t, end="")' |
+       gcloud secrets create motherduck-token --replication-policy=user-managed --locations={{ gcp_region }} \
+       --project={{ gcp_project }} --data-file=-
    ```
 5. **Make a service account for the app.** It can read that one secret, and nothing else:
    ```sh
-   gcloud iam service-accounts create {{ project_name }}-app
-   gcloud secrets add-iam-policy-binding motherduck-token \
+   gcloud iam service-accounts create {{ project_name }}-app --project={{ gcp_project }}
+   gcloud secrets add-iam-policy-binding motherduck-token --project={{ gcp_project }} \
        --member=serviceAccount:{{ project_name }}-app@{{ gcp_project }}.iam.gserviceaccount.com \
        --role=roles/secretmanager.secretAccessor
    ```
-6. **Build and deploy** from the repo root. Cloud Build builds the `Dockerfile`:
+6. **Build and deploy** from the repo root, with the command of `/hosting deploy` (the skill holds the canonical
+   flags). Cloud Build builds the `Dockerfile`:
    ```sh
-   gcloud run deploy {{ project_name }} --source . \
+   gcloud run deploy {{ project_name }} --source . --project={{ gcp_project }} --region={{ gcp_region }} \
        --service-account={{ project_name }}-app@{{ gcp_project }}.iam.gserviceaccount.com \
        --set-secrets=MOTHERDUCK_TOKEN=motherduck-token:latest \
        --update-labels=commit=$(git rev-parse --short HEAD) \
@@ -180,7 +192,7 @@ in your currency.
    The label and the variable record the commit: `status --remote`, `/hosting status` and `/catch-up` compare the
    label with `main`, and the sidebar shows the variable (*version …*). Without the repository of step 2, the
    first deploy fails with a permission error.
-7. **Set up sign-in (IAP).** A project with no Google organisation needs its own OAuth client. Google's built-in
+7. **Turn on sign-in (IAP).** A project with no Google organisation needs its own OAuth client. Google's built-in
    client lets in only the users of an organisation (without one, the app shows *Empty Google Account OAuth
    client ID(s)/secret(s)*). gcloud cannot create the client, so start in the console:
    - *Google Auth Platform → Branding*: an app name and your email. *Audience*: **External**, then *Publish app*.
@@ -198,19 +210,20 @@ in your currency.
      print(f"accessSettings:\n  oauthSettings:\n    clientId: {web['client_id']}\n    clientSecret: {web['client_secret']}")
 {%- endraw %}
      EOF
-     gcloud iap settings set iap-oauth.yaml --resource-type=cloud-run --region={{ gcp_region }} --service={{ project_name }}
+     gcloud iap settings set iap-oauth.yaml --resource-type=cloud-run --region={{ gcp_region }} --service={{ project_name }} \
+         --project={{ gcp_project }}
      rm iap-oauth.yaml client_secret_….json
      ```
 
    Then let IAP call the service, and let yourself in:
    ```sh
    PROJECT_NUMBER=$(gcloud projects describe {{ gcp_project }} --format='value(projectNumber)')
-   gcloud run services add-iam-policy-binding {{ project_name }} \
+   gcloud run services add-iam-policy-binding {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} \
        --member=serviceAccount:service-$PROJECT_NUMBER@gcp-sa-iap.iam.gserviceaccount.com --role=roles/run.invoker
    gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} \
-       --region={{ gcp_region }} --member=user:ME --role=roles/iap.httpsResourceAccessor
+       --region={{ gcp_region }} --project={{ gcp_project }} --member=user:ME --role=roles/iap.httpsResourceAccessor
    ```
-8. **Open it:** `gcloud run services describe {{ project_name }} --format='value(status.url)'`. Make sure that the
+8. **Open it:** `gcloud run services describe {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --format='value(status.url)'`. Make sure that the
    same command without `--format` shows `Iap Enabled: true`, and that a private window asks you to sign in.
 
 ## Updating
@@ -222,11 +235,11 @@ status.
   the latest data.
 - **New code:** after a merge, `/hosting deploy` (or step 6 from `main`). `status --remote` and `/hosting status`
   compare the deployed commit with `main`.
-- **Roll back** with no new build: `/hosting rollback`, or `gcloud run revisions list --service={{ project_name }}`,
-  then `gcloud run services update-traffic {{ project_name }} --to-revisions=<previous revision>=100`. Only the
+- **Roll back** with no new build: `/hosting rollback`, or `gcloud run revisions list --service={{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }}`, then
+  `gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-revisions=<previous revision>=100`. Only the
   previous revision still has its image. The next deploy sends all traffic to the new revision.
-- **A new MotherDuck token:** `gcloud secrets versions add motherduck-token --data-file=-` (with the pipe of
-  step 4), then deploy again.
+- **A new MotherDuck token:** `gcloud secrets versions add motherduck-token --project={{ gcp_project }} --data-file=-` (with a
+  pipe of step 4), then deploy again.
 
 ## Sharing it with someone
 
@@ -234,12 +247,12 @@ Any Google account can get in. All viewers see all the data that `/publish` send
 
 ```sh
 gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} \
-    --region={{ gcp_region }} --member=user:THEIR_EMAIL --role=roles/iap.httpsResourceAccessor
+    --region={{ gcp_region }} --project={{ gcp_project }} --member=user:THEIR_EMAIL --role=roles/iap.httpsResourceAccessor
 ```
 
 - **Remove a person:** run the same command with `remove-iam-policy-binding`.
 - **See who has access:** `gcloud iap web get-iam-policy --resource-type=cloud-run --service={{ project_name }}
-  --region={{ gcp_region }}`.
+  --region={{ gcp_region }} --project={{ gcp_project }}`.
 - **Testing mode:** if the OAuth app is still in *Testing* (step 7), also add the person as a test user.
 
 ## Another app in the same project
@@ -248,5 +261,5 @@ Another app of this kind uses the same steps 4–8, with its own service name, s
 
 ## Deleting it
 
-`gcloud run services delete {{ project_name }}` stops the app. `gcloud projects delete {{ gcp_project }}` deletes
+`gcloud run services delete {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }}` stops the app. `gcloud projects delete {{ gcp_project }}` deletes
 all of it, including the secret and the images.
