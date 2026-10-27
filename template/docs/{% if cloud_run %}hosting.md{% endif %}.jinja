@@ -115,7 +115,7 @@ flowchart LR
 | Artifact Registry (2 images kept, about 0.4 GB each) | a few cents a month (0.5 GB free) |
 | Cloud Build | nothing (free daily build minutes) |
 | Secret Manager (one secret) | nothing |
-| MotherDuck | free on the free plan, with a read-write token (a deviation, step 4); the read-scaling token of step 4 needs a paid Business plan |
+| MotherDuck | free on the free plan, with a read-write token (a deviation, step 4). The read-scaling token of step 4 needs a paid plan |
 
 The only cost that grows is an instance that an open tab keeps running: the idle pause limits it to 15 minutes,
 and with one instance, many tabs cost the same as one.
@@ -123,8 +123,8 @@ and with one instance, many tabs cost the same as one.
 ## One-time setup
 
 Replace `ME` with your Google account, `BILLING_ACCOUNT_ID` with your billing account, `5USD` with a budget in
-your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's ID and file (step 7), and
-`THEIR_EMAIL` with the account of a person you share the app with, `PREVIOUS_REVISION` with a revision's name
+your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's ID and file (step 7),
+`THEIR_EMAIL` with the account of a person you share the app with, and `PREVIOUS_REVISION` with a revision's name
 (*Updating*).
 
 1. **Install the gcloud CLI and sign in.**
@@ -166,9 +166,10 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
        gcloud secrets create motherduck-token --replication-policy=user-managed --locations={{ gcp_region }} \
        --project={{ gcp_project }} --data-file=-; unset TOKEN
    ```
-   Read-scaling tokens need a paid MotherDuck plan. Without one, the hosted app would need the read-write token
-   that `publish` uses. The scaffold promises a read-only token (its docs/architecture.md), so that is a deviation of this app: record
-   it in docs/deviations.md. A read-scaling token reads replicas that take up to a minute to see a new `publish`.
+   Read-scaling tokens need a paid MotherDuck plan. Without one, the hosted app would need the read-write token that
+   `publish` uses. The scaffold promises a read-only token ({{ scaffold_repo }}, docs/architecture.md), so that is a
+   deviation of this app: record it in docs/deviations.md. A read-scaling token reads replicas that take up to a
+   minute to see a new `publish`.
 5. **Make a service account for the app.** It can read that one secret, and nothing else:
    ```sh
    gcloud iam service-accounts create {{ project_name }}-app --project={{ gcp_project }}
@@ -262,15 +263,20 @@ gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ pro
 
 ## Another app in the same project
 
-Another app of this kind shares the secret `motherduck-token`: the `/hosting` deploy command names it. So both apps
-must publish to the MotherDuck account of the token in the secret, each to its own database (`motherduck_db`). If
-the first app stores a read-write token (step 4), the second app records the same deviation. For the second app:
+To host another app of this kind in the same project, answer `gcp_project` and `gcp_region` with the first app's
+values when you make it (the defaults are the app's own name and `europe-west2`). In an app that exists, change
+them in `.copier-answers.yml`, then run `copier update`.
+
+The two apps share the secret `motherduck-token`: the `/hosting` deploy command names it. So both apps must publish
+to the MotherDuck account of the token in the secret, each to its own database (`motherduck_db`). If the first app
+stores a read-write token (step 4), the second app records the same deviation. For the second app:
 - skip steps 1–4: the project, billing, the APIs, the registry and the secret exist;
 - run steps 5 and 6 with the app's own service name and service account (step 5 binds the new account to the same
   secret);
-- in step 7, skip *Branding*, *Audience* and the new client: use the project's OAuth client. `iap settings set` needs
-  its client secret: keep the first app's `client_secret_….json` until the second app is done, or add a new secret
-  to the client in the console. Then run `iap settings set` and the bindings with the new service name;
+- in step 7, skip *Branding*, *Audience* and the new client: use the project's OAuth client. `iap settings set`
+  needs its client secret, and step 7 deleted the first app's file: add a new secret to the client in the console
+  (*Google Auth Platform → Clients*), and download it. Then run `iap settings set` and the bindings with the new
+  service name;
 - step 8 as written.
 
 ## Deleting it
