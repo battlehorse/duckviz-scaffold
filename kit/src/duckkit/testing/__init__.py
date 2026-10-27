@@ -62,6 +62,8 @@ class FakeAnthropic:
 
     def _create(self, **request):
         self.requests.append(request)
+        if not self.replies:
+            raise AssertionError(f"FakeAnthropic: no reply left for request {len(self.requests)}")
         reply = self.replies.pop(0)
         if isinstance(reply, Exception):
             raise reply

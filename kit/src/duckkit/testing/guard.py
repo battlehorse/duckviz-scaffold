@@ -22,7 +22,13 @@ from duckkit.spec import AppSpec
 # duckkit's ingestion side: the browser app never needs it
 KIT_SERVICE = {f"duckkit.{m}" for m in (
     "store", "backup", "privacy", "publish", "cli", "doctor", "serve", "demo", "curated", "specdiff", "llm",
+    "hosting",
 )}
+
+
+# duckkit names the browser app must not use, though their module is allowed: a copy of the whole database, which a
+# hosted app has no access to (it reads only the contract's views, through contract_snapshot)
+WHOLE_DATABASE = {"duckkit.snapshot.database_snapshot"}
 
 
 def src(spec: AppSpec) -> Path:
@@ -44,8 +50,9 @@ def app_tests(spec: AppSpec) -> list[Path]:
 
 
 def forbidden_modules(spec: AppSpec) -> set[str]:
-    """The modules the browser app must not import: the app's ingestion side, and duckkit's."""
-    return {f"{spec.package}.{m}" for m in spec.forbidden} | KIT_SERVICE
+    """The modules the browser app must not import (the app's ingestion side, and duckkit's), and the duckkit names
+    it must not use (WHOLE_DATABASE)."""
+    return {f"{spec.package}.{m}" for m in spec.forbidden} | KIT_SERVICE | WHOLE_DATABASE
 
 
 def name(spec: AppSpec, path: Path) -> str:
@@ -146,13 +153,17 @@ def sql_problems(spec: AppSpec) -> tuple[int, list[str]]:
 # ─── Imports ───
 
 def imports(path: Path) -> set[str]:
-    """Every module that `path` imports, and every `module.name` it imports from one."""
+    """Every module that `path` imports, every `module.name` it imports from one, and every WHOLE_DATABASE name it
+    reaches as an attribute (`snapshot.database_snapshot`)."""
     found = set()
+    attributes = {name.rsplit(".", 1)[1]: name for name in WHOLE_DATABASE}
     for node in ast.walk(ast.parse(path.read_text())):
         if isinstance(node, ast.Import):
             found |= {alias.name for alias in node.names}
         elif isinstance(node, ast.ImportFrom) and node.module:
             found |= {node.module} | {f"{node.module}.{alias.name}" for alias in node.names}
+        elif isinstance(node, ast.Attribute) and node.attr in attributes:
+            found.add(attributes[node.attr])
     return found
 
 

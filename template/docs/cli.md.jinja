@@ -8,11 +8,14 @@ come first; the rest are duckkit's standard commands (the same in every app made
 | `ingest <files>` | load data into the database (this app's own){% if curations %}; restores curated/ into a database without decisions{% endif %} |
 {%- if curations %}
 | `label <day> "<text>" [--note …]` / `unlabel <day>` | label a day, or remove its label: decisions kept in `curated/labels.csv` (this app's own) |
+{%- if curations and llm %}
+| `classify [--limit N] [--model M] [--yes]` | label the days that stand out with Claude (this app's own). It states the estimate; with over 500 days waiting, it sends nothing without `--yes`. It costs money |
+{%- endif %}
 {%- endif %}
 {%- if demo_data %}
 | `demo [--seed N] [--days N] [--out <file>]` | build the demo database, `data/demo.duckdb`, from made-up data (this app's own) |
 {%- endif %}
-| `status` | what the database holds, and the contract check |
+| `status{% if motherduck or cloud_run %} [--remote]{% endif %}` | what the database holds, and the contract check{% if motherduck or cloud_run %}. `--remote` also says whether {% if motherduck %}the published copy{% endif %}{% if motherduck and cloud_run %} and {% endif %}{% if cloud_run %}the hosted app{% endif %} {% if motherduck and cloud_run %}are{% else %}is{% endif %} current{% endif %} |
 | `sql "<SELECT>"` | one read-only SELECT on a snapshot (prefer the contract views) |
 | `app [name] [--tailnet]{% if demo_data %} [--demo]{% endif %}` | serve an app on localhost: `app` (:{{ app_port }}){% for a in extra_apps %}, `{{ a.name }}` (:{{ a.port }}){% endfor %} |
 {%- if motherduck %}

@@ -17,8 +17,8 @@ see where the modules fit in an app, read docs/architecture.md first.
 - Modules: [spec](#duckkitspec) · [contract](#duckkitcontract) · [snapshot](#duckkitsnapshot) ·
   [store](#duckkitstore) · [publish](#duckkitpublish) · [backup](#duckkitbackup) · [privacy](#duckkitprivacy) ·
   [serve](#duckkitserve) · [cli](#duckkitcli) · [demo](#duckkitdemo) · [curated](#duckkitcurated) ·
-  [llm](#duckkitllm) ·
-  [doctor](#duckkitdoctor) · [specdiff](#duckkitspecdiff) · [app.common](#duckkitappcommon) ·
+  [llm](#duckkitllm) · [doctor](#duckkitdoctor) · [hosting](#duckkithosting) · [specdiff](#duckkitspecdiff) ·
+  [app.common](#duckkitappcommon) ·
   [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
 - [Hooks](#hooks-where-an-apps-domain-goes-in)
 - [Compatibility](#compatibility)
@@ -58,6 +58,7 @@ module belongs to one of them:
 | [`serve`](#duckkitserve) | ingestion | run a Streamlit app on localhost, optionally on the tailnet |
 | [`cli`](#duckkitcli) | ingestion | the command-line commands every app has |
 | [`doctor`](#duckkitdoctor) | ingestion | compare the repo with the scaffold release it comes from |
+| [`hosting`](#duckkithosting) | ingestion | what the hosted app runs: its commit against `origin/main` |
 | [`specdiff`](#duckkitspecdiff) | ingestion | list what a branch changes in the app's spec |
 | [`demo`](#duckkitdemo) | ingestion | build a demo database, and tell one apart from the real one |
 | [`curated`](#duckkitcurated) | ingestion | keep curated decisions in `curated/*.csv`, and restore them into a rebuilt database |
@@ -71,7 +72,8 @@ module belongs to one of them:
 | [`testing.guard`](#duckkittestingguard) | tests | keep the browser app on the contract |
 
 The browser app may import only the "both" and "browser" modules. `testing.guard` fails a build where it imports
-an ingestion module (`guard.KIT_SERVICE`).
+an ingestion module (`guard.KIT_SERVICE`), or uses `snapshot.database_snapshot` (`guard.WHOLE_DATABASE`): a copy of
+the whole database, which a hosted app cannot read.
 
 ---
 
@@ -273,7 +275,7 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 
 | Command | Does | Built on |
 |---|---|---|
-| `status` | prints the app's `status(con)` lines, a "Demo:" line for a demo database, the backups line, and the contract check | `snapshot.database_snapshot`, `Contract.check` |
+| `status [--remote]` | prints the app's `status(con)` lines, a "Demo:" line for a demo database, the backups line, and the contract check. `--remote` adds whether the published copy is current ("Published:", with `publishing`) and whether the hosted app runs the latest commit ("Deployed:", with `cloud_run`) | `snapshot.database_snapshot`, `Contract.check`, `publish.compare`, `hosting.deployed` |
 | `sql "SELECT …" [--limit]` | runs exactly one `SELECT` on a snapshot of the whole database and prints a table | `snapshot.database_snapshot` |
 | `publish [--to] [--dry-run] [--check]` | sends the views (refusing a demo database), shows what would go, or compares | `publish`, `demo.is_demo` |
 | `backup` / `backups` / `restore <snapshot> [--to]` | makes a verified snapshot, lists them, or rebuilds a new file from one | `backup` |
@@ -342,11 +344,14 @@ view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the an
   the input price. `estimate_cost(model, input_tokens, output_tokens, cache_read_tokens=0, cache_write_tokens=0)`
   prices one request's tokens. Over 100K prompt tokens, Claude Haiku 5.5 costs 5 times as much (`LONG_PRICES`), so
   `Usage` prices each call by its own prompt size.
-- `cost_gate(spec, what, estimate, yes, command)`: whether a paid run may start, only with `--yes`. Without it, the
-  gate prints what the run would send and cost, and the command line that runs it, and sends nothing. The flag
-  keeps a run from starting by accident. A run that costs money is still a hard stop (docs/how-we-work.md): the
-  user says yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its
-  `.claude/settings.json` (docs/how-we-work.md, "What waits for the user").
+- `cost_gate(spec, what, rows, estimate, yes, command, full=False)`: whether a paid run may start. It prints what
+  the run sends and costs. `rows` counts every row waiting, not only the rows this run sends, so a large run split
+  into small ones (`--limit`) is still large. A small run (at most `SMALL_RUN`, 500 rows waiting) starts at once:
+  the Anthropic Console's spend limit caps it. A larger run, or a full reclassification (`full=True`: every decision
+  the model made is made again, an app's `--reclassify`), starts only with `--yes`. Without it, the gate prints the
+  command line that runs it, and sends nothing. Such a run is a hard stop (docs/how-we-work.md): the user says yes in the chat first, and the app adds
+  the `--yes` command to the `ask` rules of its `.claude/settings.json` (docs/how-we-work.md, "What waits for the
+  user").
 
 ## `duckkit.curated`
 
@@ -403,6 +408,19 @@ make `doctor` fail; notes don't. It checks that:
 - every opted-out file is explained in `docs/deviations.md`.
 
 CI runs `doctor` on every PR. `/catch-up` runs it with `--remote`.
+
+## `duckkit.hosting`
+
+**What it is for:** telling whether the hosted app (the `cloud_run` option) runs the latest code, for
+`status --remote` and `/catch-up`. The deploy of `/hosting` labels the revision with the commit it built.
+
+- `service(spec)`: (service, project, region) from `.copier-answers.yml`, or None without `cloud_run`.
+- `deployed(spec)` finds the revision that serves the traffic (after a rollback, an older one), reads its `commit`
+  label with `gcloud`, and compares it with `origin/main`, as of the last fetch. It returns a
+  `Deployed(commit, behind, on_main, known)`: the commits of `origin/main` it lacks, whether it is on `origin/main`
+  at all (a branch deployed for a test is not), and whether this clone has it. It returns None without
+  `cloud_run`. A failure (no `gcloud`, no access, no label, an answers file without the GCP answers) is a
+  `HostingError` with a message. Nothing here changes the service or the repo.
 
 ## `duckkit.specdiff`
 

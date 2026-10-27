@@ -7,17 +7,43 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 - duckkit: `spec-diff` counts each imported name that a spec test uses on its own. Adding another name to a shared
   `from … import a, b` line (for a new unit test) no longer shows as a change of the spec test.
-- duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`,
-  one structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`;
-  `Usage` and `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which runs a paid command only with
-  `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
+- duckkit: the guard also fails a browser app that uses `snapshot.database_snapshot` (`guard.WHOLE_DATABASE`), by
+  import or as an attribute: a copy of the whole database, which a hosted app cannot read. The browser app reads the
+  contract through `contract_snapshot` only.
+- Template: **`docs/hosting.md`** (`cloud_run`) explains how the hosted app works, with diagrams: IAP and Google
+  sign-in, Cloud Run's instances and live connection, the idle pause, the token secret, Cloud Build and Artifact
+  Registry. It adds the costs, a step-by-step one-time setup (the billing link, the image cleanup policy, a budget
+  alert, a read-only (read-scaling) token pasted at a hidden prompt, the OAuth client for a project with no
+  organisation), updating, rolling back, sharing and deleting. An app that keeps its own `docs/hosting.md` (a
+  deviation) keeps its side of the conflict, or drops the deviation and takes this one.
+- duckkit: **`duckkit.llm`**, behind the `llm` extra (`duckkit[llm]`): `Claude(spec).call(system, user, schema)`, one
+  structured call with the system prompt cached, the server-side fallback and every failure as `LLMError`; `Usage` and
+  `PRICES` for the cost of a run; `estimate_cost`; and `cost_gate`, which shows a run's cost and starts a small run
+  (at most `SMALL_RUN`, 500 rows waiting) at once, and a larger one, or a full reclassification (`full=True`), only
+  with `--yes`. `duckkit.testing` has `FakeAnthropic` and `claude_reply`, so no test needs the network or a key.
+- Template: a new option, **`llm`** (default off, asked only with `curations`): decisions made by Claude. It adds
+  the `llm` extra, `[anthropic] api_key` in `config.example.toml`, and, seeded: `classify.py` (an example that labels
+  the days whose value stands out), a `classify` command that shows the estimate and needs `--yes` over 500 days waiting,
+  its test with `FakeAnthropic`, and a `/classify` skill.
+  `.claude/settings.json` makes Claude Code ask before `classify --yes` (a large run). A small run is not a hard
+  stop (docs/how-we-work.md): a spend limit in the Anthropic Console caps it. `render.sh`'s all-on sample turns it on.
 - duckkit: `[anthropic] api_key` (`ANTHROPIC_API_KEY`) is a standard private setting: `spec.anthropic_api_key()`,
   `privacy-check` refuses its value in git, and `testing.isolate` unsets it. The guard keeps `duckkit.llm` out of
   the browser app.
+- duckkit: **`status --remote`** says whether the published copy is current ("Published:", from `publish.compare`)
+  and, with `cloud_run`, whether the hosted app runs the latest commit ("Deployed:", from the service's `commit`
+  label against `origin/main`). A check that can't run says why in its line. `duckkit.hosting` reads the label.
+- Template: `/catch-up` runs `status --remote` in place of `publish --check` and its own `gcloud` lines.
 - duckkit: the guard (`testing.guard.KIT_SERVICE`) also keeps `duckkit.curated` and `duckkit.specdiff` out of the
   browser app, as docs/kit.md already says (both are ingestion-side).
 - Template: `/app-check` and the seeded browser checks switch the theme with the Light and Dark buttons of the ⋮
-  menu (Streamlit no longer has them under Settings). An app can fix its own `docs/browser-checks.md` the same way.
+  menu (Streamlit no longer has them under Settings). An app can fix its own `docs/browser-checks.md` the same way:
+  in the app, that edit revises a browser check, so its PR declares it (docs/how-we-work.md).
+
+**Steps:**
+- The guard now fails when the browser app's code (`app_code`: `app/`, `query/`, `analysis.py` by default) uses
+  `snapshot.database_snapshot`. A helper for a local-only app or a command that wraps it (in `query/`, say) moves
+  out of `app_code`, for example next to the local-only app.
 
 ## v0.6.1
 

@@ -34,11 +34,31 @@ def test_forbidden_modules(spec):
     assert not guard.forbidden("duckkit.snapshot", banned) and not guard.forbidden("shop.dbx", banned)
 
 
+def test_the_browser_app_may_not_copy_the_whole_database(spec, tmp_path):
+    path = tmp_path / "page.py"
+    path.write_text("from duckkit.snapshot import contract_snapshot\n")
+    assert not guard.import_problems(spec, path)
+    path.write_text("from duckkit.snapshot import database_snapshot\n")
+    assert guard.import_problems(spec, path) == {"duckkit.snapshot.database_snapshot"}
+    path.write_text("from duckkit import snapshot\n\ncon = snapshot.database_snapshot(SPEC)\n")
+    assert guard.import_problems(spec, path) == {"duckkit.snapshot.database_snapshot"}
+
+
 def test_the_guard_refuses_every_ingestion_module_of_the_kit_docs():
     """docs/kit.md's "Which side may import what" is the list: each ingestion row is in KIT_SERVICE, and no other."""
-    table = (Path(__file__).parents[2] / "docs" / "kit.md").read_text().split("## Which side may import what")[1]
-    rows = re.findall(r"^\| \[`([\w.]+)`\]\(#[\w-]+\) \| (\w+) \|", table, re.MULTILINE)
-    assert rows, "no module rows found in docs/kit.md"
+    heading = "## Which side may import what"
+    text = (Path(__file__).parents[2] / "docs" / "kit.md").read_text()
+    assert heading in text, f"docs/kit.md has no {heading!r} section"
+    lines = text.split(heading, 1)[1].splitlines()
+    start = next((i for i, line in enumerate(lines) if line.startswith("|")), None)
+    assert start is not None, f"no table under {heading!r} in docs/kit.md"
+    block = lines[start:]
+    table = block[2:block.index("")] if "" in block else block[2:]  # the rows, up to the blank line after the table
+    rows = []
+    for line in table:
+        found = re.match(r"^\| \[`([\w.]+)`\]\(#[\w-]+\) \| (\w+) \|", line)
+        assert found, f"a row of docs/kit.md's module table that the test can't read: {line}"
+        rows.append(found.groups())
     assert {f"duckkit.{module}" for module, side in rows if side == "ingestion"} == guard.KIT_SERVICE
 
 

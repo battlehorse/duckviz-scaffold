@@ -10,7 +10,7 @@ requires-python = ">=3.14"
 dependencies = [
     # The shared code (the scaffold's kit), at the scaffold release this repo's files come from: `copier update`
     # moves both together. Don't bump it by hand.
-    "duckkit @ git+{{ scaffold_repo }}@{{ kit_ref }}#subdirectory=kit",
+    "duckkit{% if curations and llm %}[llm]{% endif %} @ git+{{ scaffold_repo }}@{{ kit_ref }}#subdirectory=kit",
     # MotherDuck does not support DuckDB 2.0 yet. A 2.0 database file cannot open in 1.x.
     "duckdb>=1.5.6,<2",
     "streamlit>=1.66.1",
