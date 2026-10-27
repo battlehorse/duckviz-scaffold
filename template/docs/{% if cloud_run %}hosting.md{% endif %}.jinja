@@ -30,7 +30,7 @@ flowchart LR
 ### Opening the app
 
 **IAP (Identity-Aware Proxy) controls who gets in.** Only IAP's own account can call the app
-(`roles/run.invoker`). A browser with no IAP cookie goes to Google sign-in. Then IAP lets in only the accounts in
+(`roles/run.invoker`). A browser with no IAP cookie goes to Google sign-in. Then IAP admits only the accounts in
 its list (`roles/iap.httpsResourceAccessor`, see *Sharing it with someone*).
 
 **Google Auth Platform supplies the sign-in page** (OAuth), in three parts that you make in the console (step 7):
@@ -69,7 +69,7 @@ sequenceDiagram
 **The idle pause.** After 15 minutes with no pointer, key, scroll or touch event, a tab goes to a static *Paused*
 page with no live connection, so the instance can stop. *Resume* loads the same page again. duckkit's
 `app.common.watch_idle` does this when `{{ env_prefix }}_APP_DB` is set (a hosted app). `{{ env_prefix }}_IDLE_MINUTES`
-changes the delay (`--update-env-vars` on the deploy), and `0` turns it off.
+changes the delay (`--update-env-vars` on the deploy), and `0` disables the idle pause.
 
 **Secret Manager holds the MotherDuck token**, a read-only token (step 4). The secret `motherduck-token` keeps
 the token out of the code and the image. The service account `{{ project_name }}-app` can only read that secret.
@@ -115,7 +115,7 @@ flowchart LR
 | Artifact Registry (2 images kept, about 0.4 GB each) | a few cents a month (0.5 GB free) |
 | Cloud Build | nothing (free daily build minutes) |
 | Secret Manager (one secret) | nothing |
-| MotherDuck (free plan) | nothing |
+| MotherDuck | free on the free plan, with a read-write token (a deviation, step 4). The read-scaling token of step 4 needs a paid plan |
 
 The only cost that grows is an instance that an open tab keeps running: the idle pause limits it to 15 minutes,
 and with one instance, many tabs cost the same as one.
@@ -123,8 +123,9 @@ and with one instance, many tabs cost the same as one.
 ## One-time setup
 
 Replace `ME` with your Google account, `BILLING_ACCOUNT_ID` with your billing account, `5USD` with a budget in
-your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's ID and file (step 7), and
-`THEIR_EMAIL` with the account of a person you share the app with.
+your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's ID and file (step 7),
+`THEIR_EMAIL` with the account of a person you share the app with, and `PREVIOUS_REVISION` with a revision's name
+(*Updating*).
 
 1. **Install the gcloud CLI and sign in.**
    ```sh
@@ -149,6 +150,7 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
    EOF
    gcloud artifacts repositories set-cleanup-policies cloud-run-source-deploy --location={{ gcp_region }} \
        --project={{ gcp_project }} --policy=cleanup.json --no-dry-run
+   rm cleanup.json
    ```
    A *Keep* rule always wins over a *Delete* rule.
 3. **Make a budget alert** (an email at 50% and 100%):
@@ -164,9 +166,10 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
        gcloud secrets create motherduck-token --replication-policy=user-managed --locations={{ gcp_region }} \
        --project={{ gcp_project }} --data-file=-; unset TOKEN
    ```
-   Read-scaling tokens need a paid MotherDuck plan. Without one, the hosted app would need the read-write token
-   that `publish` uses. docs/architecture.md promises a read-only token, so that is a deviation of this app: record
-   it in docs/deviations.md. A read-scaling token reads replicas that take up to a minute to see a new `publish`.
+   Read-scaling tokens need a paid MotherDuck plan. Without one, the hosted app would need the read-write token that
+   `publish` uses. The scaffold promises a read-only token ({{ scaffold_repo }}, docs/architecture.md), so that is a
+   deviation of this app: record it in docs/deviations.md. A read-scaling token reads replicas that take up to a
+   minute to see a new `publish`.
 5. **Make a service account for the app.** It can read that one secret, and nothing else:
    ```sh
    gcloud iam service-accounts create {{ project_name }}-app --project={{ gcp_project }}
@@ -187,8 +190,8 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
    ```
    The label and the variable record the commit: `status --remote`, `/hosting status` and `/catch-up` compare the
    label with `origin/main`, and the sidebar shows the variable (*version …*).
-7. **Turn on sign-in (IAP).** A project with no Google organisation needs its own OAuth client. Google's built-in
-   client lets in only the users of an organisation (without one, the app shows *Empty Google Account OAuth
+7. **Enable sign-in (IAP).** A project with no Google organisation needs its own OAuth client. Google's built-in
+   client admits only the users of an organisation (without one, the app shows *Empty Google Account OAuth
    client ID(s)/secret(s)*). gcloud cannot create the client, so start in the console:
    - *Google Auth Platform → Branding*: an app name and your email. *Audience*: **External**, then *Publish app*.
      Sign-in asks only for name and email, so Google does not review the app. If you keep it in *Testing*, add
@@ -226,20 +229,32 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
 `/hosting` in Claude Code deploys, rolls back, adds or removes a person, lists who has access, and shows the
 status.
 
-- **New data:** `/publish`, then *Reload data* (with a read-scaling token, wait a minute first). `{{ project_name }} publish --check` tells you if MotherDuck has
-  the latest data.
+- **New data:** `/publish`, then *Reload data* (with a read-scaling token, wait a minute first).
+  `uv run {{ project_name }} publish --check` tells you if MotherDuck has the latest data.
 - **New code:** after a merge, `/hosting deploy` (or step 6 from `main`). `status --remote` and `/hosting status`
   compare the deployed commit with `origin/main`.
-- **Roll back** with no new build: `/hosting rollback`, or `gcloud run revisions list --service={{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }}`, then
-  `gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-revisions=<previous revision>=100`. Only the
-  previous revision still has its image. The next deploy sends all traffic to the new revision.
-- **A new MotherDuck token:** `gcloud secrets versions add motherduck-token --project={{ gcp_project }} --data-file=-` (with the
-  prompt of step 4), then deploy again.
+- **Roll back** with no new build: `/hosting rollback`. By hand, find the previous revision's name, then send all
+  traffic to it:
+  ```sh
+  gcloud run revisions list --service={{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }}
+  gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} \
+      --to-revisions=PREVIOUS_REVISION=100
+  ```
+  The cleanup policy keeps the 2 most recent images, so a rollback is safe only when the newest revision serves and
+  the second-newest is Ready. In any other case (after a rollback, or after a failed deploy), deploy a fixed commit
+  instead. If a deploy after a
+  rollback does not serve 100 percent, send the traffic to it:
+  `gcloud run services update-traffic {{ project_name }} --project={{ gcp_project }} --region={{ gcp_region }} --to-latest`.
+- **A new MotherDuck token:** store it as a new version of the secret, then deploy again:
+  ```sh
+  read -rs TOKEN && [ -n "$TOKEN" ] && printf %s "$TOKEN" |
+      gcloud secrets versions add motherduck-token --project={{ gcp_project }} --data-file=-; unset TOKEN
+  ```
 
 ## Sharing it with someone
 
-Any Google account (Gmail, or an address registered with Google) can get in, and access can take a few minutes to
-start. All viewers see all the data that `/publish` sends.
+You can add any Google account (Gmail, or an address registered with Google). Only the accounts you add can open the
+app, and they see all the data that `/publish` sends. Access can take a few minutes to start.
 
 ```sh
 gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} \
@@ -252,9 +267,12 @@ gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ pro
   --region={{ gcp_region }} --project={{ gcp_project }}`.
 - **Testing mode:** if the OAuth app is still in *Testing* (step 7), also add the person as a test user.
 
-## Another app in the same project
+## One hosted app for each project
 
-Another app of this kind uses the same steps 4–8, with its own service name, secret and service account.
+A project hosts one app: this app's browser app. Its other Streamlit apps (`extra_apps`, a curation tool, say) run
+on your computer only: the image runs the browser app alone, even for an extra app with `hosted: true` (which only
+means that it reads only the contract). Another app of this kind gets its own project, with its own answers to
+`gcp_project` and `gcp_region`.
 
 ## Deleting it
 
