@@ -5,6 +5,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **`/catch-up` does more.** It asks first whether the session is a long-running remote one: if yes, it
+  keeps the Mac awake (`caffeinate -is`, macOS only) and tells the user to type `/remote-control`. It shows PR
+  stacks from bottom to top, lists the remote branches already merged (for cleanup, never deleted), runs the tests
+  after a pull that changed `src/` or `tests/`, and checks the health of each extra app. **Steps:** an app that kept
+  its own richer `/catch-up` (a deviation) takes the template's, and keeps only its own lines.
 - duckkit and template: the `hosted` flag of `extra_apps` (`AppEntry`) says what it does. With `hosted: false` (the
   default in `extra_apps`), the app may read the whole database, and the browser app may never import it. With
   `hosted: true`, the browser app may import it, and the app should read only the contract (no test checks that).

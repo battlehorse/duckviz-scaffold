@@ -1,17 +1,30 @@
 ---
 name: catch-up
-description: Start-of-session briefing for {{ project_name }}. Pulls main, lists open PRs and issues, syncs dependencies, shows the database status and contract check{% if motherduck %}, whether the published copy is current{% endif %}{% if cloud_run %}, whether Cloud Run runs the latest commit{% endif %}, whether the app runs, and whether the scaffold has a newer release.
+description: Start-of-session briefing for {{ project_name }}. Pulls main, lists open PRs and issues, syncs dependencies, shows the database status and contract check{% if motherduck %}, whether the published copy is current{% endif %}{% if cloud_run %}, whether Cloud Run runs the latest commit{% endif %}, whether the app runs, and whether the scaffold has a newer release. Offers to make the session a long-running remote session (keep the Mac awake, Remote Control).
 when_to_use: >-
   Use when the user says things like "catch up", "where were we", "what's the state", "start of session".
-allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bash(git log *) Bash(git branch *) Bash(gh pr list *) Bash(gh issue list *) Bash(uv sync) Bash(uv run {{ project_name }} status){% if motherduck or cloud_run %} Bash(uv run {{ project_name }} status --remote){% endif %} Bash(uv run {{ project_name }} doctor *) Bash(curl -s localhost:*/_stcore/health)
+allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bash(git log *) Bash(git diff --stat *) Bash(git branch *) Bash(gh pr list *) Bash(gh issue list *) Bash(uv sync) Bash(uv run pytest -q) Bash(pgrep -fl caffeinate) Bash((nohup caffeinate -is > /dev/null 2>&1 &)) Bash(pmset -g assertions*) Bash(uv run {{ project_name }} status){% if motherduck or cloud_run %} Bash(uv run {{ project_name }} status --remote){% endif %} Bash(uv run {{ project_name }} doctor *) Bash(curl -s localhost:*/_stcore/health)
 ---
 
 # Catch up
 
-1. **Git.** `git fetch --prune`, `git status -sb`. On a clean `main` behind `origin/main`, `git pull --ff-only`.
-   List local branches not merged (`git branch --no-merged main`).
-2. **GitHub.** `gh pr list` and `gh issue list --limit 10`.
-3. **Dependencies.** `uv sync`.
+0. **A remote session?** Ask the user (AskUserQuestion) whether this is a long-running session that they will
+   control remotely. If no, go on to step 1. If yes:
+   - On macOS, keep the Mac awake. If `pgrep -fl caffeinate` does not show `caffeinate -is`, start it detached:
+     `(nohup caffeinate -is > /dev/null 2>&1 &)`. It goes on after the session ends, until
+     `pkill -f "caffeinate -is"` or a restart. Check that `pmset -g assertions` lists it. On other systems, skip
+     this.
+   - Remote Control is a built-in command, which you cannot run. Tell the user to type `/remote-control`: it
+     connects this session to claude.ai and the Claude app.
+1. **Git.** `git fetch --prune`, `git status -sb`. On a clean `main` behind `origin/main`, `git pull --ff-only`, and
+   say what came in (`git log --oneline ORIG_HEAD..HEAD`). Otherwise do not pull, switch or stash: say the state.
+   - List the local branches not merged (`git branch --no-merged main`).
+   - List the remote branches already merged (`git branch -r --merged origin/main`, without `origin/main`): they
+     are candidates for cleanup. Do not delete them.
+2. **GitHub.** `gh pr list --json number,title,baseRefName,headRefName,isDraft` and `gh issue list --limit 10`.
+   A PR whose base is not `main` is part of a stack: show each stack from bottom to top.
+3. **Dependencies and tests.** `uv sync`. If the pull changed `src/` or `tests/` (`git diff --stat ORIG_HEAD HEAD
+   -- src tests`), run `uv run pytest -q` and say the result.
 4. **Data.** `uv run {{ project_name }} status{% if motherduck or cloud_run %} --remote{% endif %}`. Say how fresh the data is,
    and any contract problem.
 {%- if motherduck %}
@@ -22,8 +35,10 @@ allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bas
    - "Deployed:" says whether the hosted app runs the latest commit. If not, suggest `/hosting deploy` (do not
      deploy: only on request).
 {%- endif %}
-5. **The app.** Health of http://localhost:{{ app_port }}: running or not.
+5. **The app{% if extra_apps %}s{% endif %}.** Health of http://localhost:{{ app_port }}{% for a in extra_apps %} and of the {{ a.name }} app (:{{ a.port }}){% endfor %}
+   (`curl -s localhost:<port>/_stcore/health`): `ok` means that it runs. If the pull changed the app's code, a
+   running app needs `/app restart`.
 6. **Scaffold.** `uv run {{ project_name }} doctor --remote`. If a newer release is out, suggest `/scaffold-update`.
 
-Report in a short list: what changed, what needs attention, and a suggested next step. Change nothing beyond the
-pull and `uv sync`.
+Report in a short list: what changed, what needs attention, and a suggested next step. If the session is now
+remote, say so in one line. Change nothing beyond the pull, `uv sync` and, if the user asks, keeping the Mac awake.
