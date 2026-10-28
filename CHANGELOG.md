@@ -3,6 +3,13 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- duckkit: **a backup of a database with a macro that reads a view restores.** EXPORT DATABASE writes every macro
+  before every view, so such a snapshot failed its own check (and `restore`). `backup` now writes the snapshot's
+  schema.sql in an order that runs: each statement after what it reads. **Steps:** none. A snapshot made before
+  this fix, which failed its check, is not repaired: make a new backup.
+
 ## v0.8.1
 
 A fix: duckkit gives **no refresh hint for another app's database**.

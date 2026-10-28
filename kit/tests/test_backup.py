@@ -1,5 +1,6 @@
 """Backups: a verified Parquet export that restores to the same data, and rotation."""
 
+import duckdb
 import pytest
 
 from duckkit import backup
@@ -32,3 +33,15 @@ def test_pruning_keeps_the_newest(spec, tmp_path):
         (folder / f"shop-{stamp}").mkdir(parents=True)
     assert [p.name for p in backup.prune(spec, folder, keep=2)] == ["shop-20260101T000000Z"]
     assert len(backup.snapshots(spec, folder)) == 2
+
+
+def test_a_macro_that_reads_a_view_survives_the_round_trip(db, spec, tmp_path):
+    """EXPORT DATABASE writes macros before views: the backup puts each statement after what it reads."""
+    db.execute("CREATE VIEW v_kinds AS SELECT DISTINCT kind FROM items")
+    db.execute("CREATE MACRO kinds() AS (SELECT count(*) FROM v_kinds)")
+    db.execute("CREATE VIEW v_summary AS SELECT kinds() AS n")
+    snapshot = backup.backup(spec, db, tmp_path / "b")
+    restored = tmp_path / "restored.duckdb"
+    assert backup.restore(spec, snapshot, restored) == backup.counts(db)
+    with duckdb.connect(str(restored)) as con:
+        assert con.execute("SELECT n FROM v_summary").fetchone() == db.execute("SELECT n FROM v_summary").fetchone()
