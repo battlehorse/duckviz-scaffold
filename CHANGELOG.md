@@ -8,6 +8,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 A fix, **a backup of a database with a macro that reads a view restores**, and **`/rebuild-database` compares
 the rebuilt database with a baseline**.
 
+- Template: **`/catch-up` runs the app's own checks.** A "Catch-up" section in `.claude/project-rules.md` lists them
+  (new source files not loaded yet, decisions that wait for a review), and `/catch-up` reports them with the rest.
+  An app no longer edits the managed skill for its own lines. **Steps:** an app that added its own lines to
+  `/catch-up` (a deviation) moves them to a "Catch-up" section in `.claude/project-rules.md`, takes the template's
+  skill, and removes the deviation (new apps get an empty section).
 - Template: **`/rebuild-database` compares the rebuilt database with a baseline.** Before the rebuild, it saves
   `status`, the row count and a fingerprint of each contract view, and the app's own baseline queries (a "Rebuild
   baseline" section in `.claude/project-rules.md`). After it, it runs them again and reports each difference, then
