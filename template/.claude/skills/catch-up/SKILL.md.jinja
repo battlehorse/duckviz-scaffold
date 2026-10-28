@@ -3,7 +3,7 @@ name: catch-up
 description: Start-of-session briefing for {{ project_name }}. Pulls main, lists open PRs and issues, syncs dependencies, shows the database status and contract check{% if motherduck %}, whether the published copy is current{% endif %}{% if cloud_run %}, whether Cloud Run runs the latest commit{% endif %}, whether the app runs, and whether the scaffold has a newer release. Offers to make the session a long-running remote session (keep the Mac awake, Remote Control).
 when_to_use: >-
   Use when the user says things like "catch up", "where were we", "what's the state", "start of session".
-allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bash(git log *) Bash(git diff --stat *) Bash(git branch *) Bash(gh pr list *) Bash(gh issue list *) Bash(uv sync) Bash(uv run pytest -q) Bash(pgrep -fl caffeinate) Bash(pmset -g assertions*) Bash(uv run {{ project_name }} status){% if motherduck or cloud_run %} Bash(uv run {{ project_name }} status --remote){% endif %} Bash(uv run {{ project_name }} doctor *) Bash(curl -s localhost:*/_stcore/health)
+allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bash(git log *) Bash(git diff --stat *) Bash(git branch *) Bash(gh pr list *) Bash(gh issue list *) Bash(uv sync) Bash(uv run pytest -q) Bash(pgrep -fl caffeinate) Bash(pmset -g assertions*) Bash(uv run {{ project_name }} status){% if motherduck or cloud_run %} Bash(uv run {{ project_name }} status --remote){% endif %} Bash(uv run {{ project_name }} doctor *) Bash(uv run {{ project_name }} sql *) Bash(curl -s localhost:*/_stcore/health)
 ---
 
 # Catch up
@@ -40,6 +40,8 @@ allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bas
    (`curl -s localhost:<port>/_stcore/health`): `ok` means that it runs. If the pull changed `src/`, a running
    app needs `/app restart`.
 6. **Scaffold.** `uv run {{ project_name }} doctor --remote`. If a newer release is out, suggest `/scaffold-update`.
+7. **This app's own checks.** If `.claude/project-rules.md` has a "Catch-up" section, do what it lists (new source
+   files not loaded yet, decisions that wait for a review, say), and report it with the rest.
 
 Report in a short list: what changed, what needs attention, and a suggested next step. If the session is now remote,
 say so in one line. Change nothing beyond the pull, `uv sync`, the test run (it writes only caches) and, if the user

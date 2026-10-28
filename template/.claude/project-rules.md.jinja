@@ -4,6 +4,13 @@ The scaffold's CLAUDE.md imports this file. Put here what is true of this app an
 from, what must never be sent to a source, the domain's traps. `copier update` never changes this file.
 
 - (Add this app's rules here.)
+
+## Catch-up
+
+`/catch-up` does what this section lists, after its own steps, and reports it with the rest: what tells the user
+that this app needs them (new source files not loaded yet, decisions that wait for a review).
+
+- (Add checks here, each with its command, such as `uv run {{ project_name }} sql "…"`, and what to suggest.)
 {%- if curations %}
 
 ## Rebuild baseline
