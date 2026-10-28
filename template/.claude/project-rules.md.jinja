@@ -4,3 +4,12 @@ The scaffold's CLAUDE.md imports this file. Put here what is true of this app an
 from, what must never be sent to a source, the domain's traps. `copier update` never changes this file.
 
 - (Add this app's rules here.)
+{%- if curations %}
+
+## Rebuild baseline
+
+`/rebuild-database` runs these queries before and after a rebuild, and compares the results. Add totals that the
+user knows, per source, account or category: they show a change that the contract's fingerprints can't explain.
+
+- (Add `uv run {{ project_name }} sql "…"` queries here.)
+{%- endif %}
