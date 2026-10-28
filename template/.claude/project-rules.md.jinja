@@ -4,6 +4,14 @@ The scaffold's CLAUDE.md imports this file. Put here what is true of this app an
 from, what must never be sent to a source, the domain's traps. `copier update` never changes this file.
 
 - (Add this app's rules here.)
+
+## Catch-up
+
+`/catch-up` runs the checks listed here, after its own steps, and reports them with the rest. Each check shows the
+user what needs their action in this app, and only reads: a `sql` query or a file listing.
+
+<!-- For example: new source files not loaded yet, or decisions that wait for a review. Give each check its command,
+such as `uv run {{ project_name }} sql "…"`, and what to suggest. -->
 {%- if curations %}
 
 ## Rebuild baseline
@@ -11,5 +19,5 @@ from, what must never be sent to a source, the domain's traps. `copier update` n
 `/rebuild-database` runs these queries before and after a rebuild, and compares the results. Add totals that the
 user knows, per source, account or category: they show a change that the contract's fingerprints can't explain.
 
-- (Add `uv run {{ project_name }} sql "…"` queries here.)
+<!-- Add `uv run {{ project_name }} sql "…"` queries here, one per line. -->
 {%- endif %}
