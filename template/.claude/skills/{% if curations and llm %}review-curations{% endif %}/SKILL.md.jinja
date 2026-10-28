@@ -14,17 +14,19 @@ Current state:
 The user decides. You collect the evidence, ask, and record the answers. Never change a decision that the user did
 not confirm. A decision by hand (`classified_by = 'manual'`) is final: Claude never redoes it.
 
-1. **List what to review**: the decisions that Claude made (`classified_by = 'llm'`), the most important first. Put
-   first the ones whose `note` states a doubt. For example:
+1. **List what to review**: the decisions that Claude made (`classified_by = 'llm'`). Put first the ones whose
+   `note` states a doubt (when the app's `classify` writes one), then the newest. For example:
    `uv run {{ project_name }} sql "SELECT * FROM labels WHERE classified_by = 'llm' ORDER BY note IS NULL, day DESC
    LIMIT 20"`. With nothing to review, say so and stop.
 2. **Collect the evidence** for each one: the source rows that it is about (`sql`), and what the app shows for them.
 3. **Ask** with the AskUserQuestion tool, in batches of up to 4 questions. Put your recommended answer first, and
    give the evidence in one line. Put clear cases together in one question ("keep all 6?"), and ask about each
    doubtful case alone. The user can skip a case: leave it as it is.
-4. **Record each answer** with the app's command, which marks it `manual` and writes curated/: `label <day> "<text>"`
-   to keep or change a label, `unlabel <day>` to remove it. Never edit `curated/*.csv` by hand.
+4. **Record each answer** with the app's command, which marks it `manual` and writes curated/: `label <day> "<text>"
+   --note "<why>"` to keep or change a label, `unlabel <day>` to remove it. `label` replaces the note, so always give
+   one: the user's reason, or "confirmed on <date>". Never edit `curated/*.csv` by hand.
 5. **Finish.** Run `status`, give a summary of each change (before → after), and show `git diff --stat curated/`.
    Offer to commit curated/ on a branch (`curated/<topic>`) and open a PR. Do not commit unless the user asks.
 
-(Name this app's own decisions, the questions to ask about them, and their commands here, as the app gets them.)
+(Name this app's own decisions, the questions to ask about them, what makes one more important, and their commands
+here, as the app gets them. For the doubts to come first, the app's `classify` writes Claude's doubt into `note`.)
