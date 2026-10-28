@@ -5,6 +5,12 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **`/rebuild-database` compares the rebuilt database with a baseline.** Before the rebuild, it saves
+  `status`, the row count and a fingerprint of each contract view, and the app's own baseline queries (a "Rebuild
+  baseline" section in `.claude/project-rules.md`). After it, it runs them again and reports each difference, then
+  runs `pytest` and `pytest -m realdata`. A difference that the rebuild was not for stops it, with the old database
+  kept. **Steps:** optional: add a "Rebuild baseline" section with your own queries to `.claude/project-rules.md`
+  (new apps get an empty one).
 - duckkit: **a backup of a database with a macro that reads a view restores.** EXPORT DATABASE writes every macro
   before every view, so such a snapshot failed its own check (and `restore`). `backup` now writes the snapshot's
   schema.sql in an order that runs: each statement after what it reads. **Steps:** none. A snapshot made before
