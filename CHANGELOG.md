@@ -5,6 +5,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **`.gitignore` ignores only the root's `data/` and `backups/`.** `data/` matched `tests/data/` too, where
+  CLAUDE.md asks for the tests' fixture files, so a new fixture was left out of git without a word. **Steps:** none
+  (`.gitignore` is managed).
 - Template: **`/catch-up` runs the app's own checks.** A "Catch-up" section in `.claude/project-rules.md` lists them
   (new source files not loaded yet, decisions that wait for a review), and `/catch-up` reports them with the rest.
   An app no longer edits the managed skill for its own lines. **Steps:** an app that added its own lines to
