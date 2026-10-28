@@ -31,11 +31,36 @@ def backup(spec: AppSpec, con: duckdb.DuckDBPyConnection, folder: Path | None = 
     folder.mkdir(parents=True, exist_ok=True)
     target = folder / f"{spec.backup_prefix}{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
     con.execute(f"EXPORT DATABASE {literal(str(target))} (FORMAT parquet)")
+    _order_schema(target / "schema.sql")
     problems = verify(spec, target, counts(con))
     if problems:
         raise BackupError(f"{target.name}: " + "; ".join(problems))
     prune(spec, folder, keep if keep is not None else spec.backup_keep())
     return target
+
+
+def _order_schema(path: Path) -> None:
+    """Rewrite an exported schema.sql so that each statement comes after what it reads.
+
+    EXPORT DATABASE writes every macro before every view. A macro that reads a view (or a view that reads a view
+    made later) then fails on import. This finds an order that works, by running the statements in an empty
+    database and moving each one that fails after the others, until all of them run."""
+    with duckdb.connect(":memory:") as con:
+        waiting = [s.query for s in con.extract_statements(path.read_text())]
+        done: list[str] = []
+        while waiting:
+            failed = []
+            for statement in waiting:
+                try:
+                    con.execute(statement)
+                    done.append(statement)
+                except duckdb.CatalogException:  # it reads something not made yet
+                    failed.append(statement)
+            if len(failed) == len(waiting):  # no progress: a real error, which the import reports
+                done += failed
+                break
+            waiting = failed
+    path.write_text("".join(f"{statement};\n" for statement in done))
 
 
 def counts(con: duckdb.DuckDBPyConnection) -> dict[str, tuple[int, int]]:
