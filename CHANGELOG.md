@@ -3,7 +3,9 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.8.1
+
+A fix: duckkit gives **no refresh hint for another app's database**.
 
 - duckkit: **another app's database gets no refresh hint.** When `v_contract` names another contract, the browser
   app's snapshot refuses it and says to check `<PREFIX>_DB` (or the path given). Before, it gave `refresh_hint`,
