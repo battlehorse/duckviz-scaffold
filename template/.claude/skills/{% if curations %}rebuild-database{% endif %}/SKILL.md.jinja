@@ -18,12 +18,13 @@ everything else in the database again.
 2. **Back up the database**, if it still opens: `uv run {{ project_name }} backup`. If it does not open, say so.
    Then name the newest backup (`uv run {{ project_name }} backups`): `/backup` can restore it instead of a rebuild.
 {%- else %}
-2. **Warn the user.** If the database still opens, say that step 4 keeps it as `{{ db_file }}.old`.
+2. **Warn the user.** If the database still opens, say that step 5 keeps it as `{{ db_file }}.old`.
 {%- endif %}
 3. **Take the baseline**, if the database still opens. Save the output of these commands, for step 8:
    - `uv run {{ project_name }} status`;
    - for each view of `src/{{ package }}/contract/schema.sql`: `uv run {{ project_name }} sql "SELECT count(*) AS
-     n, sum(hash(v)) AS fingerprint FROM <view> v"`. The fingerprint changes when any row changes;
+     n, sum(hash(v)) AS fingerprint FROM <view> v"`. The fingerprint changes when any row changes. For a view
+     whose rows depend on the time of the query (`now()`, `current_date`), take only the count;
    - the app's own baseline queries, when `.claude/project-rules.md` lists them (a "Rebuild baseline" section):
      totals that the user knows, per source, account or category.
 4. **Ask the user** (AskUserQuestion) to rebuild. Say what the rebuild loses: only what the sources and curated/ do
@@ -40,9 +41,10 @@ everything else in the database again.
    - Run `uv run {{ project_name }} status` and `uv run {{ project_name }} doctor`.
 8. **Compare with the baseline.** Run the commands of step 3 again, and compare the output, view by view and
    query by query.
+   - Times and file sizes in `status` (the last ingest, say) always differ: they are not a difference.
    - A difference that the rebuild was for (a parser fix, say) is fine: say what it is.
    - Any other difference: say so plainly, and stop. The old database is still in `data/{{ db_file }}.old`.
      Offer to put it back.
    - Then run `uv run pytest -q` and `uv run pytest -q -m realdata`, and report the results.
-9. **Report** the decisions that came back, and the comparison. Tell the user to delete `data/{{ db_file }}.old` after they check the
+9. **Report** the decisions that came back. Then report the comparison. Tell the user to delete `data/{{ db_file }}.old` after they check the
    app. Do not delete it yourself.
