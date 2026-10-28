@@ -5,8 +5,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## v0.8.2
 
-A fix, **a backup of a database with a macro that reads a view restores**, and **`/rebuild-database` compares
-the rebuilt database with a baseline**.
+A fix, **a backup of a database with a macro that reads a view restores**. **`/rebuild-database` compares the
+rebuilt database with a baseline**, and **`/catch-up` runs the app's own checks**, both from sections of
+`.claude/project-rules.md`.
 
 - Template: **`/catch-up` runs the app's own checks.** A "Catch-up" section in `.claude/project-rules.md` lists them
   (new source files not loaded yet, decisions that wait for a review), and `/catch-up` reports them with the rest.
