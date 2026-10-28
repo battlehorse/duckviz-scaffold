@@ -3,6 +3,14 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- duckkit: **another app's database gets no refresh hint.** When `v_contract` names another contract, the browser
+  app's snapshot refuses it and says to check `<PREFIX>_DB` (or the path given). Before, it gave `refresh_hint`,
+  which tells the user to ingest or rebuild: on another app's database, a rebuild would change or delete it. A
+  database with another major version of the same contract, or with no `v_contract`, keeps `refresh_hint`.
+  **Steps:** none.
+
 ## v0.8.0
 
 **One review for each PR** (on Sonnet, with no second review), a fuller **`/catch-up`** (a remote session, PR

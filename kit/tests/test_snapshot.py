@@ -22,6 +22,20 @@ def test_a_different_major_version_is_refused(closed_db, spec, monkeypatch):
         contract_snapshot(spec)
 
 
+def test_another_apps_database_is_refused_without_a_refresh_hint(closed_db, spec, monkeypatch):
+    monkeypatch.setattr(spec.contract, "name", "garden")
+    with pytest.raises(ContractError, match="offers shop 1.2; this app reads garden 1.x. Check that SHOP_DB") as e:
+        contract_snapshot(spec)
+    assert spec.refresh_hint not in str(e.value)
+
+
+def test_an_older_database_gets_the_refresh_hint(closed_db, spec, monkeypatch):
+    monkeypatch.setattr(spec.contract, "version", "2.0")
+    with pytest.raises(ContractError) as e:
+        contract_snapshot(spec)
+    assert str(e.value).endswith(spec.refresh_hint)
+
+
 def test_no_database(spec):
     with pytest.raises(FileNotFoundError, match="shop ingest"):
         contract_snapshot(spec)
