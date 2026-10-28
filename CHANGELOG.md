@@ -5,6 +5,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **a seeded `/review-curations` skill** (with `curations` and `llm`): a guided review of the decisions
+  that Claude made, the doubtful ones first. It asks the user in batches of up to 4 questions, records each answer
+  as a decision by hand with the app's commands, and offers a `curated/<topic>` PR. **Steps:** a seeded file
+  reaches only new apps. An app with its own review skill renames it to `review-curations` and keeps its content
+  (its own decisions and questions); one without can copy the file from a fresh render.
 - duckkit: **a backup of a database with a macro that reads a view restores.** EXPORT DATABASE writes every macro
   before every view, so such a snapshot failed its own check (and `restore`). `backup` now writes the snapshot's
   schema.sql in an order that runs: each statement after what it reads. **Steps:** none. A snapshot made before

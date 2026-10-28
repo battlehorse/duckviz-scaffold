@@ -174,7 +174,8 @@ model makes them well enough for the user to check.
 - seeded (the app's own once written): `src/<package>/classify.py`, an example that asks Claude for the label of each
   day whose value stands out, a `classify` command that shows the estimate and needs `--yes` with over 500 days
   waiting, its test (`tests/test_classify.py`, with `duckkit.testing.FakeAnthropic`: no network, no key) and a
-  `/classify` skill. The app replaces the example with its own decisions, its prompt and its schema.
+  `/classify` skill, and a `/review-curations` skill (a guided review of Claude's decisions, the doubtful ones first).
+  The app replaces the example with its own decisions, its prompt and its schema.
 
 Which runs wait for the user's yes is in docs/how-we-work.md ("What waits for the user"): a small run does not.
 Set a spend limit in the Anthropic Console before the first run: it caps what any run can cost.

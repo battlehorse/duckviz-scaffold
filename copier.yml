@@ -155,6 +155,7 @@ _exclude:
     .claude/skills/demo-data/SKILL.md
     .claude/skills/fix-curation/SKILL.md
     .claude/skills/classify/SKILL.md
+    .claude/skills/review-curations/SKILL.md
     curated/README.md
     src/{{ package }}/**
     tests/conftest.py
@@ -185,6 +186,7 @@ _skip_if_exists:
   - .claude/skills/demo-data/SKILL.md
   - .claude/skills/fix-curation/SKILL.md
   - .claude/skills/classify/SKILL.md
+  - .claude/skills/review-curations/SKILL.md
   - curated/README.md
   - "src/{{ package }}/**"
   - tests/conftest.py
