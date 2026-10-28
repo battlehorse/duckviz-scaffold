@@ -5,7 +5,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## v0.8.2
 
-A fix: **a backup of a database with a macro that reads a view restores.**
+A fix, **a backup of a database with a macro that reads a view restores**, and **`/rebuild-database` compares
+the rebuilt database with a baseline**.
 
 - Template: **`/rebuild-database` compares the rebuilt database with a baseline.** Before the rebuild, it saves
   `status`, the row count and a fingerprint of each contract view, and the app's own baseline queries (a "Rebuild
