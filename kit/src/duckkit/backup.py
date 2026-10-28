@@ -46,7 +46,8 @@ def _order_schema(path: Path) -> None:
     made later) then fails on import. This finds an order that works, by running the statements in an empty
     database and moving each one that fails after the others, until all of them run."""
     with duckdb.connect(":memory:") as con:
-        waiting = [s.query for s in con.extract_statements(path.read_text())]
+        waiting = [s.query.strip().rstrip(";") for s in con.extract_statements(path.read_text())]
+        waiting = [statement for statement in waiting if statement]
         done: list[str] = []
         while waiting:
             failed = []
@@ -54,9 +55,9 @@ def _order_schema(path: Path) -> None:
                 try:
                     con.execute(statement)
                     done.append(statement)
-                except duckdb.CatalogException:  # it reads something not made yet
+                except duckdb.Error:  # most often it reads something not made yet: try it again after the others
                     failed.append(statement)
-            if len(failed) == len(waiting):  # no progress: a real error, which the import reports
+            if len(failed) == len(waiting):  # no progress: these keep their order, and the import reports the error
                 done += failed
                 break
             waiting = failed
