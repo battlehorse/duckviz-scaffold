@@ -109,5 +109,9 @@ def _check_version(spec: AppSpec, con: duckdb.DuckDBPyConnection) -> None:
         raise ContractError(f"the database has no v_contract view: it predates the app's contract. {spec.refresh_hint}") from e
     if len(rows) != 1 or not contract.accepts(*rows[0]):
         found = ", ".join(f"{name} {version}" for name, version in rows) or "nothing"
-        raise ContractError(f"the database offers {found}; this app reads {contract.name} {contract.major}.x."
-                            f" {spec.refresh_hint}")
+        if len(rows) == 1 and rows[0][0] != contract.name:
+            # Another app's database: never suggest a rebuild or a refresh, which would change or delete it
+            fix = f"Check that {spec.env_prefix}_DB (or the path given) names this app's database."
+        else:
+            fix = spec.refresh_hint
+        raise ContractError(f"the database offers {found}; this app reads {contract.name} {contract.major}.x. {fix}")
