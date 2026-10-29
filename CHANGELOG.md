@@ -3,7 +3,10 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.8.4
+
+Two small capabilities: **`/catch-up` runs `gh pr view` and `gh pr checks` without a prompt**, and **`status`
+warns when the demo database no longer fits the contract**. No app has to change anything.
 
 - Template: **`/catch-up` runs `gh pr view` and `gh pr checks` without a prompt**, for the checks of an app's
   "Catch-up" section. Claude Code still asks for any other command that a section names, unless the user allows
