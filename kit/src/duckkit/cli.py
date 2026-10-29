@@ -91,22 +91,27 @@ def deployed_state(hosted: Deployed) -> str:
 
 
 def stale_demo_line(spec: AppSpec) -> str | None:
-    """A warning when the demo database no longer fits the contract: it was built by an older version of the app,
-    and `app --demo` would show only an error. None when it fits, or there is none."""
+    """A warning when the demo database no longer fits the contract: built by an older version of the app, it
+    would show only an error in `app --demo`. None when it fits, when there is none, or when it is the database
+    `status` just checked (<PREFIX>_DB)."""
     path = spec.demo_db_path
     if path is None or not path.exists() or path.resolve() == spec.db_path.resolve():
-        return None  # no demo, or it is the database `status` just checked
-    from duckkit.snapshot import database_snapshot
+        return None
+    from duckkit.snapshot import attach
 
-    try:
-        problems = spec.contract.check(database_snapshot(spec, path))
+    try:  # read in place, attached read-only: no copy of the whole file
+        with attach(spec, path) as con:
+            con.execute("USE src")
+            problems = spec.contract.check(con)
     except duckdb.Error as e:
-        problems = [str(e)]
+        first = str(e).splitlines()[0] if str(e) else type(e).__name__
+        return f"Demo file:    can't read {path.name}: {first}"
     if not problems:
         return None
-    contract = spec.contract
+    contract, n = spec.contract, len(problems)
     return (f"Demo file:    {path.name} doesn't fit contract {contract.name} {contract.version} "
-            f"({len(problems)} problems) → rebuild it with `{spec.cli} demo`")
+            f"({n} {'problem' if n == 1 else 'problems'}) → rebuild it with `{spec.cli} demo`, with the options it "
+            "was built with")
 
 
 def backups_line(spec: AppSpec) -> str:
@@ -172,6 +177,8 @@ def add_standard_commands(
             con = database_snapshot(spec)
         except FileNotFoundError as e:
             typer.echo(str(e))
+            if demo_line := stale_demo_line(spec):  # a fresh clone may have only the demo
+                typer.echo(demo_line)
             if remote:  # the hosted app can be checked without a local database
                 for line in remote_lines(spec, publishing=False):
                     typer.echo(line)

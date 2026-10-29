@@ -10,7 +10,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   it in the prompt. **Steps:** none.
 - duckkit: **`status` warns when the demo database no longer fits the contract**, so a contract change doesn't
   leave `app --demo` showing only an error: "Demo file: demo.duckdb doesn't fit contract … → rebuild it with
-  `<cli> demo`". `/catch-up` shows it with the rest of `status`. **Steps:** none.
+  `<cli> demo`, with the options it was built with", or "can't read" with the error. `/catch-up` shows it with the
+  rest of `status`. **Steps:** none.
 
 ## v0.8.3
 
