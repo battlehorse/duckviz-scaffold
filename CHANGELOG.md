@@ -5,6 +5,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **a seeded `/review-curations` skill** (with `curations` and `llm`): a guided review of the decisions
+  that Claude made, the doubtful ones first. It asks the user in batches of up to 4 questions, records each answer
+  as a decision by hand with the app's commands, and offers a `curated/<topic>` PR. **Steps:** a seeded file
+  reaches only new apps. An app with its own review skill renames it to `review-curations` and keeps its content
+  (its own decisions and questions); one without can copy the file from a fresh render.
 - Template: **`/app-check` has the browser tool's tips that every app needs.** The tips: wait for each rerun
   before the next click; the ⋮ menu sometimes needs a second click; send the steps you can predict in one
   `browser_batch` call; at the end, set the theme to System. **Steps:** optional: an app that wrote these tips in its
