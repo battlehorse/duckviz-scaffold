@@ -3,7 +3,11 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.8.2
+
+A fix, **a backup of a database with a macro that reads a view restores**. **`/rebuild-database` compares the
+rebuilt database with a baseline**, and **`/catch-up` runs the app's own checks**, both from sections of
+`.claude/project-rules.md`.
 
 - Template: **`.gitignore` ignores only the root's `data/` and `backups/`.** `data/` matched `tests/data/` too, where
   CLAUDE.md asks for the tests' fixture files, so a new fixture was left out of git without a word. **Steps:** none
