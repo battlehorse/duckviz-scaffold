@@ -9,6 +9,9 @@ A fix, **a backup of a database with a macro that reads a view restores**. **`/r
 rebuilt database with a baseline**, and **`/catch-up` runs the app's own checks**, both from sections of
 `.claude/project-rules.md`.
 
+- Template: **`.gitignore` ignores only the root's `data/` and `backups/`.** `data/` matched `tests/data/` too, where
+  CLAUDE.md asks for the tests' fixture files, so a new fixture was left out of git without a word. **Steps:** none
+  (`.gitignore` is managed).
 - Template: **`/catch-up` runs the app's own checks.** A "Catch-up" section in `.claude/project-rules.md` lists them
   (new source files not loaded yet, decisions that wait for a review), and `/catch-up` reports them with the rest.
   An app no longer edits the managed skill for its own lines. **Steps:** an app that added its own lines to
@@ -24,11 +27,6 @@ rebuilt database with a baseline**, and **`/catch-up` runs the app's own checks*
   before every view, so such a snapshot failed its own check (and `restore`). `backup` now writes the snapshot's
   schema.sql in an order that runs: each statement after what it reads. **Steps:** none. A snapshot made before
   this fix, which failed its check, is not repaired: make a new backup.
-- Template: **`.gitignore` ignores only the root's `data/` and `backups/`.** The patterns `data/` and `backups/`
-  matched those names at any depth, so they also hid `tests/data/`, where the template tells apps to keep their
-  test fixtures. They are now `/data/` and `/backups/`. **Steps:** none (`copier update` takes the new patterns).
-  Check `git status` afterwards: fixtures in `tests/data/` that were ignored before now show as untracked, and
-  should be committed.
 
 ## v0.8.1
 
