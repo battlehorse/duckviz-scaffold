@@ -6,8 +6,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 ## Unreleased
 
 - Template: **`/catch-up` runs `gh pr view` and `gh pr checks` without a prompt**, for the checks of an app's
-  "Catch-up" section. Claude Code still asks once for any other command a section names; its "don't ask again"
-  remembers it on that machine (`.claude/settings.local.json`). **Steps:** none.
+  "Catch-up" section. Claude Code still asks for any other command that a section names, unless the user allows
+  it in the prompt. **Steps:** none.
 
 ## v0.8.3
 

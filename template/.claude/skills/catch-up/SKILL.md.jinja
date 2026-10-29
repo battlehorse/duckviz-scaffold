@@ -42,9 +42,6 @@ allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bas
 6. **Scaffold.** `uv run {{ project_name }} doctor --remote`. If a newer release is out, suggest `/scaffold-update`.
 7. **This app's own checks.** If `.claude/project-rules.md` has a "Catch-up" section, run each check that it lists,
    and report the results with the rest. A check only reads: run nothing that changes a file or the database.
-   This skill allows `sql`, `gh pr view` and `gh pr checks` without a prompt; Claude Code asks for any other command,
-   unless the user allowed it (the prompt's "don't ask again" adds it to `.claude/settings.local.json`).
-
 Report in a short list: what changed, what needs attention, and a suggested next step. If the session is now remote,
 say so in one line. Change nothing beyond the pull, `uv sync`, the test run (it writes only caches) and, if the user
 asks, the process that keeps the Mac awake.
