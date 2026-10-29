@@ -1,7 +1,6 @@
 """Curated decisions: exported sorted and atomically, restored into a rebuilt database in one transaction, never
 wiped by a database without decisions, and kept apart from a demo database."""
 
-import subprocess
 from datetime import date
 
 import duckdb
@@ -20,7 +19,7 @@ from duckkit.curated import (
 )
 from duckkit.demo import build_demo
 from duckkit.store import connect
-from tests.conftest import DB_SCHEMA
+from tests.conftest import DB_SCHEMA, git
 
 SCHEMA = DB_SCHEMA + """
 CREATE TABLE IF NOT EXISTS labels (day DATE PRIMARY KEY, label VARCHAR NOT NULL, classified_by VARCHAR,
@@ -210,11 +209,6 @@ def test_not_manual():
 
 
 # ─── The git guard ───
-
-def git(root, *args):
-    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *args], cwd=root, check=True,
-                   capture_output=True)
-
 
 @pytest.fixture
 def committed(con, spec):

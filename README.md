@@ -157,7 +157,7 @@ scripts/render.sh        renders three sample apps (every option on, every optio
 scripts/release.py       sets the release version (on a branch), then tags it (on main)
 .claude/skills/upstream  the skill that brings a capability from an app into the scaffold
 .claude/skills/catch-up  the start-of-session briefing for this repo
-.github/workflows/ci.yml the kit's tests and the two sample apps, on every PR
+.github/workflows/ci.yml the kit's tests and the sample apps, on every PR
 ```
 
 ## Development

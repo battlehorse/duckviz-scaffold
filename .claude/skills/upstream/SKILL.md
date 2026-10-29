@@ -18,12 +18,10 @@ Read docs/kit.md, docs/template.md and docs/upgrading.md first.
    that part stays in the app, and duckkit gets a hook for it (a spec field, a callback, a rule list).
 3. **Split it:**
    - **Code that would be the same in every app** → `kit/src/duckkit/`. Take the spec (`AppSpec`) instead of the
-     app's config; no app name, path or domain word in duckkit. Mind the sides: the browser app may import only
-     `spec`, `contract`, `snapshot`, `app.*`. Add tests in `kit/tests/` with the sample contract.
+     app's config; no app name, path or domain word in duckkit. Add tests in `kit/tests/` with the sample contract.
    - **Files** (a skill, a doc, CI, Dockerfile) → `template/`, with the answers in place of names. If not every
      app should have it, make it an option, but only when docs/template.md's rule allows ("Options or
-     capabilities"): some apps should refuse it for a real cost or risk, and turning it off removes something real.
-     Otherwise it is a capability that every app gets. An option is a question in `copier.yml`, off by default, with
+     capabilities"). Otherwise it is a capability that every app gets. An option is a question in `copier.yml`, off by default, with
      `{% if option %}…{% endif %}` file names; say in the PR why it is an option. Prefer seeded files (`_skip_if_exists`) for anything an app will rewrite.
    - **Docs** → docs/kit.md or docs/template.md.
 4. **Draft the CHANGELOG entry** under the next version, with **Steps**: what an app's code must change by hand

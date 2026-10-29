@@ -1,5 +1,6 @@
 """A small app for duckkit's tests: a two-view contract, its tables and views, in a temporary project."""
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,11 @@ CREATE TABLE IF NOT EXISTS items (name VARCHAR PRIMARY KEY, kind VARCHAR, price 
 CREATE OR REPLACE VIEW v_contract AS SELECT 'shop' AS contract, '1.2' AS version;
 CREATE OR REPLACE VIEW v_items AS SELECT name AS item, kind, price FROM items;
 """
+
+
+def git(root, *args):
+    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *args], cwd=root, check=True,
+                   capture_output=True)
 
 
 def make_contract(version: str = "1.0") -> Contract:

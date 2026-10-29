@@ -1,12 +1,12 @@
 """spec-diff: which changes touch the spec (the files in .claude/spec-paths, and the spec tests), and which are
 only reported (dependencies)."""
 
-import subprocess
 from textwrap import dedent
 
 import pytest
 
 from duckkit.specdiff import read_spec_paths, spec_diff
+from tests.conftest import git
 
 SPEC_PATHS = """\
 # The spec of a test app
@@ -43,11 +43,6 @@ dependencies = ["duckdb>=1.5.6,<2", "typer>=0.27"]
 [dependency-groups]
 dev = ["pytest>=9"]
 """
-
-
-def git(root, *args):
-    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *args], cwd=root, check=True,
-                   capture_output=True)
 
 
 @pytest.fixture
