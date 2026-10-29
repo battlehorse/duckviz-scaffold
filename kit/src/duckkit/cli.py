@@ -90,6 +90,25 @@ def deployed_state(hosted: Deployed) -> str:
     return f"{commits} behind origin/main: `/hosting deploy`"
 
 
+def stale_demo_line(spec: AppSpec) -> str | None:
+    """A warning when the demo database no longer fits the contract: it was built by an older version of the app,
+    and `app --demo` would show only an error. None when it fits, or there is none."""
+    path = spec.demo_db_path
+    if path is None or not path.exists() or path.resolve() == spec.db_path.resolve():
+        return None  # no demo, or it is the database `status` just checked
+    from duckkit.snapshot import database_snapshot
+
+    try:
+        problems = spec.contract.check(database_snapshot(spec, path))
+    except duckdb.Error as e:
+        problems = [str(e)]
+    if not problems:
+        return None
+    contract = spec.contract
+    return (f"Demo file:    {path.name} doesn't fit contract {contract.name} {contract.version} "
+            f"({len(problems)} problems) → rebuild it with `{spec.cli} demo`")
+
+
 def backups_line(spec: AppSpec) -> str:
     """How many backup snapshots there are, and how old the newest is."""
     from datetime import UTC, datetime
@@ -167,6 +186,8 @@ def add_standard_commands(
         if backups and connect:
             typer.echo(backups_line(spec))
         contract_line(spec, spec.contract.check(con), pad="    ")
+        if demo_line := stale_demo_line(spec):
+            typer.echo(demo_line)
         if remote:
             for line in remote_lines(spec, publishing):
                 typer.echo(line)

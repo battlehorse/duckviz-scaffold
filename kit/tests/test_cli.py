@@ -1,6 +1,7 @@
 """The standard commands: app on localhost (and the tailnet), publish, backups, status, sql, doctor."""
 
 import json
+import shutil
 import subprocess
 
 import duckdb
@@ -187,6 +188,18 @@ def test_status_says_a_demo_database_is_made_up(cli, closed_db, spec):
     with duckdb.connect(str(spec.db_path)) as con:
         con.execute("CREATE TABLE demo_params (params VARCHAR)")
     assert "Demo:         made-up data (`shop demo`), not your own" in runner.invoke(cli, ["status"]).output
+
+
+def test_status_warns_when_the_demo_database_no_longer_fits_the_contract(cli, closed_db, spec):
+    """A demo built by an older version of the app would show only an error in `app --demo`: status says so."""
+    assert "Demo file:" not in runner.invoke(cli, ["status"]).output  # no demo database
+    shutil.copy(closed_db, spec.demo_db_path)
+    assert "Demo file:" not in runner.invoke(cli, ["status"]).output  # one that fits
+    with duckdb.connect(str(spec.demo_db_path)) as con:  # as if built by an older version
+        con.execute("DROP VIEW v_items")
+    out = runner.invoke(cli, ["status"]).output
+    assert "Demo file:    demo.duckdb doesn't fit contract shop 1.0 (1 problems) → rebuild it with `shop demo`" in out
+    assert "Contract:     shop 1.0, the app's views conform" in out  # the real database is fine
 
 
 def test_curated_check_refuses_an_emptied_file_unless_confirmed(cli, spec, monkeypatch):

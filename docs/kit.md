@@ -278,7 +278,7 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 
 | Command | Does | Built on |
 |---|---|---|
-| `status [--remote]` | prints the app's `status(con)` lines, a "Demo:" line for a demo database, the backups line, and the contract check. `--remote` adds whether the published copy is current ("Published:", with `publishing`) and whether the hosted app runs the latest commit ("Deployed:", with `cloud_run`) | `snapshot.database_snapshot`, `Contract.check`, `publish.compare`, `hosting.deployed` |
+| `status [--remote]` | prints the app's `status(con)` lines, a "Demo:" line for a demo database, the backups line, the contract check, and a "Demo file:" warning when the demo database (`spec.demo_file`) no longer fits the contract. `--remote` adds whether the published copy is current ("Published:", with `publishing`) and whether the hosted app runs the latest commit ("Deployed:", with `cloud_run`) | `snapshot.database_snapshot`, `Contract.check`, `publish.compare`, `hosting.deployed` |
 | `sql "SELECT …" [--limit]` | runs exactly one `SELECT` on a snapshot of the whole database and prints a table | `snapshot.database_snapshot` |
 | `publish [--to] [--dry-run] [--check]` | sends the views (refusing a demo database), shows what would go, or compares | `publish`, `demo.is_demo` |
 | `backup` / `backups` / `restore <snapshot> [--to]` | makes a verified snapshot, lists them, or rebuilds a new file from one | `backup` |
@@ -300,6 +300,8 @@ The module also exports helpers for the app's own commands:
 - `fail(message)` prints the message and exits with status 1.
 - `contract_line(spec, problems)` prints the contract check, as `ingest` does at the end.
 - `backups_line(spec)` returns the backups line of `status`.
+- `stale_demo_line(spec)` returns the "Demo file:" warning of `status`, or None when the demo database fits the
+  contract or there is none.
 
 ## `duckkit.demo`
 
