@@ -3,6 +3,13 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- Template: **`/app-check` has the browser tool's tips that every app needs**: wait for each rerun before the next
+  click, the ⋮ menu that sometimes needs a second click, `browser_batch` for the steps you can predict, and the
+  theme set back to System at the end. **Steps:** an app that wrote these tips in its own `docs/browser-checks.md`
+  can remove them there; it keeps the tips for its own pages.
+
 ## v0.8.2
 
 A fix, **a backup of a database with a macro that reads a view restores**. **`/rebuild-database` compares the
