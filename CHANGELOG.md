@@ -8,6 +8,10 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 - Template: **`/catch-up` runs `gh pr view` and `gh pr checks` without a prompt**, for the checks of an app's
   "Catch-up" section. Claude Code still asks for any other command that a section names, unless the user allows
   it in the prompt. **Steps:** none.
+- duckkit: **`status` warns when the demo database no longer fits the contract**, so a contract change doesn't
+  leave `app --demo` showing only an error: "Demo file: demo.duckdb doesn't fit contract … → rebuild it with
+  `<cli> demo`, with the options it was built with", or "can't read" with the error. `/catch-up` shows it with the
+  rest of `status`. **Steps:** none.
 
 ## v0.8.3
 

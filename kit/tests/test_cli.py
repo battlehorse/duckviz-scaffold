@@ -1,6 +1,7 @@
 """The standard commands: app on localhost (and the tailnet), publish, backups, status, sql, doctor."""
 
 import json
+import shutil
 import subprocess
 
 import duckdb
@@ -187,6 +188,34 @@ def test_status_says_a_demo_database_is_made_up(cli, closed_db, spec):
     with duckdb.connect(str(spec.db_path)) as con:
         con.execute("CREATE TABLE demo_params (params VARCHAR)")
     assert "Demo:         made-up data (`shop demo`), not your own" in runner.invoke(cli, ["status"]).output
+
+
+def test_status_warns_when_the_demo_database_no_longer_fits_the_contract(cli, closed_db, spec):
+    """A demo built by an older version of the app would show only an error in `app --demo`: status says so."""
+    assert "Demo file:" not in runner.invoke(cli, ["status"]).output  # no demo database
+    shutil.copy(closed_db, spec.demo_db_path)
+    assert "Demo file:" not in runner.invoke(cli, ["status"]).output  # one that fits
+    with duckdb.connect(str(spec.demo_db_path)) as con:  # as if built by an older version
+        con.execute("DROP VIEW v_items")
+    out = runner.invoke(cli, ["status"]).output
+    line = next(ln for ln in out.splitlines() if ln.startswith("Demo file:"))
+    assert "demo.duckdb" in line and "(1 problem)" in line and "`shop demo`" in line
+    assert "Contract:     shop 1.0, the app's views conform" in out  # the real database is fine
+    spec.db_path.unlink()  # a fresh clone with only the demo: still warned
+    assert "Demo file:" in runner.invoke(cli, ["status"]).output
+
+
+def test_status_says_when_it_cant_read_the_demo_and_skips_it_when_it_is_the_database(cli, closed_db, spec,
+                                                                                     monkeypatch):
+    spec.demo_db_path.write_bytes(b"not a database")
+    line = next(ln for ln in runner.invoke(cli, ["status"]).output.splitlines() if ln.startswith("Demo file:"))
+    assert "can't read demo.duckdb" in line and "rebuild" not in line  # no rebuild advice for a read error
+    shutil.copy(closed_db, spec.demo_db_path)
+    with duckdb.connect(str(spec.demo_db_path)) as con:
+        con.execute("DROP VIEW v_items")
+    monkeypatch.setattr(spec, "db_path", spec.demo_db_path)  # SHOP_DB names the demo: status checks it itself
+    out = runner.invoke(cli, ["status"]).output
+    assert "Demo file:" not in out and "1 problems for the app" in out  # once, in the contract line
 
 
 def test_curated_check_refuses_an_emptied_file_unless_confirmed(cli, spec, monkeypatch):

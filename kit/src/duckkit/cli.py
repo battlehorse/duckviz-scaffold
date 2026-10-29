@@ -90,6 +90,30 @@ def deployed_state(hosted: Deployed) -> str:
     return f"{commits} behind origin/main: `/hosting deploy`"
 
 
+def stale_demo_line(spec: AppSpec) -> str | None:
+    """A warning when the demo database no longer fits the contract: built by an older version of the app, it
+    would show only an error in `app --demo`. None when it fits, when there is none, or when it is the database
+    `status` just checked (<PREFIX>_DB)."""
+    path = spec.demo_db_path
+    if path is None or not path.exists() or path.resolve() == spec.db_path.resolve():
+        return None
+    from duckkit.snapshot import attach
+
+    try:  # read in place, attached read-only: no copy of the whole file
+        with attach(spec, path) as con:
+            con.execute("USE src")
+            problems = spec.contract.check(con)
+    except duckdb.Error as e:
+        first = str(e).splitlines()[0] if str(e) else type(e).__name__
+        return f"Demo file:    can't read {path.name}: {first}"
+    if not problems:
+        return None
+    contract, n = spec.contract, len(problems)
+    return (f"Demo file:    {path.name} doesn't fit contract {contract.name} {contract.version} "
+            f"({n} {'problem' if n == 1 else 'problems'}) → rebuild it with `{spec.cli} demo`, with the options it "
+            "was built with")
+
+
 def backups_line(spec: AppSpec) -> str:
     """How many backup snapshots there are, and how old the newest is."""
     from datetime import UTC, datetime
@@ -153,6 +177,8 @@ def add_standard_commands(
             con = database_snapshot(spec)
         except FileNotFoundError as e:
             typer.echo(str(e))
+            if demo_line := stale_demo_line(spec):  # a fresh clone may have only the demo
+                typer.echo(demo_line)
             if remote:  # the hosted app can be checked without a local database
                 for line in remote_lines(spec, publishing=False):
                     typer.echo(line)
@@ -167,6 +193,8 @@ def add_standard_commands(
         if backups and connect:
             typer.echo(backups_line(spec))
         contract_line(spec, spec.contract.check(con), pad="    ")
+        if demo_line := stale_demo_line(spec):
+            typer.echo(demo_line)
         if remote:
             for line in remote_lines(spec, publishing):
                 typer.echo(line)
