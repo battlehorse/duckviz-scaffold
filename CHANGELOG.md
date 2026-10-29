@@ -3,7 +3,10 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.8.3
+
+Two skills: **a seeded `/review-curations`** for the apps with curations and an LLM, and **`/app-check` has the
+browser tool's tips that every app needs**.
 
 - Template: **a seeded `/review-curations` skill** (with `curations` and `llm`): a guided review of the decisions
   that Claude made, the doubtful ones first. It asks the user in batches of up to 4 questions, records each answer
