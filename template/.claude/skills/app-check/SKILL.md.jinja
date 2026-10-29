@@ -11,10 +11,15 @@ Arguments: $ARGUMENTS (default: both modes, every check)
 1. **The app runs the current code.** Check the health URL (`/app`). If code changed since it started, restart it.
 2. **Load the browser tools** (the claude-in-chrome skill) and open http://localhost:{{ app_port }} in a new tab.
 3. **Walk each check** of docs/browser-checks.md in order, in each mode asked for. Switch the theme with ⋮, then
-   Light or Dark (the theme buttons in the menu). For each check, note pass or fail; for a failure, take a
-   screenshot and read the console (`read_console_messages`, pattern `Error`).
+   Light or Dark (the menu's theme buttons are System, Light and Dark). For each check, note pass or fail; for a
+   failure, take a screenshot and read the console (`read_console_messages`, pattern `Error`).
    - ECharts charts: hover a point before you click it; a click without a hover can miss.
    - After a theme switch the charts must recolour without a reload (duckkit's theme watcher).
+   - Wait for each rerun (2–5 s) before the next click: the page ignores a click while it loads.
+   - The ⋮ menu sometimes needs a second click to open.
+   - Send the steps you can predict together, in one `browser_batch` call (a claude-in-chrome tool).
+   - Tips for this app's own pages are in docs/browser-checks.md.
 4. **Report** a table: check, light, dark, notes. Do not fix anything unless the user asks.
+5. **Restore the theme:** in the ⋮ menu, click the System theme button. Close the tab you opened.
 
 Use synthetic data for screenshots you keep{% if demo_data %} (`/app demo`){% endif %}: real data must not go into git or a PR.

@@ -2,8 +2,9 @@
 # private (see CLAUDE.md).{% else %}The repo must stay safe to make public (see CLAUDE.md).{% endif %}
 /config.toml
 .env
-data/
-backups/
+# The project root's only: tests/data/ holds the tests' fixtures, which are committed
+/data/
+/backups/
 *.duckdb
 *.duckdb.wal
 *.parquet

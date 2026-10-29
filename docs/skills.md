@@ -16,7 +16,7 @@ docs/architecture.md how the skills fit in an app.
 | `/ask` | seeded | answer a question with read-only SQL on the contract views (`sql`) |
 | `/app` | managed | start, stop or restart a Streamlit app, on localhost or on the tailnet |
 | `/app-check` | managed | walk the browser checks of docs/browser-checks.md in light mode, dark mode or both, with screenshots of failures |
-| `/catch-up` | managed | brief the start of a session: a remote session (the Mac kept awake, Remote Control) on request, git and the merged branches, PRs and their stacks, issues, the tests after a pull, the database status, the published copy, the hosted app, each app's health, and a newer scaffold release (`doctor --remote`) |
+| `/catch-up` | managed | brief the start of a session: a remote session (the Mac kept awake, Remote Control) on request, git and the merged branches, PRs and their stacks, issues, the tests after a pull, the database status, the published copy, the hosted app, each app's health, a newer scaffold release (`doctor --remote`), and the app's own checks (a "Catch-up" section in `.claude/project-rules.md`) |
 | `/deliver-outcome` | managed | work on an outcome issue, from the brief to the report, as docs/how-we-work.md describes |
 | `/scaffold-update` | managed | move the repo to a newer scaffold release, or turn an option on, and open a PR |
 
@@ -29,7 +29,7 @@ docs/architecture.md how the skills fit in an app.
 | `/hosting` | `cloud_run` | managed | deploy to Cloud Run or roll back, add or remove a person, list who has access, show the status. It asks before each deploy and each change of access. |
 | `/demo-data` | `demo_data` | seeded | build the demo database with `demo` |
 | `/fix-curation` | `curations` | seeded | correct one curated decision with the app's commands, which write `curated/` too |
-| `/rebuild-database` | `curations` | managed, the user starts it | rebuild the database from its sources, with the curated decisions restored from `curated/` |
+| `/rebuild-database` | `curations` | managed, the user starts it | rebuild the database from its sources, with the curated decisions restored from `curated/`, then compare it with a baseline taken before: each contract view's rows and fingerprint, `status`, and the app's own baseline queries |
 | `/classify` | `llm` | seeded | let Claude make the decisions that have none yet: it states the estimate and runs a small run at once; a run with over 500 days waiting, only after the user's yes |
 | `/review-curations` | `llm` | seeded | go through the decisions that Claude made, the doubtful ones first: ask the user in small batches, and record each answer as a decision by hand |
 

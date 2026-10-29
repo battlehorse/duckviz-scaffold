@@ -10,6 +10,31 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   as a decision by hand with the app's commands, and offers a `curated/<topic>` PR. **Steps:** a seeded file
   reaches only new apps. An app with its own review skill renames it to `review-curations` and keeps its content
   (its own decisions and questions); one without can copy the file from a fresh render.
+- Template: **`/app-check` has the browser tool's tips that every app needs.** The tips: wait for each rerun
+  before the next click; the ⋮ menu sometimes needs a second click; send the steps you can predict in one
+  `browser_batch` call; at the end, set the theme to System. **Steps:** optional: an app that wrote these tips in its
+  own `docs/browser-checks.md` removes them there, and keeps the tips for its own pages.
+
+## v0.8.2
+
+A fix, **a backup of a database with a macro that reads a view restores**. **`/rebuild-database` compares the
+rebuilt database with a baseline**, and **`/catch-up` runs the app's own checks**, both from sections of
+`.claude/project-rules.md`.
+
+- Template: **`.gitignore` ignores only the root's `data/` and `backups/`.** `data/` matched `tests/data/` too, where
+  CLAUDE.md asks for the tests' fixture files, so a new fixture was left out of git without a word. **Steps:** none
+  (`.gitignore` is managed).
+- Template: **`/catch-up` runs the app's own checks.** A "Catch-up" section in `.claude/project-rules.md` lists them
+  (new source files not loaded yet, decisions that wait for a review), and `/catch-up` reports them with the rest.
+  An app no longer edits the managed skill for its own lines. **Steps:** an app that added its own lines to
+  `/catch-up` (a deviation) moves them to a "Catch-up" section in `.claude/project-rules.md`, takes the template's
+  skill, and removes the deviation (new apps get an empty section).
+- Template: **`/rebuild-database` compares the rebuilt database with a baseline.** Before the rebuild, it saves
+  `status`, the row count and a fingerprint of each contract view, and the app's own baseline queries (a "Rebuild
+  baseline" section in `.claude/project-rules.md`). After it, it runs them again and reports each difference, then
+  runs `pytest` and `pytest -m realdata`. A difference that the rebuild was not for stops it, with the old database
+  kept. **Steps:** optional: add a "Rebuild baseline" section with your own queries to `.claude/project-rules.md`
+  (new apps get an empty one).
 - duckkit: **a backup of a database with a macro that reads a view restores.** EXPORT DATABASE writes every macro
   before every view, so such a snapshot failed its own check (and `restore`). `backup` now writes the snapshot's
   schema.sql in an order that runs: each statement after what it reads. **Steps:** none. A snapshot made before
