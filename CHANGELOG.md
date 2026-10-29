@@ -3,6 +3,12 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- Template: **`/catch-up` runs `gh pr view` and `gh pr checks` without a prompt**, for the checks of an app's
+  "Catch-up" section. Claude Code still asks once for any other command a section names; its "don't ask again"
+  remembers it on that machine (`.claude/settings.local.json`). **Steps:** none.
+
 ## v0.8.3
 
 Two skills: **a seeded `/review-curations`** for the apps with curations and an LLM, and **`/app-check` has the
