@@ -1,0 +1,54 @@
+---
+name: restore-backup
+description: Bring the {{ project_name }} database back from a backup snapshot{% if curations %}, with its curated decisions in line with curated/{% endif %}. Use when the database is lost or damaged, or to start on a new machine from a backup, without the source files.
+allowed-tools: Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} backups) Bash(uv run {{ project_name }} restore *) Bash(uv run {{ project_name }} fetch-backup) Bash(uv run {{ project_name }} fetch-backup *) Bash(uv run {{ project_name }} doctor) Bash(lsof data/{{ db_file }}){% if curations %} Bash(uv run {{ project_name }} curated-diff) Bash(uv run {{ project_name }} curated-diff *) Bash(git status --short curated/) Bash(git diff curated/){% endif %}
+---
+
+# Restore a backup
+
+It restores a snapshot into a new file, {% if curations %}brings its curated decisions in line with `curated/`,
+{% endif %}and then puts the file in place of the database, with the user's yes. Nothing is deleted. `/backup
+restore` follows this skill. To make the database again from the source files instead, use {% if curations %}`/rebuild-database`{% else %}`/ingest`{% endif %}.
+
+1. **Make the current state safe.**
+   - If the database is there and opens (`uv run {{ project_name }} status`), make a backup of it first:
+     `uv run {{ project_name }} backup`. If it does not open, say so.
+{%- if curations %}
+   - `git status --short curated/` must be clean. If it is not, show the user the changes (`git diff curated/`)
+     and stop. The user commits them first, or says why not.
+{%- endif %}
+2. **Pick the snapshot.** `uv run {{ project_name }} backups` lists them. Use the newest one, unless the user names
+   another.
+   - When it is only in Cloud Storage (a new machine, say): `uv run {{ project_name }} fetch-backup` (or
+     `fetch-backup <snapshot>`). It needs `config.toml` with `[backup] remote = "gs://<bucket>"`: copy
+     `config.example.toml` to `config.toml` and set it. It also needs the user's `gcloud auth login`.
+   - When there is no snapshot, stop: this skill can't help.
+3. **Restore into a new file.** `uv run {{ project_name }} restore <snapshot folder>`. It writes
+   `data/restored.duckdb` and never overwrites. If that file is there, stop and ask the user to move it away. Show
+   the counts.
+{%- if curations %}
+4. **Compare the decisions with git.** The output of `restore` compares the restored decisions with
+   `curated/*.csv` (also: `uv run {{ project_name }} curated-diff --db data/restored.duckdb`).
+   - When they match, go to step 5.
+   - When they differ, show the lines, and ask the user (AskUserQuestion) which side wins, for every table at
+     once:
+     - **git** (the usual case: the files are newer than the backup):
+       `uv run {{ project_name }} curated-align --db data/restored.duckdb`. It changes only the restored file. Its
+       output must end "match curated/".
+     - **the database** (the backup holds decisions that were never committed): change nothing now. Tell the user
+       that the next command that changes a decision writes them into `curated/`, and that they commit it then.
+       Until then, `status` says that the decisions differ.
+{%- endif %}
+{{ 5 if curations else 4 }}. **Ask the user** (AskUserQuestion) to put the restored file in place. Say what changes: the
+   counts of `status` before, and of the restored file.
+{{ 6 if curations else 5 }}. **Move the files.** Do not delete anything.
+   - First the app must not have the database open. Ask the user to stop `uv run {{ project_name }} app` (and any
+     other command that runs), and check it: `lsof data/{{ db_file }}` must print nothing.
+   - If there is a database: rename `data/{{ db_file }}` to `data/{{ db_file }}.old`. Also rename its `.wal` file, if
+     there is one.
+   - Rename `data/restored.duckdb` to `data/{{ db_file }}`.
+{{ 7 if curations else 6 }}. **Check the result.** `uv run {{ project_name }} status`: the contract check must pass{% if curations %}, and the
+   "Curated:" line must say "in line with curated/" (or, when the database won, the differences the user chose){% endif %}.
+   Then `uv run {{ project_name }} doctor`.
+{{ 8 if curations else 7 }}. **Report** the snapshot, its age and the counts{% if curations %}, and which side won{% endif %}. Tell the user to delete
+   `data/{{ db_file }}.old` after they check the app. Do not delete it yourself.

@@ -43,6 +43,7 @@ EXPECTED = [
     (".claude/skills/scaffold-update/SKILL.md", None),
     (".claude/skills/publish/SKILL.md", "motherduck"),
     (".claude/skills/backup/SKILL.md", "backup"),
+    (".claude/skills/restore-backup/SKILL.md", "backup"),
     (".claude/skills/hosting/SKILL.md", "cloud_run"),
     ("docs/hosting.md", "cloud_run"),
     ("Dockerfile", "cloud_run"),

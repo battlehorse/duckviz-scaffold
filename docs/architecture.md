@@ -187,6 +187,17 @@ keeps the local snapshot and exits 1. The newest `keep` stay there too. `backups
 `fetch-backup` brings a snapshot to a new machine, checked, for `restore`. `status --remote` shows how old the
 newest copy there is, and `doctor --remote` checks that the bucket is private: a snapshot holds the whole database.
 
+**Restoring a backup** (`/restore-backup`, which `/backup restore` follows). `restore` builds a new file from a
+snapshot. With `curations`, a backup is often older than the last commit of `curated/`, so the restored file can
+hold older decisions. The next command that changes a decision would then export them over the newer files. So
+`restore` compares the restored decisions with `curated/` (`curated-diff`), and the user chooses which side wins,
+for every table at once:
+- git: `curated-align` gives the restored file the files' decisions;
+- the database: its decisions reach `curated/` with the next export, and the user commits them.
+
+`status` says whether the database's decisions are in line with `curated/`. Only then does the restored file take
+the database's place, with the user's yes.
+
 ## Curated decisions (the `curations` option)
 
 The decisions that people, or a model, make about the data, and that the sources can't give back: a product's
