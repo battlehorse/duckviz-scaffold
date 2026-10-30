@@ -54,7 +54,7 @@ rename: see the last column.
 | `db_file` | `<project_name>.duckdb` | The database file in `data/`. `<PREFIX>_DB` overrides it. | Move the file, or keep the old name. An existing app sets its current file name here. |
 | `timezone` | `Europe/London` | The `TimeZone` of every connection duckkit opens (store, snapshots, backups). This decides what a "local day" is in the views. | The views' days and hours move. Check the contract's rules and tests. |
 | `app_port` | 8501 | The browser app's port on localhost. On the tailnet it is the HTTPS port too. Pick one that no other app on the machine uses. | Edit freely. Bookmarks change. |
-| `extra_apps` | `[]` | More Streamlit apps besides `app`, as a YAML list of `{name, port, title, hosted}`. Each one gets an `AppEntry`, a row in the app skill, `docs/cli.md` and CLAUDE.md. `hosted` defaults to `false`: such an app (a curation tool, say) may read the whole database, and the browser app may never import it. The browser app may import a `hosted: true` app, which should read only the contract. No extra app goes to Cloud Run: only `app` does (one hosted app for each project). You write its code in `src/<package>/<name>/`. | Add or remove entries, then write or delete the code. |
+| `extra_apps` | `[]` | More Streamlit apps besides `app`, as a YAML list of `{name, port, title, hosted}`. Each one gets an `AppEntry`, a row in the app skill, `docs/guides/cli.md` and CLAUDE.md. `hosted` defaults to `false`: such an app (a curation tool, say) may read the whole database, and the browser app may never import it. The browser app may import a `hosted: true` app, which should read only the contract. No extra app goes to Cloud Run: only `app` does (one hosted app for each project). You write its code in `src/<package>/<name>/`. | Add or remove entries, then write or delete the code. |
 
 These come with an option, and are asked only when it is on:
 
@@ -82,7 +82,7 @@ update, and follow the docs it adds.
 - `[motherduck] token` in `config.example.toml`.
 - The MotherDuck sections of the docs, and the publish steps in `/catch-up` and `/ingest`.
 - `SPEC.motherduck_target`.
-- `docs/claude-chat.md` (template-managed): the instructions for a claude.ai project that asks the published copy
+- `docs/guides/claude-chat.md` (template-managed): the instructions for a claude.ai project that asks the published copy
   through the MotherDuck connector. It follows the app's `/ask` skill, where the app's domain hints belong. The
   one-time setup of that project is in `/publish`.
 
@@ -101,7 +101,7 @@ Cloud project. **Needs** `motherduck`.
 
 **On:**
 - a `Dockerfile` and its ignore files. The image holds the code only, never `data/` or the settings.
-- `docs/hosting.md`: how the hosted app works (IAP sign-in, Cloud Run, the read-only token secret, the idle
+- `docs/guides/hosting.md`: how the hosted app works (IAP sign-in, Cloud Run, the read-only token secret, the idle
   pause), the costs, the one-time setup step by step, updating, rolling back and sharing.
 - `/hosting`: deploy, roll back, add or remove a person, status.
 - `app/static/paused.html`, the page an idle tab goes to so the instance can scale to zero.
@@ -179,7 +179,7 @@ model makes them well enough for the user to check.
   `/classify` skill, and a `/review-curations` skill (a guided review of Claude's decisions, the doubtful ones first).
   The app replaces the example with its own decisions, its prompt and its schema.
 
-Which runs wait for the user's yes is in docs/how-we-work.md ("What waits for the user"): a small run does not.
+Which runs wait for the user's yes is in docs/work/how-we-work.md ("What waits for the user"): a small run does not.
 Set a spend limit in the Anthropic Console before the first run: it caps what any run can cost.
 
 **Off:** no model: every decision is made by hand.
@@ -200,19 +200,19 @@ There is no question for these. An app that truly can't have one lists it in `op
 | Scaffold updates | the weekly `scaffold-update` workflow and `/scaffold-update` |
 | Claude Code | CLAUDE.md with the shared rules, and the skills of every app (docs/skills.md) |
 | Docs | architecture, contract, dashboard, cli, getting-started, browser checks, scaffold, deviations |
-| How we work | docs/how-we-work.md (the cycle: outcomes, the spec, merges, the report), docs/spec.md and `.claude/spec-paths` (the app's spec, seeded), docs/review.md (the standards), the `reviewer` agent, the `/deliver-outcome` skill, the PR template, and `.claude/settings.json` (Claude Code prompts before a hard stop) |
+| How we work | docs/work/how-we-work.md (the cycle: outcomes, the spec, merges, the report), docs/work/spec.md and `.claude/spec-paths` (the app's spec, seeded), docs/work/review.md (the standards), the `reviewer` agent, the `/deliver-outcome` skill, the PR template, and `.claude/settings.json` (Claude Code prompts before a hard stop) |
 
 ## Deviations
 
-An app differs from the scaffold in one of three ways, and lists each one in its `docs/deviations.md`:
+An app differs from the scaffold in one of three ways, and lists each one in its `docs/work/deviations.md`:
 
 1. **An option off**, such as an app that isn't hosted (`cloud_run: false`).
 2. **An opted-out file**, such as `opt_out: [.claude/skills/catch-up/SKILL.md]`. The paths in `opt_out` are never
-   rendered: they are Copier's `_exclude`. `doctor` fails when `docs/deviations.md` doesn't name a path. Opt out only
+   rendered: they are Copier's `_exclude`. `doctor` fails when `docs/work/deviations.md` doesn't name a path. Opt out only
    of template-managed files: a seeded file is the app's own, so the app can delete it, and no update brings it
    back.
 3. **A local edit to a template-managed file**, such as an app skill that knows the app's two apps. The merge keeps
-   it. When the scaffold changes the same lines, `docs/deviations.md` tells `/scaffold-update` which side wins.
+   it. When the scaffold changes the same lines, `docs/work/deviations.md` tells `/scaffold-update` which side wins.
 
 A deviation that several apps share is a sign that the scaffold should offer it, as a hook or, if the
 [rule](#options-or-capabilities) allows, as an option.
@@ -226,8 +226,8 @@ Hidden answers are never asked:
 
 | Kind | Examples | On `copier update` |
 |---|---|---|
-| **Template-managed** | CLAUDE.md, pyproject.toml, CI, the PR template, Dockerfile, .streamlit/, .githooks/, generic skills, docs/scaffold.md, docs/cli.md, docs/hosting.md, docs/how-we-work.md, docs/review.md, .claude/settings.json, .claude/agents/, tests/app/test_contract_only.py | The template's change is merged in, and the app's edits stay. |
-| **Seeded once** (`_skip_if_exists`, and excluded from updates) | src/<package>/, contract/schema.sql, README.md, config.example.toml, docs/architecture, contract, dashboard, getting-started, deviations, spec, .claude/project-rules.md, .claude/spec-paths, the ingest, ask, demo-data, fix-curation and classify skills, the tests other than the guard | Never touched again. |
+| **Template-managed** | CLAUDE.md, pyproject.toml, CI, the PR template, Dockerfile, .streamlit/, .githooks/, generic skills, docs/work/scaffold.md, docs/guides/cli.md, docs/guides/hosting.md, docs/work/how-we-work.md, docs/work/review.md, .claude/settings.json, .claude/agents/, tests/app/test_contract_only.py | The template's change is merged in, and the app's edits stay. |
+| **Seeded once** (`_skip_if_exists`, and excluded from updates) | src/<package>/, contract/schema.sql, README.md, config.example.toml, docs/README.md (the index), docs/design/architecture, contract, dashboard and browser-checks, docs/guides/getting-started, docs/work/deviations and spec, .claude/project-rules.md, .claude/spec-paths, the ingest, ask, demo-data, fix-curation and classify skills, the tests other than the guard | Never touched again. |
 | **Shared code** | duckkit | Not in the app at all. It is a version in pyproject.toml. |
 
 **How the merge works:** Copier renders the template twice with the same answers, once at the app's recorded
@@ -237,6 +237,27 @@ Lines the app changed and the template didn't stay as they are. Lines both chang
 
 CLAUDE.md is template-managed and imports `.claude/project-rules.md`, which belongs to the app. So the app's
 domain rules never conflict with the scaffold's.
+
+**A file that moves.** Copier sees a moved file as a file removed and a file added. Alone, it would delete a moved
+managed file and write the new path fresh, so the app's edits to it would be lost, and it never moves a seeded file.
+So a release that moves files carries a `_migrations` step in `copier.yml`: before the update, it moves each old
+path that the app still has (`git mv`). A seeded file then keeps its text and its history, and a managed file keeps
+the app's edits, with any clash as an inline conflict. A path already moved is left alone.
+
+## The docs folder
+
+An app's `docs/` is in four folders, by purpose, with an index:
+
+| Path | Holds | From the template |
+|---|---|---|
+| `docs/README.md` | the index: "Page \| Read it to…" by folder, then "Elsewhere in the repo" | seeded |
+| `docs/design/` | what the app is: architecture, contract, dashboard, browser-checks, and the app's deeper design docs | seeded |
+| `docs/guides/` | using and running it: getting-started (seeded), cli, hosting, claude-chat (managed), and the app's how-tos | both |
+| `docs/sources/` | how each of the app's sources is read in practice: a file format, an export, a device's API | none |
+| `docs/work/` | how it is built and changed: how-we-work, review (managed), spec, deviations (seeded), scaffold (managed) | both |
+
+A new doc goes in the folder of its purpose, with a line in the index. The template's CLAUDE.md says so, and
+`doctor` notes a doc that the index doesn't list, and fails on a link to a missing file.
 
 ## Writing template files
 

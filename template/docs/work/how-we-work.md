@@ -10,13 +10,13 @@ canonical description of the cycle. `/deliver-outcome` runs it.
 The spec is the set of documents and tests that describe what the app is for, its contracts and its guardrails.
 It protects the app against regressions: each PR must keep it, and only the user revises what it promises. It has five
 parts:
-- **Purpose:** what the app is for, and the questions it answers (`docs/dashboard.md`).
-- **Shape:** how the app is built (`docs/architecture.md` and its sub-docs, `docs/cli.md`).
+- **Purpose:** what the app is for, and the questions it answers (`docs/design/dashboard.md`).
+- **Shape:** how the app is built (`docs/design/architecture.md` and its sub-docs, `docs/guides/cli.md`).
 - **Data:** the contract and the schemas.
 - **Behaviour:** the browser checks, the real-data tests and the spec tests.
 - **Guardrails:** CLAUDE.md, `.claude/settings.json`, CI, the review standards.
 
-`docs/spec.md` lists the files of each part. `.claude/spec-paths` holds the same list as patterns, for the tools.
+`docs/work/spec.md` lists the files of each part. `.claude/spec-paths` holds the same list as patterns, for the tools.
 
 **Spec tests** are the functional tests of the key rules of the business logic, marked `@pytest.mark.spec`. The
 docstring of each spec test states the rule that it enforces. A new spec test is not a spec change. A spec test that
@@ -40,9 +40,9 @@ it shows that the app still does all that the spec says. This is the one list of
 2. The contract check (`status`), `doctor` and `privacy-check` are clean.
 3. The browser checks of each page that the PR changes pass, in light and dark mode (`/app-check`). A PR that
    changes a shared part, such as the theme, the sidebar or a query that several pages use, walks all the checks.
-4. The code still works as docs/architecture.md and docs/cli.md say: the browser app reads only the contract, the
+4. The code still works as docs/design/architecture.md and docs/guides/cli.md say: the browser app reads only the contract, the
    commands keep their names and options, and the data flows the same way.
-5. Each question of docs/dashboard.md that the PR's pages answer still has its answer.
+5. Each question of docs/design/dashboard.md that the PR's pages answer still has its answer.
 
 Claude runs checks 1 to 3 and shows each result in the PR's *Evidence* section. The reviewer checks 4 and 5 from
 the diff and the docs.
@@ -63,9 +63,9 @@ checks that the code still does what the Shape docs say.
 A PR that touches a spec file makes a **spec change** of one of two kinds.
 
 **An extension** adds to the spec and keeps each promise that it already makes. A new feature brings one, such as:
-- a new browser check, a new question in docs/dashboard.md, a new real-data test;
+- a new browser check, a new question in docs/design/dashboard.md, a new real-data test;
 - a new view or column in the contract, with a minor version;
-- a new command or option in docs/cli.md, a new section of docs/architecture.md for a new part;
+- a new command or option in docs/guides/cli.md, a new section of docs/design/architecture.md for a new part;
 - a new table, with its migration.
 
 Claude merges an extension on its own, in the same PR as the feature that needs it. The report lists it. The user
@@ -99,7 +99,7 @@ When an edit does both, it is a revision. When Claude is not sure, it is a revis
 
 1. **The user opens a GitHub issue** with the label `outcome`. One or two sentences are enough.
 2. **Claude posts a brief** on the issue:
-   - the acceptance criteria, as scenarios: questions in `docs/dashboard.md`, browser checks, tests;
+   - the acceptance criteria, as scenarios: questions in `docs/design/dashboard.md`, browser checks, tests;
    - the extensions and revisions of the spec that it expects;
    - the guardrails the outcome touches;
    - the PRs it plans, in order;
@@ -130,7 +130,7 @@ When an edit does both, it is a revision. When Claude is not sure, it is a revis
 
 ## The independent review
 
-The reviewer agent (`.claude/agents/reviewer.md`) reviews each PR against `docs/review.md`. It starts with a fresh
+The reviewer agent (`.claude/agents/reviewer.md`) reviews each PR against `docs/work/review.md`. It starts with a fresh
 context, and gets the PR and the spec, never Claude's reasoning. It looks for bugs, for code and text a reader cannot
 follow, for simpler solutions, for brittle ones, for code that no longer does what the spec says, and for spec
 changes the PR does not declare. Each finding is *blocking*, *should* or *nit*. Its answer names the commit that it

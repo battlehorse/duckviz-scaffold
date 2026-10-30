@@ -33,7 +33,7 @@ duckkit = { path = "{{ kit_path }}", editable = true }
 [tool.pytest.ini_options]
 markers = [
     "realdata: uses the real data on this machine (opt-in: `pytest -m realdata`)",
-    "spec: a functional test of a key rule; its docstring states the rule. Part of the spec (docs/spec.md): a change to it is a revision",
+    "spec: a functional test of a key rule; its docstring states the rule. Part of the spec (docs/work/spec.md): a change to it is a revision",
 ]
 addopts = "-m 'not realdata'"
 # Raised inside duckdb's own pandas conversion (.df()), not by this code

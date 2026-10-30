@@ -12,7 +12,7 @@ allowed-tools: Bash(git fetch *) Bash(git status *) Bash(git pull --ff-only) Bas
    --ff-only`. List the local branches that `origin/main` does not hold (`git branch --no-merged origin/main`) and
    the worktrees (`git worktree list`). Earlier work can leave an old worktree.
 2. **PRs.** `gh pr list --json number,title,labels,baseRefName,isDraft,body`. For each PR, say:
-   - whether it waits for the user (docs/how-we-work.md, "The merge rule"). It waits when its *Spec changes*
+   - whether it waits for the user (docs/work/how-we-work.md, "The merge rule"). It waits when its *Spec changes*
      section marks a revision, or when it has the `spec-change` label and does not mark each spec file. It also
      waits when a file marked *extends* has no `Extension agreed` line in its *Evidence*, or a commit after the
      review changed it (`git diff --stat <reviewed commit>..HEAD`), or when its *Review* section leaves a blocking

@@ -42,9 +42,9 @@ only its own code: what it ingests, its tables, its contract views and its pages
 | [docs/template.md](docs/template.md) | the template: every answer and option and what it decides, options vs capabilities, which files it manages and which it seeds once, deviations |
 | [docs/skills.md](docs/skills.md) | the Claude Code skills of an app: what each one does, the option that adds it, managed or seeded |
 | [docs/upgrading.md](docs/upgrading.md) | the update cycle in detail, and adopting the scaffold in an existing repo |
-| [docs/spec.md](docs/spec.md) | this repo's spec: what the scaffold must keep doing, and why |
-| [docs/how-we-work.md](docs/how-we-work.md) | how apps and this repo are developed: outcomes, the spec, the PRs Claude merges, what waits for the user |
-| [docs/review.md](docs/review.md) | the review standards for every change, with a bad and a good example of each |
+| [docs/work/spec.md](docs/work/spec.md) | this repo's spec: what the scaffold must keep doing, and why |
+| [docs/work/how-we-work.md](docs/work/how-we-work.md) | how apps and this repo are developed: outcomes, the spec, the PRs Claude merges, what waits for the user |
+| [docs/work/review.md](docs/work/review.md) | the review standards for every change, with a bad and a good example of each |
 | [CHANGELOG.md](CHANGELOG.md) | what each release adds, and the steps an app must take by hand |
 
 ## Start a new app
@@ -89,14 +89,14 @@ There is no question for these. Every app gets:
   `/catch-up`, `/scaffold-update`, `/deliver-outcome`; docs/skills.md lists them all), the `reviewer` agent, and the
   prompts before a hard stop;
 - **the docs:** the app's architecture, contract, dashboard, commands and browser checks, how we work and the
-  review standards, and `docs/spec.md`, which lists the spec. docs/template.md ("Capabilities") has the full list.
+  review standards, and `docs/work/spec.md`, which lists the spec. docs/template.md ("Capabilities") has the full list.
 
 ### Optional features
 
 | Option | Default | Adds |
 |---|---|---|
 | `motherduck` | on | `publish` and `/publish`: the contract's views go to MotherDuck, so a hosted app or Claude can read them from anywhere |
-| `cloud_run` | off | hosting on Cloud Run behind Google sign-in: the Dockerfile, `/hosting`, docs/hosting.md, the idle pause (needs `motherduck`) |
+| `cloud_run` | off | hosting on Cloud Run behind Google sign-in: the Dockerfile, `/hosting`, docs/guides/hosting.md, the idle pause (needs `motherduck`) |
 | `backup` | on | verified Parquet backups: `backup`, `backups`, `restore` and `/backup` |
 | `demo_data` | off | a synthetic demo database: `demo`, `app --demo` |
 | `curations` | off | decisions kept in `curated/*.csv` in git (categories chosen by hand or by a model), restored into a rebuilt database: `curated-check` in the pre-commit hook, `/rebuild-database`, `/fix-curation`. The repo must stay private. |
@@ -105,19 +105,19 @@ There is no question for these. Every app gets:
 ### Opt-outs
 
 An app that truly can't have a capability lists the file in `opt_out` (for example
-`[.claude/skills/catch-up/SKILL.md]`). Copier then never writes it, and the app says why in `docs/deviations.md`
+`[.claude/skills/catch-up/SKILL.md]`). Copier then never writes it, and the app says why in `docs/work/deviations.md`
 ([Keep apps current](#keep-apps-current)). Opt out rarely: a file that several apps opt out of is a sign
 that the scaffold should change.
 
 ## Develop an app
 
 The scaffold and its apps are made for agentic development with [Claude Code](https://claude.com/claude-code). You
-set **outcomes**, and Claude does the work, in PRs. [docs/how-we-work.md](docs/how-we-work.md) is the canonical
+set **outcomes**, and Claude does the work, in PRs. [docs/work/how-we-work.md](docs/work/how-we-work.md) is the canonical
 description:
 - **Outcomes.** You open a GitHub issue with the label `outcome`, in one or two sentences ("replace the example with
   my bank's CSV exports", say). `/deliver-outcome` takes it from there: Claude posts a brief, you approve it, and
   Claude works on its own until it posts a report with the evidence.
-- **The spec.** Each app's `docs/spec.md` lists what the app must keep doing: what it is for, how it is built, its
+- **The spec.** Each app's `docs/work/spec.md` lists what the app must keep doing: what it is for, how it is built, its
   data contract, its behaviour (browser checks, real-data tests, spec tests) and its guardrails. Each PR shows that
   it keeps the spec. Claude merges a PR that leaves the spec unchanged or only extends it (a new feature with its
   new browser check, say), after CI and an independent review. A PR that revises what the spec promises waits for
@@ -127,7 +127,7 @@ description:
 
 The first outcome of a new app is usually to replace the example with its own data. In `src/<package>/`: the sources
 in `ingest/`, the tables and views in `db/schema.sql`, the contract in `contract/schema.sql`, and the pages in
-`app/views/`. The contract is also described in `docs/contract.md`. docs/architecture.md says what each file is for.
+`app/views/`. The contract is also described in `docs/design/contract.md`. docs/architecture.md says what each file is for.
 
 ## Keep apps current
 
@@ -144,7 +144,7 @@ discover (in an app) → upstream (here: /upstream) → release (scripts/release
    merges the new files 3-way and keeps the app's own edits. `doctor` then checks that the app is in step.
 
 An app can differ on purpose: an option turned off, a file in `opt_out`, or an edit to a managed file. It lists each
-difference in its `docs/deviations.md`, and `doctor` checks that the opt-outs are explained there.
+difference in its `docs/work/deviations.md`, and `doctor` checks that the opt-outs are explained there.
 
 ## Repository layout
 

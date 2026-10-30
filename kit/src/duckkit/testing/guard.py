@@ -205,7 +205,7 @@ def loaded_problems(spec: AppSpec, extra: tuple[str, ...] = ("tests.conftest",),
 # ─── The contract's documentation ───
 
 def doc_problems(spec: AppSpec, doc: Path) -> list[str]:
-    """docs/contract.md has a `### \\`view\\`` section for every view, whose table lists its columns in order."""
+    """docs/design/contract.md has a `### \\`view\\`` section for every view, whose table lists its columns in order."""
     sections = dict(re.findall(r"^### `(\w+)`.*?\n(.*?)(?=^### |^## |\Z)", doc.read_text(), re.MULTILINE | re.DOTALL))
     problems = []
     for view, (_, columns) in spec.contract.descriptions().items():

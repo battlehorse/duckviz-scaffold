@@ -11,7 +11,7 @@ allowed-tools: Bash(uv run {{ project_name }} status --remote) Bash(git status *
 
 Request: $ARGUMENTS
 
-The hosted app is the browser app on Cloud Run. It reads the copy that `/publish` sends to MotherDuck. docs/hosting.md
+The hosted app is the browser app on Cloud Run. It reads the copy that `/publish` sends to MotherDuck. docs/guides/hosting.md
 explains the architecture and the one-time setup. This skill does the recurring tasks only.
 
 | Setting | Value |
@@ -62,7 +62,7 @@ A deploy builds the code of this machine's working tree, so the tree must be the
    - Tell the user to open the URL, check that the page loads, and click *Reload data* if they published new data.
 6. **Report** the new revision, the commit, and any warnings.
 
-Each deploy adds an image to Artifact Registry. The cleanup policy of docs/hosting.md keeps the 2 most recent (the
+Each deploy adds an image to Artifact Registry. The cleanup policy of docs/guides/hosting.md keeps the 2 most recent (the
 serving one and one to roll back to), so do not delete images.
 
 ## Roll back
@@ -93,7 +93,7 @@ If the new version is broken, send all traffic to the previous revision, after t
 3. **Add them**:
    `gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service={{ project_name }} --region={{ gcp_region }} --project={{ gcp_project }} --member=user:<email> --role=roles/iap.httpsResourceAccessor`.
 4. **Tell the user** what to send to the person: the URL, and that they sign in with that Google account. Access can
-   take a few minutes to start (docs/hosting.md, *Sharing it with someone*). If the sign-in screen refuses them, the
+   take a few minutes to start (docs/guides/hosting.md, *Sharing it with someone*). If the sign-in screen refuses them, the
    OAuth app can still be in *Testing*: the user then adds them as a test user (Google Auth Platform → Audience).
 
 ## Remove a person
@@ -103,7 +103,7 @@ If the new version is broken, send all traffic to the previous revision, after t
 3. **Remove them**: the command of *Add a person*, with `remove-iam-policy-binding` in place of
    `add-iam-policy-binding`.
 4. **Tell the user**: the person cannot open the app again. A tab that is open now stops at its next reconnect
-   (docs/hosting.md, *Sharing it with someone*).
+   (docs/guides/hosting.md, *Sharing it with someone*).
 
 ## List the people
 
@@ -125,6 +125,6 @@ Run `git fetch --prune` first: the comparison with `origin/main` is as of the la
 ## Do not
 
 - Change the project's settings, secrets, service accounts, OAuth client, budgets or APIs. They are the one-time
-  setup of docs/hosting.md. If one needs a change, explain it, and let the user approve it first.
+  setup of docs/guides/hosting.md. If one needs a change, explain it, and let the user approve it first.
 - Give a person any role but `roles/iap.httpsResourceAccessor`.
 - Deploy or roll back without the user's OK, or deploy a dirty working tree.

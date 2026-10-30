@@ -8,7 +8,7 @@ including the options and `opt_out`) and checks:
   curated/ (the user's decisions, duckkit.curated) isn't public (`gh repo view`), and that the Cloud Storage bucket
   of the off-machine backups (`[backup] remote`) is private (`gcloud storage buckets describe`);
 - that the files every app has are there, unless an option turns them off or `opt_out` lists them;
-- that every opted-out file is explained in docs/deviations.md (the app's own list of where it differs);
+- that every opted-out file is explained in docs/work/deviations.md (the app's own list of where it differs);
 - that the docs' paths hold: no Markdown file (docs, skills, agents) links to a missing file or names a missing
   `docs/….md`, and every line of `.claude/spec-paths` matches a file (else `spec-diff` misses its changes). A doc
   that `docs/README.md` (the index) doesn't list is a note.
@@ -35,12 +35,13 @@ ANSWERS = ".copier-answers.yml"
 EXPECTED = [
     ("CLAUDE.md", None),
     ("README.md", None),
-    ("docs/architecture.md", None),
-    ("docs/contract.md", None),
-    ("docs/dashboard.md", None),
-    ("docs/getting-started.md", None),
-    ("docs/scaffold.md", None),
-    ("docs/deviations.md", None),
+    ("docs/README.md", None),
+    ("docs/design/architecture.md", None),
+    ("docs/design/contract.md", None),
+    ("docs/design/dashboard.md", None),
+    ("docs/guides/getting-started.md", None),
+    ("docs/work/scaffold.md", None),
+    ("docs/work/deviations.md", None),
     ("tests/app/test_contract_only.py", None),
     (".github/workflows/tests.yml", None),
     (".streamlit/config.toml", None),
@@ -51,16 +52,16 @@ EXPECTED = [
     (".claude/skills/backup/SKILL.md", "backup"),
     (".claude/skills/restore-backup/SKILL.md", "backup"),
     (".claude/skills/hosting/SKILL.md", "cloud_run"),
-    ("docs/hosting.md", "cloud_run"),
+    ("docs/guides/hosting.md", "cloud_run"),
     ("Dockerfile", "cloud_run"),
     (".gcloudignore", "cloud_run"),
     ("curated/README.md", "curations"),
     (".claude/skills/rebuild-database/SKILL.md", "curations"),
     (".githooks/pre-commit", None),
     (".github/pull_request_template.md", None),
-    ("docs/spec.md", None),
-    ("docs/how-we-work.md", None),
-    ("docs/review.md", None),
+    ("docs/work/spec.md", None),
+    ("docs/work/how-we-work.md", None),
+    ("docs/work/review.md", None),
     (".claude/spec-paths", None),
     (".claude/settings.json", None),
     (".claude/agents/reviewer.md", None),
@@ -154,12 +155,12 @@ def diagnose(spec: AppSpec, remote: bool = False) -> Report:
             continue
         if not (spec.root / path).exists():
             report.problems.append(f"{path} is missing (restore it with `copier update`, or add it to opt_out and "
-                                   "explain why in docs/deviations.md)")
-    doc = spec.root / "docs" / "deviations.md"
+                                   "explain why in docs/work/deviations.md)")
+    doc = spec.root / "docs" / "work" / "deviations.md"
     deviations = doc.read_text() if doc.exists() else ""
     for path in sorted(opt_out):
         if path not in deviations:
-            report.problems.append(f"{path} is opted out but docs/deviations.md doesn't say why")
+            report.problems.append(f"{path} is opted out but docs/work/deviations.md doesn't say why")
     report.problems += [f"{source} names {target}, which doesn't exist" for source, target in broken_links(spec)]
     report.problems += [f".claude/spec-paths: {pattern} matches no file, so `spec-diff` can't see it change (a file "
                         "that moved, or a stale line)" for pattern in stale_spec_paths(spec)]
@@ -173,7 +174,7 @@ SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_ca
              ".tox"}  # at any depth, when the repo is not a git repo
 SKIP_ROOT = {"data", "backups", "build", "dist"}  # at the root only
 LINK = re.compile(r"\]\(([^)\s]+)\)")  # [text](target)
-CODE_PATH = re.compile(r"`(docs/[\w./-]+\.md)`")  # `docs/contract.md`, a path from the repo root
+CODE_PATH = re.compile(r"`(docs/[\w./-]+\.md)`")  # `docs/design/contract.md`, a path from the repo root
 FENCE = re.compile(r"^(```|~~~).*?^\1", re.MULTILINE | re.DOTALL)
 INLINE_CODE = re.compile(r"`[^`\n]*`")
 

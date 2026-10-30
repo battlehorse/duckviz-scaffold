@@ -30,8 +30,8 @@ jobs:
       - name: Scaffold
         run: uv run {{ project_name }} doctor
 
-  # Labels a PR that touches the spec (docs/spec.md) with spec-change. The PR says whether it extends or revises
-  # the spec (docs/how-we-work.md). Before it merges, Claude reads the PR's *Spec changes* section and the
+  # Labels a PR that touches the spec (docs/work/spec.md) with spec-change. The PR says whether it extends or revises
+  # the spec (docs/work/how-we-work.md). Before it merges, Claude reads the PR's *Spec changes* section and the
   # reviewer's answer. It also creates the label merged-by-claude, which Claude adds before a merge on its own.
   spec:
     if: github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base)
@@ -67,7 +67,7 @@ jobs:
           PR: ${{ '{{' }} github.event.pull_request.number {{ '}}' }}
         run: |
           gh label create spec-change --color D93F0B --description "Touches the spec: an extension or a revision (the PR says which)" --force
-          gh label create merged-by-claude --color 8957E5 --description "Merged by Claude without the user's review (docs/how-we-work.md, The merge rule)" --force
+          gh label create merged-by-claude --color 8957E5 --description "Merged by Claude without the user's review (docs/work/how-we-work.md, The merge rule)" --force
           if [ "${{ '{{' }} steps.diff.outputs.changed {{ '}}' }}" = true ]; then
             gh pr edit "$PR" --add-label spec-change
           else

@@ -1,4 +1,4 @@
-"""The contract is fully described, and docs/contract.md documents every view and column."""
+"""The contract is fully described, and docs/design/contract.md documents every view and column."""
 
 from duckkit.testing import guard
 
@@ -12,4 +12,4 @@ def test_every_view_and_column_is_described():
 
 
 def test_the_doc_describes_every_view_and_column():
-    assert guard.doc_problems(SPEC, SPEC.root / "docs" / "contract.md") == []
+    assert guard.doc_problems(SPEC, SPEC.root / "docs" / "design" / "contract.md") == []

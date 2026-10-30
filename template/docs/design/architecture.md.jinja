@@ -21,7 +21,7 @@ flowchart LR
 ## Principles
 
 - **The app reads a contract, not the tables.** The browser app reads only the versioned `v_*` views
-  (docs/contract.md), from an in-memory snapshot that holds nothing else. The ingestion can change its tables
+  (docs/design/contract.md), from an in-memory snapshot that holds nothing else. The ingestion can change its tables
   freely. `tests/app/test_contract_only.py` enforces the split.
 - **Nothing personal goes into git.** Settings, secrets and data stay in gitignored files.
 - **The database may be the only copy.** No code drops a table; schema changes are migrations.

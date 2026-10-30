@@ -276,7 +276,7 @@ def add_standard_commands(
 
     @app.command("sql")
     def sql_command(query: str, limit: int = typer.Option(200, help="Maximum rows to print.")) -> None:
-        """Run one read-only SELECT on a snapshot of the database. Prefer the contract views (docs/contract.md)."""
+        """Run one read-only SELECT on a snapshot of the database. Prefer the contract views (docs/design/contract.md)."""
         import pandas as pd
 
         from duckkit.snapshot import database_snapshot

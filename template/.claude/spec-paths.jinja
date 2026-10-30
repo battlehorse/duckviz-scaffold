@@ -1,19 +1,19 @@
-# The spec of {{ project_name }}: what the app must keep doing (docs/spec.md explains each group).
+# The spec of {{ project_name }}: what the app must keep doing (docs/work/spec.md explains each group).
 # `[group]`, then one glob pattern per line, from the repo root (`**` for any depth). `uv run {{ project_name }}
 # spec-diff` and CI read it. Add this app's own sub-docs and files to their group.
 
 [purpose]
-docs/dashboard.md
+docs/design/dashboard.md
 
 [shape]
-docs/architecture.md
-docs/cli.md
+docs/design/architecture.md
+docs/guides/cli.md
 {%- if cloud_run %}
-docs/hosting.md
+docs/guides/hosting.md
 {%- endif %}
 
 [data]
-docs/contract.md
+docs/design/contract.md
 src/{{ package }}/contract/**
 src/{{ package }}/db/schema.sql
 src/{{ package }}/db/store.py
@@ -22,7 +22,7 @@ src/{{ package }}/curated.py
 {%- endif %}
 
 [behaviour]
-docs/browser-checks.md
+docs/design/browser-checks.md
 tests/test_real_data.py
 tests/app/test_contract_only.py
 tests/**/conftest.py   # the fixtures the spec tests use
@@ -36,9 +36,9 @@ CLAUDE.md
 .claude/skills/deliver-outcome/**
 .github/pull_request_template.md
 .claude/spec-paths
-docs/spec.md
-docs/how-we-work.md
-docs/review.md
-docs/deviations.md
+docs/work/spec.md
+docs/work/how-we-work.md
+docs/work/review.md
+docs/work/deviations.md
 .github/workflows/**
 .githooks/**
