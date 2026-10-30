@@ -108,6 +108,9 @@ When an edit does both, it is a revision. When Claude is not sure, it is a revis
    The user approves the brief in a comment. This is the one fixed point where Claude waits.
 3. **Claude works.**
    - Each change is a branch and a PR. A change in parts is a stack of PRs, each on the one before.
+   - Claude pushes a branch when a round of work on it is done, not after each commit. Each push runs CI on its PR,
+     and a private repo's Actions minutes are limited. A change to a stack (each branch merged into the one above)
+     pushes each branch once, at the end.
    - Each PR passes CI, `spec-diff` and an independent review (below), and shows that it keeps the spec.
    - **Claude merges a PR that leaves the spec unchanged or extends it**, with a merge commit, after it adds the
      label `merged-by-claude` ("The merge rule").

@@ -194,7 +194,7 @@ There is no question for these. An app that truly can't have one lists it in `op
 | Settings in `config.toml` | One file, gitignored, with a `config.example.toml` beside it. Environment variables override it (for CI, tests and Cloud Run). |
 | Keeping personal data out of git | `privacy-check`, the `.githooks/pre-commit` hook that runs it, `[privacy] terms`, and `spec.private_settings` |
 | Serving on the tailnet | `app --tailnet`: `tailscale serve` to your own devices, for as long as the app runs |
-| CI | lint, tests and `doctor` on every PR, and the `spec` job that labels a PR that touches the spec (an extension or a revision) (`.github/workflows/tests.yml`) |
+| CI | lint, tests and `doctor` on every PR (one run per PR: a new push cancels the one before; a merge to `main` isn't tested again), and the `spec` job that labels a PR that touches the spec (an extension or a revision) (`.github/workflows/tests.yml`) |
 | Scaffold updates | the weekly `scaffold-update` workflow and `/scaffold-update` |
 | Claude Code | CLAUDE.md with the shared rules, and the skills of every app (docs/skills.md) |
 | Docs | architecture, contract, dashboard, cli, getting-started, browser checks, scaffold, deviations |
