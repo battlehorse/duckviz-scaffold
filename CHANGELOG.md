@@ -12,6 +12,10 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   backup folder, checked, for a new machine. New: `AppSpec.backup_remote()`, and `upload`, `remote_snapshots`,
   `prune_remote`, `fetch`, `differences`, `RemoteSnapshot` and `OffsiteError` in `duckkit.backup`. **Steps:**
   none: without the setting, nothing changes.
+- duckkit: **`status --remote` says how old the newest off-machine backup is** ("Off-machine:"), and **`doctor
+  --remote` fails when the backup bucket isn't private** (no enforced public access prevention, or no uniform
+  bucket-level access). New: `backup.bucket_problems`, and `remote_lines(spec, publishing, backups=False)`.
+  **Steps:** none.
 
 ## v0.8.5
 

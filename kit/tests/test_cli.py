@@ -205,6 +205,38 @@ def test_doctor_remote_refuses_curated_decisions_in_a_public_repo(cli, spec, mon
     assert "couldn't check that the GitHub repo is private" in runner.invoke(cli, ["doctor", "--remote"]).output
 
 
+def test_doctor_remote_refuses_a_backup_bucket_that_isnt_private(cli, spec, gcs, monkeypatch):
+    (spec.root / ".copier-answers.yml").write_text("_commit: v0.1.0\n")
+    monkeypatch.setattr("duckkit.doctor.newest_release", lambda _source: None)
+    assert "gs://shop-backups" not in runner.invoke(cli, ["doctor", "--remote"]).output
+    gcs.bucket = {"iamConfiguration": {"publicAccessPrevention": "inherited"}}
+    out = runner.invoke(cli, ["doctor", "--remote"])
+    assert out.exit_code == 1 and "gs://shop-backups holds the whole database and doesn't prevent public access" in out.output
+    assert "gs://shop-backups has no uniform bucket-level access" in out.output
+    assert "gs://shop-backups" not in runner.invoke(cli, ["doctor"]).output  # only with --remote
+    gcs.fail = "buckets"
+    assert "couldn't check that the backup bucket is private" in runner.invoke(cli, ["doctor", "--remote"]).output
+    monkeypatch.delenv("SHOP_BACKUP_REMOTE")
+    gcs.commands.clear()
+    runner.invoke(cli, ["doctor", "--remote"])
+    assert gcs.commands == []  # no remote: no gcloud
+
+
+def test_status_remote_says_how_old_the_newest_off_machine_backup_is(cli, closed_db, spec, gcs, tmp_path,
+                                                                     monkeypatch):
+    monkeypatch.setenv("SHOP_BACKUP_DIR", str(tmp_path / "b"))
+    monkeypatch.setattr("duckkit.hosting.deployed", lambda _spec: None)
+    assert "Off-machine:  none yet in gs://shop-backups/shop" in runner.invoke(cli, ["status", "--remote"]).output
+    assert runner.invoke(cli, ["backup"]).exit_code == 0
+    out = runner.invoke(cli, ["status", "--remote"]).output
+    assert "Off-machine:  1, the newest 0 hours old (gs://shop-backups/shop)" in out
+    assert "Off-machine" not in runner.invoke(cli, ["status"]).output  # only with --remote: no network
+    gcs.fail = "objects"
+    assert "Off-machine:  can't tell:" in runner.invoke(cli, ["status", "--remote"]).output
+    monkeypatch.delenv("SHOP_BACKUP_REMOTE")
+    assert "Off-machine:  none: the backups are only on this machine" in runner.invoke(cli, ["status", "--remote"]).output
+
+
 def test_status_says_how_to_bring_stale_views_up_to_date(cli, closed_db, spec):
     with duckdb.connect(str(spec.db_path)) as con:  # as if made by an older version
         con.execute("DROP VIEW v_items")

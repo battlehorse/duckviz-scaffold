@@ -4,8 +4,9 @@ It reads `.copier-answers.yml` (written by `copier copy` / `copier update`: the 
 including the options and `opt_out`) and checks:
 
 - the scaffold version the files come from, against the installed duckkit (they should be the same release);
-- with `--remote`, the newest release of the scaffold (`git ls-remote --tags`), and that a repo whose git holds
-  curated/ (the user's decisions, duckkit.curated) isn't public (`gh repo view`);
+- with `--remote`, the newest release of the scaffold (`git ls-remote --tags`), that a repo whose git holds
+  curated/ (the user's decisions, duckkit.curated) isn't public (`gh repo view`), and that the Cloud Storage bucket
+  of the off-machine backups (`[backup] remote`) is private (`gcloud storage buckets describe`);
 - that the files every app has are there, unless an option turns them off or `opt_out` lists them;
 - that every opted-out file is explained in docs/deviations.md (the app's own list of where it differs).
 
@@ -136,6 +137,8 @@ def diagnose(spec: AppSpec, remote: bool = False) -> Report:
                                    "private")
         elif seen is None:
             report.notes.append("git holds curated/: couldn't check that the GitHub repo is private (`gh repo view`)")
+    if remote:
+        _check_backup_bucket(spec, report)
     opt_out = set(found.get("opt_out") or [])
     for path, flag in EXPECTED:
         if flag and not found.get(flag):
@@ -151,3 +154,17 @@ def diagnose(spec: AppSpec, remote: bool = False) -> Report:
         if path not in deviations:
             report.problems.append(f"{path} is opted out but docs/deviations.md doesn't say why")
     return report
+
+
+def _check_backup_bucket(spec: AppSpec, report: Report) -> None:
+    """The bucket of the off-machine backups holds the whole database: it must be private."""
+    from duckkit.backup import OffsiteError, bucket_problems
+
+    try:
+        if spec.backup_remote() is None:
+            return
+        report.problems.extend(bucket_problems(spec))
+    except ValueError as e:
+        report.problems.append(str(e))
+    except OffsiteError as e:
+        report.notes.append(f"couldn't check that the backup bucket is private: {e}")
