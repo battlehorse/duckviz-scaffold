@@ -25,7 +25,7 @@ docs/architecture.md how the skills fit in an app.
 | Skill | Option | Kind | What it does |
 |---|---|---|---|
 | `/publish` | `motherduck` | managed, the user starts it | show what will leave this machine, ask, then send the contract views to MotherDuck |
-| `/backup` | `backup` | managed | make, list, verify or restore the Parquet backups |
+| `/backup` | `backup` | managed | make, list, verify or restore the Parquet backups; set up the copy in Cloud Storage, and fetch one on a new machine |
 | `/hosting` | `cloud_run` | managed | deploy to Cloud Run or roll back, add or remove a person, list who has access, show the status. It asks before each deploy and each change of access. |
 | `/demo-data` | `demo_data` | seeded | build the demo database with `demo` |
 | `/fix-curation` | `curations` | seeded | correct one curated decision with the app's commands, which write `curated/` too |

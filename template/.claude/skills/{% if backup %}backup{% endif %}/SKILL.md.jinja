@@ -1,10 +1,10 @@
 ---
 name: backup
-description: List, make or restore the verified Parquet backups of the {{ project_name }} database. Use when the user asks about backups, wants a backup now, or must recover the database.
+description: List, make or restore the verified Parquet backups of the {{ project_name }} database, and keep a copy in Google Cloud Storage. Use when the user asks about backups, wants a backup now, wants backups off the machine, or must recover the database (also on a new machine).
 when_to_use: >-
-  Use when the user says things like "back up the database", "list the backups", "is the data backed up", "restore from backup", "I lost the database".
-argument-hint: "[list|now|verify|restore <snapshot>]"
-allowed-tools: Bash(uv run {{ project_name }} backup) Bash(uv run {{ project_name }} backups) Bash(uv run {{ project_name }} restore *) Bash(uv run {{ project_name }} status)
+  Use when the user says things like "back up the database", "list the backups", "is the data backed up", "restore from backup", "I lost the database", "back up to the cloud", "set up off-machine backups", "fetch the backup on this new machine".
+argument-hint: "[list|now|verify|restore <snapshot>|setup-remote|fetch [<snapshot>]]"
+allowed-tools: Bash(uv run {{ project_name }} backup) Bash(uv run {{ project_name }} backups) Bash(uv run {{ project_name }} restore *) Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} status --remote) Bash(uv run {{ project_name }} fetch-backup) Bash(uv run {{ project_name }} fetch-backup *) Bash(uv run {{ project_name }} doctor --remote)
 ---
 
 # Backups
@@ -18,10 +18,15 @@ Action: $ARGUMENTS (default: list)
 - DuckDB's `EXPORT DATABASE` writes it: Parquet files, `schema.sql` and `load.sql`, readable without this code.
 - Each new snapshot is imported again and every table's rows and content hash must match the database.
 - The newest snapshots stay (default 30); older ones are deleted.
+- **Off the machine** (optional): with `[backup] remote = "gs://<bucket>"` in config.toml, `backup` also copies
+  each snapshot, byte for byte, to `gs://<bucket>/{{ package }}/<snapshot>/` in Google Cloud Storage, with the
+  user's own `gcloud` login. `load.sql` goes up last, and every file's MD5 must match. The newest `keep` stay there
+  too. A failed copy keeps the local snapshot and makes `backup` exit 1.
 
 ## Actions
 
-- **list:** `uv run {{ project_name }} backups`.
+- **list:** `uv run {{ project_name }} backups`. With a remote, each snapshot says where it is: here, in Cloud
+  Storage, both, or *incomplete* (an upload that stopped half-way; the next `backup` deletes it).
 - **now:** `uv run {{ project_name }} backup`.
 - **verify:** no command verifies an existing snapshot. `uv run {{ project_name }} backup` makes a new one and
   verifies it; tell the user that older snapshots are not verified again.
@@ -32,7 +37,25 @@ Action: $ARGUMENTS (default: list)
   3. To use it: the user moves the current database away, then moves the restored file in its place. Do not delete
      the old database: tell the user where it is.
 
-## Off-machine backups
+- **setup-remote:** a copy of each backup in Google Cloud Storage. The backups are otherwise on the same disk as
+  the database. Each step that creates something waits for the user's yes.
+  1. The user needs `gcloud` (cloud.google.com/sdk), logged in (`gcloud auth login`), and a Google Cloud project
+     with billing{% if cloud_run %}: the app's own (`{{ gcp_project }}`) will do{% endif %}.
+  2. Make a private bucket. Its name is global: suggest `<user>-{{ project_name }}-backups`, or one bucket for all
+     the user's apps (each app has its own folder in it).
+     `gcloud storage buckets create gs://<bucket> --project=<project> --location={{ gcp_region if cloud_run else "<region>" }} --uniform-bucket-level-access --public-access-prevention`
+  3. Set `remote = "gs://<bucket>"` under `[backup]` in config.toml.
+  4. `uv run {{ project_name }} backup`, then `uv run {{ project_name }} doctor --remote` (the bucket must be private)
+     and `uv run {{ project_name }} status --remote` (the "Off-machine:" line).
 
-The backups are on the same disk as the database. For a copy elsewhere, suggest pointing the backup folder at a
-synced folder (Google Drive for desktop, iCloud Drive){% if motherduck %}, or `/publish` for a copy of the contract views in MotherDuck{% endif %}.
+  Cost: about $0.02–0.03 per GB per month. 30 snapshots of a 50 MB database are about 1.5 GB, so about $0.04 a
+  month. A fetch to another machine costs about $0.12 per GB. New buckets keep deleted files for 7 days (soft
+  delete), so pruned snapshots cost a little for a week.
+- **fetch:** on a new machine, or after the old one is lost. Needs `remote` set and the user's `gcloud` login.
+  1. `uv run {{ project_name }} backups` lists what is in Cloud Storage.
+  2. `uv run {{ project_name }} fetch-backup` (or `fetch-backup <snapshot>`) downloads the newest complete snapshot
+     into the backup folder. It checks every file's MD5 and that the snapshot imports, and never overwrites one.
+  3. Then **restore** (above).
+
+The snapshots hold the whole database, private tables too. Never make the bucket public, and never put its
+contents anywhere else.{% if motherduck %} `/publish` is not a backup: it copies only the contract views.{% endif %}

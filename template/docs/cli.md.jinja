@@ -15,19 +15,21 @@ come first; the rest are duckkit's standard commands (the same in every app made
 {%- if demo_data %}
 | `demo [--seed N] [--days N] [--out <file>]` | build the demo database, `data/demo.duckdb`, from made-up data (this app's own) |
 {%- endif %}
-| `status{% if motherduck or cloud_run %} [--remote]{% endif %}` | what the database holds, and the contract check{% if motherduck or cloud_run %}. `--remote` also says whether {% if motherduck %}the published copy{% endif %}{% if motherduck and cloud_run %} and {% endif %}{% if cloud_run %}the hosted app{% endif %} {% if motherduck and cloud_run %}are{% else %}is{% endif %} current{% endif %} |
+{%- set remote_checks = (["whether the published copy is current"] if motherduck else []) + (["whether the hosted app is current"] if cloud_run else []) + (["how old the newest backup in Cloud Storage is"] if backup else []) %}
+| `status{% if remote_checks %} [--remote]{% endif %}` | what the database holds, and the contract check{% if remote_checks %}. `--remote` also says {{ remote_checks[0] if remote_checks | length == 1 else remote_checks[:-1] | join(", ") ~ " and " ~ remote_checks[-1] }}{% endif %} |
 | `sql "<SELECT>"` | one read-only SELECT on a snapshot (prefer the contract views) |
 | `app [name] [--tailnet]{% if demo_data %} [--demo]{% endif %}` | serve an app on localhost: `app` (:{{ app_port }}){% for a in extra_apps %}, `{{ a.name }}` (:{{ a.port }}){% endfor %} |
 {%- if motherduck %}
 | `publish [--to md:<name>] [--dry-run] [--check]` | the contract views to MotherDuck (`md:{{ motherduck_db }}`); `--check` compares |
 {%- endif %}
 {%- if backup %}
-| `backup` | a verified Parquet snapshot in the backup folder |
-| `backups` | the snapshots, oldest first |
+| `backup` | a verified Parquet snapshot in the backup folder, and in Cloud Storage with `[backup] remote` |
+| `backups` | the snapshots, oldest first: here, in Cloud Storage, or both |
+| `fetch-backup [snapshot]` | a snapshot from Cloud Storage into the backup folder, checked (default: the newest) |
 | `restore <snapshot> [--to <file>]` | a new database from a snapshot (never overwrites) |
 {%- endif %}
 | `privacy-check` | fail if a file git would commit holds personal data |
 {%- if curations %}
 | `curated-check [--base <branch>]` | what the next commit (or a branch) does to `curated/*.csv`; fails when a file is emptied or loses many rows (the pre-commit hook runs it) |
 {%- endif %}
-| `doctor [--remote]` | whether the repo is in step with the scaffold |
+| `doctor [--remote]` | whether the repo is in step with the scaffold{% if backup %}. `--remote` also checks that the backup bucket is private{% endif %} |
