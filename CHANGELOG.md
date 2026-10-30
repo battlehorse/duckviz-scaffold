@@ -3,6 +3,16 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- duckkit: **off-machine backups in Google Cloud Storage** (#84). With `[backup] remote = "gs://<bucket>"` in
+  `config.toml`, `backup` also copies each verified snapshot, byte for byte, to `gs://<bucket>/<package>/`,
+  checks every file's MD5 there, and keeps the newest `keep` there too. A failed copy keeps the local snapshot and
+  exits 1. `backups` lists the snapshots on both sides. The new `fetch-backup [snapshot]` downloads one into the
+  backup folder, checked, for a new machine. New: `AppSpec.backup_remote()`, and `upload`, `remote_snapshots`,
+  `prune_remote`, `fetch`, `differences`, `RemoteSnapshot` and `OffsiteError` in `duckkit.backup`. **Steps:**
+  none: without the setting, nothing changes.
+
 ## v0.8.5
 
 CI uses fewer Actions minutes: **no second test run after a merge**, **one run per PR**, and **fewer pushes**.

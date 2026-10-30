@@ -113,6 +113,35 @@ def test_status_sql_publish_and_backups(cli, closed_db, spec, tmp_path, monkeypa
     assert "Backups:      1, the newest 0 hours old" in runner.invoke(cli, ["status"]).output
 
 
+def test_backup_copies_off_the_machine_and_fetch_backup_brings_it_back(cli, closed_db, spec, gcs, tmp_path,
+                                                                       monkeypatch):
+    monkeypatch.setenv("SHOP_BACKUP_DIR", str(tmp_path / "b"))
+    result = runner.invoke(cli, ["backup"])
+    assert result.exit_code == 0 and "Copied to gs://shop-backups/shop/shop-" in result.output
+    name = next((tmp_path / "b").iterdir()).name
+    listed = runner.invoke(cli, ["backups"]).output
+    assert f"{name}" in listed and "here and in Cloud Storage" in listed
+    assert "1 snapshots in" in listed and "1 in gs://shop-backups/shop" in listed
+    monkeypatch.setenv("SHOP_BACKUP_DIR", str(tmp_path / "new"))  # a new machine: no local snapshot
+    assert "Cloud Storage only" in runner.invoke(cli, ["backups"]).output
+    fetched = runner.invoke(cli, ["fetch-backup"])
+    assert fetched.exit_code == 0 and f"Fetched {tmp_path / 'new' / name}" in fetched.output
+    assert runner.invoke(cli, ["fetch-backup"]).exit_code == 1  # it is here already
+
+
+def test_a_failed_upload_exits_1_and_keeps_the_local_snapshot(cli, closed_db, spec, gcs, tmp_path, monkeypatch):
+    monkeypatch.setenv("SHOP_BACKUP_DIR", str(tmp_path / "b"))
+    gcs.fail = "cp"
+    result = runner.invoke(cli, ["backup"])
+    assert result.exit_code == 1 and "Backed up to" in result.output
+    assert "the copy to Cloud Storage failed" in result.output and "is only on this machine" in result.output
+    assert len(list((tmp_path / "b").iterdir())) == 1
+    gcs.fail = "objects"
+    listed = runner.invoke(cli, ["backups"])
+    assert listed.exit_code == 0 and "Cloud Storage can't be read" in listed.output
+    assert "here; Cloud Storage unknown" in listed.output and "here only" not in listed.output
+
+
 def test_publish_refuses_a_demo_database_anywhere(cli, spec, monkeypatch, tmp_path):
     """A database holding the demo marker table is a demo one, whatever its path."""
     path = tmp_path / "elsewhere.duckdb"
