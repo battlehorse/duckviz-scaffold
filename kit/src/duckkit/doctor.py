@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as installed_version
 from pathlib import Path, PurePosixPath
+from urllib.parse import unquote
 
 import yaml
 
@@ -168,39 +169,52 @@ def diagnose(spec: AppSpec, remote: bool = False) -> Report:
 
 # ─── The docs' paths ───
 
-SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache", "data", "backups",
-             "build", "dist"}
+SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache",
+             ".tox"}  # at any depth, when the repo is not a git repo
+SKIP_ROOT = {"data", "backups", "build", "dist"}  # at the root only
 LINK = re.compile(r"\]\(([^)\s]+)\)")  # [text](target)
 CODE_PATH = re.compile(r"`(docs/[\w./-]+\.md)`")  # `docs/contract.md`, a path from the repo root
+FENCE = re.compile(r"^(```|~~~).*?^\1", re.MULTILINE | re.DOTALL)
+INLINE_CODE = re.compile(r"`[^`\n]*`")
 
 
 def repo_files(spec: AppSpec) -> list[str]:
-    """Every file of the repo, as a path from the root; without .git, the virtualenv, caches and the data."""
+    """Every file of the repo, as a path from the root. In a git repo, these are the files git tracks or would track
+    (`git ls-files`), so ignored folders drop out. Elsewhere, the walk skips .git, the virtualenvs, the caches, and
+    data/ and backups/ at the root."""
+    try:
+        out = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=spec.root,
+                             capture_output=True, text=True, check=False, timeout=30)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        out = None
+    if out is not None and out.returncode == 0:
+        return sorted(name for name in set(out.stdout.splitlines()) if (spec.root / name).is_file())
     found = []
     for folder, dirs, files in os.walk(spec.root):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         rel = Path(folder).relative_to(spec.root)
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not (rel == Path(".") and d in SKIP_ROOT)]
         found += [(rel / f).as_posix() for f in files]
     return sorted(found)
 
 
 def broken_links(spec: AppSpec) -> list[tuple[str, str]]:
-    """(file, target) for each relative link in a Markdown file to a file that doesn't exist, and each `docs/….md` in
-    backticks that doesn't. A link resolves from its file's folder, a backticked path from the repo root."""
+    """(file, target) for each relative link in a Markdown file to a file that doesn't exist. Also (file, path) for
+    each `docs/….md` in backticks that doesn't exist. A link resolves from its file's folder. A backticked path
+    resolves from the repo root. Code blocks are examples, so they are skipped."""
     broken = []
     for name in repo_files(spec):
         if not name.endswith(".md") or name == "CHANGELOG.md":  # the changelog names old paths on purpose
             continue
-        text = (spec.root / name).read_text(errors="replace")
-        for target in LINK.findall(text):
-            path = target.split("#", 1)[0]
+        text = FENCE.sub("", (spec.root / name).read_text(errors="replace"))
+        for path in CODE_PATH.findall(text):
+            if not (spec.root / path).exists():
+                broken.append((name, path))
+        for target in LINK.findall(INLINE_CODE.sub("", text)):
+            path = unquote(target.split("#", 1)[0])
             if not path or re.match(r"[a-z][a-z0-9+.-]*:", path) or any(c in path for c in "<>{}*$"):
                 continue  # an anchor, a URL, a placeholder
             if not os.path.exists(os.path.normpath(spec.root / PurePosixPath(name).parent / path)):
                 broken.append((name, target))
-        for path in CODE_PATH.findall(text):
-            if not (spec.root / path).exists():
-                broken.append((name, path))
     return broken
 
 
@@ -218,7 +232,7 @@ def stale_spec_paths(spec: AppSpec) -> list[str]:
 
 
 def unindexed_docs(spec: AppSpec) -> list[str]:
-    """The docs that `docs/README.md` doesn't link to; empty when there is no index."""
+    """The docs that `docs/README.md` doesn't link to. Empty when there is no index."""
     index = spec.root / "docs" / "README.md"
     if not index.exists():
         return []

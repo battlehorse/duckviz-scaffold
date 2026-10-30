@@ -390,8 +390,27 @@ def test_doctor_finds_broken_doc_links_and_backticked_paths(spec):
     (spec.root / ".claude" / "skills" / "x").mkdir(parents=True)
     (spec.root / ".claude" / "skills" / "x" / "SKILL.md").write_text("Read [the contract](../../../docs/contract.md).\n")
     (spec.root / "CHANGELOG.md").write_text("Moved `docs/contract.md`.\n")  # names old paths on purpose
+    (spec.root / "docs" / "design" / "my doc.md").write_text("")
+    (spec.root / "docs" / "design" / "examples.md").write_text(  # examples in code, and an encoded name
+        "```md\n[x](nowhere.md) `docs/nowhere.md`\n```\nWrite `[text](nowhere.md)`. See [mine](my%20doc.md).\n")
+    (spec.root / "docs" / "data").mkdir()
+    (spec.root / "docs" / "data" / "sources.md").write_text("[gone](gone.md)\n")  # docs/data/ is a doc folder
+    (spec.root / "data").mkdir()
+    (spec.root / "data" / "notes.md").write_text("[gone](gone.md)\n")  # the app's data: not checked
     assert sorted(broken_links(spec)) == [(".claude/skills/x/SKILL.md", "../../../docs/contract.md"),
-                                          ("docs/README.md", "design/gone.md"), ("docs/README.md", "docs/contract.md")]
+                                          ("docs/README.md", "design/gone.md"), ("docs/README.md", "docs/contract.md"),
+                                          ("docs/data/sources.md", "gone.md")]
+
+
+def test_doctor_reads_the_files_git_would_track(spec):
+    from duckkit.doctor import broken_links
+
+    git(spec.root, "init", "-q")
+    (spec.root / ".gitignore").write_text(".claude/worktrees/\n")
+    (spec.root / ".claude" / "worktrees" / "old").mkdir(parents=True)
+    (spec.root / ".claude" / "worktrees" / "old" / "README.md").write_text("[gone](gone.md)\n")
+    (spec.root / "README.md").write_text("[gone](gone.md)\n")  # untracked, not ignored: checked
+    assert broken_links(spec) == [("README.md", "gone.md")]
 
 
 def test_doctor_finds_spec_paths_that_match_no_file(spec):
