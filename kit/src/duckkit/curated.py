@@ -10,6 +10,8 @@ is the source of truth: the commands change it, and the app reads it. curated/*.
 - **guardrails:** a database with no decisions never overwrites files that hold some (`export`). Git keeps every
   version, and `file_changes` (the `curated-check` command, in the pre-commit hook) stops a commit that loses many
   decisions. A demo database is refused (`Refused`).
+- **a restored backup:** its decisions can be older (or newer) than the files. `compare` says which decisions
+  differ, and `align` makes a database hold the files' decisions instead of its own (/restore-backup).
 
 The files hold the user's decisions: a repo with curations stays private (`doctor --remote` checks).
 
@@ -24,6 +26,7 @@ A curated table is one of two kinds:
 import csv
 import io
 import subprocess
+import tempfile
 from collections import Counter
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -109,6 +112,92 @@ def restore(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[Curate
         con.rollback()
         raise
     return counts
+
+
+# ─── A restored backup: its decisions against the files ───
+
+@dataclass(frozen=True)
+class Difference:
+    """How a table's decisions differ from its file: rows only in the database, rows only in the file, and rows
+    whose key (`order_by`, when it is a column) is in both with other values."""
+
+    name: str
+    only_database: int
+    only_file: int
+    changed: int
+
+    def line(self) -> str:
+        return (f"{self.name}: {self.changed} changed, {self.only_database} only in the database, "
+                f"{self.only_file} only in curated/")
+
+
+def compare(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedTable]) -> list[Difference]:
+    """The tables whose decisions differ from `directory`/<name>.csv; empty when they all match. A missing file holds
+    no decisions. The database side is written with export's COPY, so both sides compare as the same text; a file
+    without a column (written before it existed) counts that column as empty."""
+    differences = []
+    with tempfile.TemporaryDirectory() as tmp:
+        for table in tables:
+            target = Path(tmp) / f"{table.name}.csv"
+            con.execute(f"COPY ({_select(table)} ORDER BY {table.order_by}) TO {literal(str(target))} (HEADER)")
+            here = _rows(target.read_text(), table.columns)
+            there = _rows(_file_text(directory / f"{table.name}.csv"), table.columns)
+            if Counter(here) == Counter(there):
+                continue
+            if table.order_by in table.columns:
+                at = table.columns.index(table.order_by)
+                mine, theirs = {r[at]: r for r in here}, {r[at]: r for r in there}
+                both = mine.keys() & theirs.keys()
+                differences.append(Difference(table.name, len(mine.keys() - theirs.keys()),
+                                              len(theirs.keys() - mine.keys()),
+                                              sum(1 for k in both if mine[k] != theirs[k])))
+            else:
+                extra, missing = Counter(here) - Counter(there), Counter(there) - Counter(here)
+                differences.append(Difference(table.name, sum(extra.values()), sum(missing.values()), 0))
+    return differences
+
+
+def align(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedTable],
+          after: Callable[[duckdb.DuckDBPyConnection], None] | None = None) -> dict[str, int]:
+    """Make the database hold the decisions of `directory`/*.csv instead of its own, in one transaction: clear its
+    decisions (a table's `where` rows are deleted; a keyed table's decision columns become NULL), then load the files
+    as `restore` does. A missing file holds no decisions. Returns the rows loaded per table.
+
+    Raises ValueError, and changes nothing, when there are no files at all, or when the clearing leaves decisions (a
+    keyed table whose `where` still holds with NULL decision columns). The files are only read."""
+    files = {t.name: directory / f"{t.name}.csv" for t in tables}
+    if not any(f.exists() for f in files.values()):
+        raise ValueError(f"no curated files in {directory}: nothing to align with")
+    con.begin()
+    try:
+        for table in tables:
+            where = f" WHERE {table.where}" if table.where else ""
+            if table.key is None:
+                con.execute(f"DELETE FROM {table.name}{where}")
+            else:
+                cleared = ", ".join(f"{c} = NULL" for c in table.columns if c != table.key)
+                con.execute(f"UPDATE {table.name} SET {cleared}{where}")
+        if holds_decisions(con, tables):
+            raise ValueError("clearing the decisions left some: a keyed table's `where` must be false when its "
+                             "decision columns are NULL")
+        counts = {t.name: _load(con, t, files[t.name]) for t in tables if files[t.name].exists()}
+        if after:
+            after(con)
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
+    return counts
+
+
+def _rows(text: str | None, columns: tuple[str, ...]) -> list[tuple[str, ...]]:
+    """A CSV's records, as tuples in `columns` order; a column the file lacks is empty."""
+    if not text:
+        return []
+    reader = csv.reader(io.StringIO(text))
+    header = next(reader, [])
+    at = {name: i for i, name in enumerate(header)}
+    return [tuple(record[at[c]] if c in at and at[c] < len(record) else "" for c in columns) for record in reader]
 
 
 @contextmanager

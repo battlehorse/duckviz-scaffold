@@ -10,6 +10,8 @@ import typer
 from typer.testing import CliRunner
 
 from duckkit.cli import add_standard_commands
+from duckkit.curated import CuratedTable, export
+from duckkit.demo import MARKER
 from duckkit.store import connect
 from tests.conftest import DB_SCHEMA, git
 
@@ -297,3 +299,65 @@ def test_curated_check_refuses_an_emptied_file_unless_confirmed(cli, spec, monke
     assert result.exit_code == 1 and "labels.csv: 2 → 0 rows" in result.output
     monkeypatch.setenv("ALLOW_CURATED_LOSS", "1")
     assert runner.invoke(cli, ["curated-check"]).exit_code == 0
+
+
+# ─── A restored backup and the curated decisions (curated=) ───
+
+KINDS = CuratedTable("items", ("name", "kind"), "name", where="kind IS NOT NULL", key="name")
+
+
+@pytest.fixture
+def curated_cli(spec):
+    app = typer.Typer()
+    add_standard_commands(app, spec, connect=lambda: connect(spec, DB_SCHEMA), curations=True, curated=[KINDS])
+    return app
+
+
+def test_a_restore_older_than_curated_is_shown_and_git_can_win(curated_cli, db, spec, tmp_path, monkeypatch):
+    monkeypatch.setenv("SHOP_BACKUP_DIR", str(tmp_path / "b"))
+    db.close()
+    assert runner.invoke(curated_cli, ["backup"]).exit_code == 0  # the snapshot: apple, leek, pear as made
+    with duckdb.connect(str(spec.db_path)) as con:  # later decisions, committed to curated/
+        con.execute("UPDATE items SET kind = 'veg' WHERE name = 'apple'")
+        export(con, spec.curated_dir, [KINDS])
+    assert "Curated:      in line with curated/" in runner.invoke(curated_cli, ["status"]).output
+    snapshot = next((tmp_path / "b").iterdir())
+    restored = tmp_path / "restored.duckdb"
+    out = runner.invoke(curated_cli, ["restore", str(snapshot), "--to", str(restored)]).output
+    assert "✗ the decisions in restored.duckdb differ from curated/:" in out
+    assert "items: 1 changed, 0 only in the database, 0 only in curated/" in out and "git wins:" in out
+    assert runner.invoke(curated_cli, ["curated-diff", "--db", str(restored)]).exit_code == 1
+    files = (spec.curated_dir / "items.csv").read_text()
+    refused = runner.invoke(curated_cli, ["curated-align", "--db", str(spec.db_path)])
+    assert refused.exit_code == 1 and "is the app's database" in refused.output
+    aligned = runner.invoke(curated_cli, ["curated-align", "--db", str(restored)])
+    assert aligned.exit_code == 0 and "Aligned" in aligned.output and "match curated/" in aligned.output
+    assert runner.invoke(curated_cli, ["curated-diff", "--db", str(restored)]).exit_code == 0
+    assert (spec.curated_dir / "items.csv").read_text() == files  # curated/ is only read
+    with duckdb.connect(str(restored)) as con:
+        assert con.execute("SELECT kind FROM items WHERE name = 'apple'").fetchone() == ("veg",)
+
+
+def test_status_says_when_the_decisions_differ(curated_cli, db, spec):
+    export(db, spec.curated_dir, [KINDS])
+    db.execute("UPDATE items SET kind = 'veg' WHERE name = 'pear'")  # never exported: the database is newer
+    db.close()
+    out = runner.invoke(curated_cli, ["status"]).output
+    assert "Curated:      1 decisions differ from curated/ (`shop curated-diff`)" in out
+    assert runner.invoke(curated_cli, ["curated-diff"]).exit_code == 1
+
+
+def test_curated_align_refuses_a_demo_database(curated_cli, db, spec, tmp_path):
+    export(db, spec.curated_dir, [KINDS])
+    db.close()
+    demo = tmp_path / "copy.duckdb"
+    shutil.copy(spec.db_path, demo)
+    with duckdb.connect(str(demo)) as con:
+        con.execute(f"CREATE TABLE {MARKER} (params VARCHAR)")
+    out = runner.invoke(curated_cli, ["curated-align", "--db", str(demo)])
+    assert out.exit_code == 1 and "is a demo database" in out.output
+
+
+def test_without_curated_tables_there_are_no_curated_commands(cli, closed_db):
+    assert "Curated:" not in runner.invoke(cli, ["status"]).output
+    assert runner.invoke(cli, ["curated-diff"]).exit_code == 2

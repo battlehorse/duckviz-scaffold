@@ -8,8 +8,11 @@ import pytest
 
 from duckkit.curated import (
     CuratedTable,
+    Difference,
     FileChange,
     Refused,
+    align,
+    compare,
     curating,
     export,
     file_changes,
@@ -278,3 +281,61 @@ def test_the_first_commit_has_nothing_before_it(con, spec):
     git(spec.root, "init", "-q", "-b", "main")
     git(spec.root, "add", "curated")
     assert {c.name: (c.before, c.after) for c in file_changes(spec)} == {"labels.csv": (0, 2), "items.csv": (0, 2)}
+
+
+# ─── A restored backup against the files ───
+
+def test_equal_decisions_compare_equal(con, spec):
+    export(con, spec.curated_dir, TABLES)
+    assert compare(con, spec.curated_dir, TABLES) == []
+
+
+def test_a_snapshot_older_than_the_files_shows_changed_and_missing_decisions(con, spec):
+    export(con, spec.curated_dir, TABLES)  # the files hold the decisions of now
+    con.execute("UPDATE labels SET label = 'home' WHERE day = '2026-01-05'")  # the snapshot had older ones
+    con.execute("DELETE FROM labels WHERE day = '2026-03-02'")
+    con.execute("UPDATE items SET kind = NULL WHERE name = 'pear'")
+    assert compare(con, spec.curated_dir, TABLES) == [Difference("labels", 0, 1, 1), Difference("items", 0, 1, 0)]
+    assert Difference("labels", 0, 1, 1).line() == "labels: 1 changed, 0 only in the database, 1 only in curated/"
+
+
+def test_a_snapshot_newer_than_the_files_shows_its_own_decisions(con, spec):
+    export(con, spec.curated_dir, TABLES)
+    con.execute("UPDATE items SET kind = 'veg' WHERE name = 'leek'")  # a decision never committed
+    assert compare(con, spec.curated_dir, TABLES) == [Difference("items", 1, 0, 0)]
+    (spec.curated_dir / "items.csv").unlink()  # no file: no decisions in git
+    assert compare(con, spec.curated_dir, TABLES) == [Difference("items", 3, 0, 0)]
+
+
+def test_an_older_file_without_a_column_compares_it_as_empty(con, spec):
+    con.execute("UPDATE labels SET classified_by = NULL, classified_at = NULL")
+    spec.curated_dir.mkdir()
+    (spec.curated_dir / "labels.csv").write_text('day,label\n2026-01-05,away\n2026-03-02,"party, with ""guests"""\n')
+    assert compare(con, spec.curated_dir, [LABELS]) == []
+
+
+def test_align_gives_the_database_the_files_decisions(con, spec):
+    export(con, spec.curated_dir, TABLES)
+    files = {p.name: p.read_text() for p in spec.curated_dir.iterdir()}
+    con.execute("UPDATE labels SET label = 'home' WHERE day = '2026-01-05'")
+    con.execute("INSERT INTO labels VALUES ('2026-04-01', 'only here', 'manual', NULL)")
+    con.execute("UPDATE items SET kind = 'veg' WHERE name = 'pear'")  # a keyed row the snapshot has
+    con.execute("UPDATE items SET kind = 'veg' WHERE name = 'leek'")
+    assert align(con, spec.curated_dir, TABLES) == {"labels": 2, "items": 2}
+    assert compare(con, spec.curated_dir, TABLES) == []
+    assert con.execute("SELECT name, kind FROM items ORDER BY name").fetchall() == [
+        ("apple", "fruit"), ("leek", None), ("pear", "fruit")]
+    assert con.execute("SELECT count(*) FROM items").fetchone() == (3,)  # the ingestion's rows stay
+    assert {p.name: p.read_text() for p in spec.curated_dir.iterdir()} == files  # the files are only read
+
+
+def test_align_refuses_and_changes_nothing_without_files_or_when_decisions_stay(con, spec):
+    before = con.execute("SELECT * FROM labels ORDER BY day").fetchall()
+    with pytest.raises(ValueError, match="no curated files"):
+        align(con, spec.curated_dir, TABLES)
+    export(con, spec.curated_dir, TABLES)
+    stuck = CuratedTable("items", ("name", "kind"), "name", where="price > 0", key="name")  # true with kind NULL
+    with pytest.raises(ValueError, match="clearing the decisions left some"):
+        align(con, spec.curated_dir, [LABELS, stuck])
+    assert con.execute("SELECT * FROM labels ORDER BY day").fetchall() == before
+    assert con.execute("SELECT count(*) FROM items WHERE kind IS NOT NULL").fetchone() == (2,)
