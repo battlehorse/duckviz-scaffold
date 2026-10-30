@@ -1,0 +1,29 @@
+"""On the real data of this machine (opt-in: `pytest -m realdata`; never in CI). Part of the spec (docs/spec.md):
+add here the checks that only the real data can make, such as totals the user knows."""
+
+from pathlib import Path
+
+import duckdb
+import pytest
+
+from {{ package }}.spec import SPEC
+
+pytestmark = pytest.mark.realdata
+
+
+@pytest.fixture
+def real():
+    """The real database, read-only (the isolation fixture points SPEC elsewhere)."""
+    db = Path(__file__).resolve().parents[1] / "data" / SPEC.db_file
+    if not db.exists():
+        pytest.skip("no real database on this machine: run `/ingest`")
+    con = duckdb.connect(str(db), read_only=True)
+    if SPEC.timezone:
+        con.execute(f"SET TimeZone = '{SPEC.timezone}'")
+    yield con
+    con.close()
+
+
+def test_the_real_database_conforms(real):
+    """The real database fits the contract that the app reads."""
+    assert SPEC.contract.check(real) == []

@@ -461,7 +461,15 @@ make `doctor` fail; notes don't. It checks that:
   if it doesn't enforce public access prevention or lacks uniform bucket-level access, a note if `gcloud` can't
   tell;
 - every file in `EXPECTED` is present, unless an option turns it off or `opt_out` lists it;
-- every opted-out file is explained in `docs/deviations.md`.
+- every opted-out file is explained in `docs/deviations.md`;
+- the docs' paths hold (`broken_links`, `stale_spec_paths`, `unindexed_docs`):
+  - a relative link in a Markdown file (docs, skills, agents, READMEs) to a missing file is a problem. So is a
+    `docs/….md` in backticks, read from the repo root, that is missing. URLs, anchors and placeholders (`<file>`)
+    are skipped, and so is `CHANGELOG.md`, which names old paths on purpose;
+  - a line of `.claude/spec-paths` that matches no file is a problem: `spec-diff` can't see that file change;
+  - a doc in `docs/` that `docs/README.md` (the index) doesn't link to is a note. With no index, there is no note.
+
+  They read the files on disk, without `.git`, the virtualenv, caches, `data/` and `backups/`.
 
 CI runs `doctor` on every PR. `/catch-up` runs it with `--remote`.
 

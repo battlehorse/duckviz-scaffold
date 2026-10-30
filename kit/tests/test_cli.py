@@ -375,3 +375,54 @@ def test_curated_align_reports_a_failure_and_leaves_the_file(curated_cli, db, sp
 def test_without_curated_tables_there_are_no_curated_commands(cli, closed_db):
     assert "Curated:" not in runner.invoke(cli, ["status"]).output
     assert runner.invoke(cli, ["curated-diff"]).exit_code == 2
+
+
+# ─── doctor: the docs' paths ───
+
+def test_doctor_finds_broken_doc_links_and_backticked_paths(spec):
+    from duckkit.doctor import broken_links
+
+    (spec.root / "docs" / "design").mkdir(parents=True)
+    (spec.root / "docs" / "design" / "contract.md").write_text("# Contract\n")
+    (spec.root / "docs" / "README.md").write_text(
+        "[ok](design/contract.md) [anchor](design/contract.md#views) [gone](design/gone.md) [web](https://x.org/a.md)"
+        " [here](#top) [placeholder](<file>.md)\nSee `docs/design/contract.md` and `docs/contract.md`.\n")
+    (spec.root / ".claude" / "skills" / "x").mkdir(parents=True)
+    (spec.root / ".claude" / "skills" / "x" / "SKILL.md").write_text("Read [the contract](../../../docs/contract.md).\n")
+    (spec.root / "CHANGELOG.md").write_text("Moved `docs/contract.md`.\n")  # names old paths on purpose
+    assert sorted(broken_links(spec)) == [(".claude/skills/x/SKILL.md", "../../../docs/contract.md"),
+                                          ("docs/README.md", "design/gone.md"), ("docs/README.md", "docs/contract.md")]
+
+
+def test_doctor_finds_spec_paths_that_match_no_file(spec):
+    from duckkit.doctor import stale_spec_paths
+
+    (spec.root / ".claude").mkdir()
+    (spec.root / ".claude" / "spec-paths").write_text(
+        "[shape]\ndocs/design/architecture.md\ndocs/architecture.md   # moved\n[behaviour]\ntests/**/conftest.py\n")
+    (spec.root / "docs" / "design").mkdir(parents=True)
+    (spec.root / "docs" / "design" / "architecture.md").write_text("")
+    (spec.root / "tests" / "app").mkdir(parents=True)
+    (spec.root / "tests" / "app" / "conftest.py").write_text("")
+    assert stale_spec_paths(spec) == ["docs/architecture.md"]
+
+
+def test_doctor_notes_docs_missing_from_the_index(spec):
+    from duckkit.doctor import unindexed_docs
+
+    (spec.root / "docs" / "guides").mkdir(parents=True)
+    for name in ("guides/cli.md", "guides/data.md", "extra.md"):
+        (spec.root / "docs" / name).write_text("")
+    assert unindexed_docs(spec) == []  # no index yet: nothing to compare
+    (spec.root / "docs" / "README.md").write_text("| [Commands](guides/cli.md) | … |\n")
+    assert unindexed_docs(spec) == ["docs/extra.md", "docs/guides/data.md"]
+
+
+def test_doctor_reports_the_docs_paths(cli, spec):
+    (spec.root / ".copier-answers.yml").write_text("_commit: v0.1.0\n")
+    (spec.root / "docs").mkdir()
+    (spec.root / "docs" / "README.md").write_text("[gone](gone.md)\n")
+    (spec.root / "docs" / "extra.md").write_text("")
+    out = runner.invoke(cli, ["doctor"]).output
+    assert "✗ docs/README.md names gone.md, which doesn't exist" in out
+    assert "· docs/extra.md is not in docs/README.md, the index" in out

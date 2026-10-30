@@ -5,6 +5,13 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: **`doctor` checks the docs' paths** (#92). A relative link in a Markdown file, or a backticked
+  `docs/….md`, to a missing file is a problem. So is a line of `.claude/spec-paths` that matches no file. A doc
+  that the index `docs/README.md` doesn't list is a note. **Steps:** fix what `doctor` reports (a broken link, a
+  stale line of `.claude/spec-paths`).
+- Template: **`tests/test_real_data.py`** (seeded): the real database conforms (`-m realdata`). The template's
+  `.claude/spec-paths` and `docs/spec.md` already named it. **Steps:** none: an app has its own, or copies it from a
+  new render.
 - duckkit: **a restored backup against the curated decisions** (#85). A backup is often older than the last commit
   of `curated/`, so a restored database can hold older decisions, and the next command that changes one would
   export them over the newer files. New: `curated.compare` and `curated.align`. `add_standard_commands` gets
