@@ -31,9 +31,10 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   **Steps:** none.
 - Template: **`/backup` makes the copy in Cloud Storage** (a private bucket, one documented `gcloud` command, then
   `[backup] remote`), and **fetches a snapshot on a new machine** (`fetch-backup`, then `restore`). This replaces
-  the "point the backup folder at a synced folder" hint. `config.example.toml` has the `remote` key, and
-  `docs/cli.md` names `fetch-backup` and the new `--remote` checks. **Steps:** none. An app that wants the copy follows
-  `/backup setup-remote`.
+  the "point the backup folder at a synced folder" hint. `docs/cli.md` names `fetch-backup` and the new `--remote`
+  checks. A new app's `config.example.toml` has the `remote` key. **Steps:** `config.example.toml` is seeded, so
+  `copier update` doesn't bring the key. An app that wants the copy follows `/backup setup-remote`, which sets
+  `remote` in `config.toml`. It can also add `remote = ""` under `[backup]` in its `config.example.toml` by hand.
 
 ## v0.8.5
 
