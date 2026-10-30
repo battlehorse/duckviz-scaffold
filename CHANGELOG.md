@@ -5,6 +5,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **three new guides, seeded** (#92): `docs/guides/data.md` (where the data is, what git keeps, what leaves
+  the machine), `docs/guides/extending.md` (a new source, a schema, contract or page change) and
+  `docs/guides/testing.md` (the commands, and what each kind of test checks). They follow the docs that apps wrote
+  on their own. **Steps:** an app that has its own copies new ones from a new render, or moves its own (`data.md`,
+  `extending.md`, `testing.md` or `tests.md`) into `docs/guides/` with those names, and lists them in the index.
 - Template: **`docs/` by purpose** (#92). The docs move into `docs/design/` (architecture, contract, dashboard,
   browser-checks), `docs/guides/` (getting-started, cli, hosting, claude-chat) and `docs/work/` (how-we-work, review,
   spec, scaffold, deviations). `docs/sources/` is for the app's references for its sources. A seeded `docs/README.md`

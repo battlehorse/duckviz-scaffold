@@ -163,6 +163,9 @@ _exclude:
     docs/design/contract.md
     docs/design/dashboard.md
     docs/guides/getting-started.md
+    docs/guides/data.md
+    docs/guides/extending.md
+    docs/guides/testing.md
     docs/work/deviations.md
     docs/design/browser-checks.md
     docs/work/spec.md
@@ -195,6 +198,9 @@ _skip_if_exists:
   - docs/design/contract.md
   - docs/design/dashboard.md
   - docs/guides/getting-started.md
+  - docs/guides/data.md
+  - docs/guides/extending.md
+  - docs/guides/testing.md
   - docs/work/deviations.md
   - docs/design/browser-checks.md
   - docs/work/spec.md
