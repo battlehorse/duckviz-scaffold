@@ -133,6 +133,9 @@ Methods:
   `duckkit.llm` uses.
 - `backup_dir()` and `backup_keep()`: from `[backup] dir` / `<PREFIX>_BACKUP_DIR` (default `backups/`) and
   `[backup] keep` (default 30).
+- `backup_remote()`: where the backups go off the machine, `gs://<bucket>/<package>`, from `[backup] remote =
+  "gs://<bucket>"` (`<PREFIX>_BACKUP_REMOTE`). None when it is not set. A value that is not a bucket raises
+  `ValueError`.
 - `app(name)` returns an `AppEntry`. `main_script(name)` returns its entry point.
 
 Tests change the resolved paths on the AppSpec itself (`duckkit.testing.isolate`). The browser app imports the AppSpec,
@@ -235,6 +238,26 @@ format any tool can read.
 Parquet doesn't depend on the DuckDB version, so a backup is also the way to move to a new major DuckDB version:
 restore it with the new version into a new file.
 
+**Off the machine.** With `[backup] remote = "gs://<bucket>"` (`AppSpec.backup_remote`), each verified snapshot
+also goes to Google Cloud Storage, at `gs://<bucket>/<package>/<snapshot>/`, so that losing the machine doesn't
+lose the backups and a new machine can start from one. One bucket can hold several apps. The module runs
+`gcloud storage` with the user's own login: no new dependency and nothing in git. Without the setting, nothing
+leaves the machine.
+
+- `upload(spec, snapshot)` copies a snapshot folder byte for byte. `load.sql` goes up last, so a snapshot that has
+  no `load.sql` there is an upload that stopped half-way. Then it compares each file's MD5 with Cloud Storage's.
+  It raises `OffsiteError` on any failure or difference, and never touches the local snapshot.
+- `remote_snapshots(spec)` lists them, oldest first, as `RemoteSnapshot(name, files)`: each file's base64 MD5,
+  and `complete` when it has `load.sql`. `differences(local, remote)` lists the files that differ.
+- `prune_remote(spec, keep=None)` deletes all but the newest `keep` there (default `[backup] keep`). It counts
+  snapshots, as on the machine. A lifecycle rule would delete by age, so backups that stopped for longer would lose
+  them all.
+- `fetch(spec, name=None, folder=None)` downloads one (default: the newest complete one) into the backup folder. It
+  works in a hidden `.fetching-<name>` folder, checks every MD5 and that the snapshot imports, and only then gives
+  it its name. It never overwrites a local snapshot, and leaves nothing behind when it fails.
+
+`backup()` itself stays on the machine. The CLI's `backup` adds the upload and the remote pruning.
+
 ## `duckkit.privacy`
 
 **What it is for:** keeping personal data out of the repo, so the repo is always safe to share.
@@ -281,7 +304,8 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 | `status [--remote]` | prints the app's `status(con)` lines, a "Demo:" line for a demo database, the backups line, the contract check, then a "Demo file:" warning when the demo database doesn't fit the contract (see `stale_demo_line`). `--remote` adds whether the published copy is current ("Published:", with `publishing`) and whether the hosted app runs the latest commit ("Deployed:", with `cloud_run`) | `snapshot.database_snapshot`, `Contract.check`, `publish.compare`, `hosting.deployed` |
 | `sql "SELECT …" [--limit]` | runs exactly one `SELECT` on a snapshot of the whole database and prints a table | `snapshot.database_snapshot` |
 | `publish [--to] [--dry-run] [--check]` | sends the views (refusing a demo database), shows what would go, or compares | `publish`, `demo.is_demo` |
-| `backup` / `backups` / `restore <snapshot> [--to]` | makes a verified snapshot, lists them, or rebuilds a new file from one | `backup` |
+| `backup` / `backups` / `restore <snapshot> [--to]` | makes a verified snapshot, lists them, or rebuilds a new file from one. With `[backup] remote`, `backup` also copies the snapshot to Cloud Storage and prunes it there; a failed copy keeps the local snapshot and exits 1. `backups` marks each snapshot here, in Cloud Storage, both, or incomplete | `backup` |
+| `fetch-backup [snapshot]` | downloads a snapshot from Cloud Storage (default: the newest complete one) into the backup folder, checked | `backup.fetch` |
 | `app [name] [--tailnet] [--demo]` | serves an app | `serve.run_app` |
 | `privacy-check` | fails when a committable file holds personal data | `privacy.check` |
 | `doctor [--remote]` | compares the repo with the scaffold | `doctor.diagnose` |

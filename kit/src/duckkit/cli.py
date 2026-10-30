@@ -10,6 +10,7 @@
 | `sql "<SELECT>"` | one read-only SELECT on a snapshot of the database |
 | `publish [--to] [--dry-run] [--check]` | the contract views to MotherDuck (or a file); never automatic |
 | `backup`, `backups`, `restore <snapshot>` | verified Parquet snapshots (needs `connect`) |
+| `fetch-backup [snapshot]` | a snapshot from Cloud Storage into the backup folder (`[backup] remote`) |
 | `app [name] [--tailnet] [--demo]` | serve a Streamlit app on localhost, optionally on the tailnet |
 | `privacy-check` | fail if a committable file holds personal data (the pre-commit hook) |
 | `doctor` | how this repo compares with the scaffold it was made from |
@@ -267,24 +268,67 @@ def add_standard_commands(
     if backups and connect:
         @app.command("backup")
         def backup_command() -> None:
-            """Export the database to a new verified Parquet snapshot in the backup folder; keep the newest ones."""
-            from duckkit.backup import backup
+            """Export the database to a new verified Parquet snapshot in the backup folder; keep the newest ones.
+            With `[backup] remote`, also copy it to Cloud Storage."""
+            from duckkit.backup import OffsiteError, backup, prune_remote, upload
 
             if not spec.db_path.exists():
                 fail(f"no database at {spec.db_path}")
+            try:
+                remote = spec.backup_remote()
+            except ValueError as e:
+                fail(str(e))
             with connect() as con:
-                typer.echo(f"Backed up to {backup(spec, con)} (verified)")
+                snapshot = backup(spec, con)
+            typer.echo(f"Backed up to {snapshot} (verified)")
+            if remote is None:
+                return
+            try:
+                upload(spec, snapshot)
+                pruned = prune_remote(spec)
+            except OffsiteError as e:
+                fail(f"the copy to Cloud Storage failed, and {snapshot.name} is only on this machine: {e}")
+            typer.echo(f"Copied to {remote}/{snapshot.name}/ (same MD5s)"
+                       + (f"; deleted {len(pruned)} older there" if pruned else ""))
 
         @app.command("backups")
         def backups_command() -> None:
-            """List the backup snapshots, oldest first."""
-            from duckkit.backup import snapshots
+            """List the backup snapshots, oldest first: on this machine, in Cloud Storage, or both."""
+            from duckkit.backup import OffsiteError, differences, remote_snapshots, snapshots
 
-            found = snapshots(spec)
-            for path in found:
-                size = sum(f.stat().st_size for f in path.iterdir())
-                typer.echo(f"{path}  {size / 1024:,.0f} KB")
-            typer.echo(f"{len(found)} snapshots in {spec.backup_dir()}")
+            local = {p.name: p for p in snapshots(spec)}
+            root, remote = None, {}
+            try:
+                root = spec.backup_remote()
+                remote = {r.name: r for r in remote_snapshots(spec)}
+            except (OffsiteError, ValueError) as e:
+                root = None
+                typer.echo(f"✗ Cloud Storage can't be read: {e}", err=True)
+            for name in sorted(local.keys() | remote.keys()):
+                here, there = local.get(name), remote.get(name)
+                where = ("incomplete in Cloud Storage" if there and not there.complete else
+                         "here only" if there is None else
+                         "Cloud Storage only" if here is None else
+                         "here and in Cloud Storage" if not differences(here, there) else
+                         "here, and different in Cloud Storage")
+                size = f"  {sum(f.stat().st_size for f in here.iterdir()) / 1024:,.0f} KB" if here else ""
+                typer.echo(f"{name}{size}  {where}")
+            typer.echo(f"{len(local)} snapshots in {spec.backup_dir()}"
+                       + (f", {len(remote)} in {root}" if root else ""))
+
+        @app.command("fetch-backup")
+        def fetch_backup_command(
+            snapshot: Annotated[str | None, typer.Argument(help="A snapshot's name. Default: the newest complete one.")] = None,
+        ) -> None:
+            """Download a snapshot from Cloud Storage into the backup folder, and check it (`[backup] remote`)."""
+            from duckkit.backup import OffsiteError, fetch
+
+            try:
+                target = fetch(spec, snapshot)
+            except (OffsiteError, ValueError) as e:
+                fail(str(e))
+            typer.echo(f"Fetched {target} (same MD5s, and it imports): `{spec.cli} restore {target}` rebuilds a "
+                       "database from it")
 
         @app.command("restore")
         def restore_command(

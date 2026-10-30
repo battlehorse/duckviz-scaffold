@@ -153,3 +153,14 @@ class AppSpec:
     def backup_keep(self) -> int:
         """How many of the newest snapshots `backup` keeps."""
         return int(self.setting("backup", "keep", f"{self.env_prefix}_BACKUP_KEEP", default=30))
+
+    def backup_remote(self) -> str | None:
+        """Where `backup` keeps a copy off the machine: `gs://<bucket>/<package>`, from `[backup] remote` (or
+        <PREFIX>_BACKUP_REMOTE) = "gs://<bucket>". None: the backups stay on this machine."""
+        value = self.setting("backup", "remote", f"{self.env_prefix}_BACKUP_REMOTE")
+        if not value:
+            return None
+        bucket = str(value).removeprefix("gs://").strip("/")
+        if not str(value).startswith("gs://") or not bucket or "/" in bucket:
+            raise ValueError(f'[backup] remote must be a Cloud Storage bucket, "gs://<bucket>", not {value!r}')
+        return f"gs://{bucket}/{self.package}"
