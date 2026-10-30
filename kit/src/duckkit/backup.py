@@ -194,10 +194,15 @@ def upload(spec: AppSpec, snapshot: Path) -> RemoteSnapshot:
 
 
 def prune_remote(spec: AppSpec, keep: int | None = None) -> list[str]:
-    """Delete all but the newest `keep` snapshots in Cloud Storage (keep 0: delete none). Returns their names."""
+    """Delete all but the newest `keep` complete snapshots in Cloud Storage (keep 0: delete none), and the incomplete
+    ones older than the newest complete one. Returns their names."""
     root = _remote(spec)
     keep = keep if keep is not None else spec.backup_keep()
-    old = [r.name for r in remote_snapshots(spec)][:-keep] if keep > 0 else []
+    found = remote_snapshots(spec)
+    complete = [r.name for r in found if r.complete]
+    old = complete[:-keep] if keep > 0 else []
+    if complete:
+        old += [r.name for r in found if not r.complete and r.name < complete[-1]]
     for name in old:
         _gcloud(spec, ["storage", "rm", "--recursive", f"{root}/{name}/"])
     return old

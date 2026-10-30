@@ -297,16 +297,17 @@ def add_standard_commands(
             from duckkit.backup import OffsiteError, differences, remote_snapshots, snapshots
 
             local = {p.name: p for p in snapshots(spec)}
-            root, remote = None, {}
+            root, remote, unread = None, {}, False
             try:
                 root = spec.backup_remote()
                 remote = {r.name: r for r in remote_snapshots(spec)}
             except (OffsiteError, ValueError) as e:
-                root = None
+                root, unread = None, True
                 typer.echo(f"✗ Cloud Storage can't be read: {e}", err=True)
             for name in sorted(local.keys() | remote.keys()):
                 here, there = local.get(name), remote.get(name)
-                where = ("incomplete in Cloud Storage" if there and not there.complete else
+                where = ("here; Cloud Storage unknown" if unread else
+                         "incomplete in Cloud Storage" if there and not there.complete else
                          "here only" if there is None else
                          "Cloud Storage only" if here is None else
                          "here and in Cloud Storage" if not differences(here, there) else

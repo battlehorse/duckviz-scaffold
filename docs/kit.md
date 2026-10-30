@@ -249,8 +249,8 @@ leaves the machine.
   It raises `OffsiteError` on any failure or difference, and never touches the local snapshot.
 - `remote_snapshots(spec)` lists them, oldest first, as `RemoteSnapshot(name, files)`: each file's base64 MD5,
   and `complete` when it has `load.sql`. `differences(local, remote)` lists the files that differ.
-- `prune_remote(spec, keep=None)` deletes all but the newest `keep` there (default `[backup] keep`). It counts
-  snapshots, as on the machine. A lifecycle rule would delete by age, so backups that stopped for longer would lose
+- `prune_remote(spec, keep=None)` deletes all but the newest `keep` complete ones there (default `[backup] keep`),
+  and the incomplete ones older than the newest complete one. It counts snapshots, as on the machine. A lifecycle rule would delete by age, so backups that stopped for longer would lose
   them all.
 - `fetch(spec, name=None, folder=None)` downloads one (default: the newest complete one) into the backup folder. It
   works in a hidden `.fetching-<name>` folder, checks every MD5 and that the snapshot imports, and only then gives

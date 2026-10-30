@@ -93,9 +93,14 @@ def test_remote_pruning_keeps_the_newest(spec, gcs):
     for stamp in ("20260101T000000Z", "20260102T000000Z", "20260103T000000Z"):
         (gcs.folder / "shop" / f"shop-{stamp}").mkdir(parents=True)
         (gcs.folder / "shop" / f"shop-{stamp}" / "load.sql").write_text("")
+    for stamp in ("20260102T120000Z", "20260104T000000Z"):  # uploads that stopped half-way: they don't count
+        (gcs.folder / "shop" / f"shop-{stamp}").mkdir(parents=True)
+        (gcs.folder / "shop" / f"shop-{stamp}" / "items.parquet").write_text("")
     (gcs.folder / "other" / "other-20260101T000000Z").mkdir(parents=True)  # another app in the same bucket
-    assert backup.prune_remote(spec, keep=2) == ["shop-20260101T000000Z"]
-    assert [r.name for r in backup.remote_snapshots(spec)] == ["shop-20260102T000000Z", "shop-20260103T000000Z"]
+    (gcs.folder / "other" / "other-20260101T000000Z" / "load.sql").write_text("")
+    assert sorted(backup.prune_remote(spec, keep=2)) == ["shop-20260101T000000Z", "shop-20260102T120000Z"]
+    assert [r.name for r in backup.remote_snapshots(spec)] == ["shop-20260102T000000Z", "shop-20260103T000000Z",
+                                                                "shop-20260104T000000Z"]
     assert (gcs.folder / "other" / "other-20260101T000000Z").exists()
 
 

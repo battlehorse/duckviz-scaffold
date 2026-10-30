@@ -138,7 +138,8 @@ def test_a_failed_upload_exits_1_and_keeps_the_local_snapshot(cli, closed_db, sp
     assert len(list((tmp_path / "b").iterdir())) == 1
     gcs.fail = "objects"
     listed = runner.invoke(cli, ["backups"])
-    assert listed.exit_code == 0 and "here only" in listed.output and "Cloud Storage can't be read" in listed.output
+    assert listed.exit_code == 0 and "Cloud Storage can't be read" in listed.output
+    assert "here; Cloud Storage unknown" in listed.output and "here only" not in listed.output
 
 
 def test_publish_refuses_a_demo_database_anywhere(cli, spec, monkeypatch, tmp_path):

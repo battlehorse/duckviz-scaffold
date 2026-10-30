@@ -61,8 +61,8 @@ class FakeGcloud:
 
     BUCKET = "gs://shop-backups"
 
-    def __init__(self, folder: Path):
-        self.folder, self.commands, self.fail, self.corrupt = folder, [], None, False
+    def __init__(self, folder: Path, run):
+        self.folder, self.run, self.commands, self.fail, self.corrupt = folder, run, [], None, False
 
     def path(self, url: str) -> Path:
         return self.folder / url.removeprefix(self.BUCKET + "/").rstrip("/*")
@@ -73,8 +73,10 @@ class FakeGcloud:
         import json
         import shutil
 
+        if command[0] != "gcloud":  # `git` and the rest run as usual
+            return self.run(command, **kwargs)
         self.commands.append(command)
-        assert command[:2] == ["gcloud", "storage"], command
+        assert command[1] == "storage", command
         if command[2] == self.fail:
             return subprocess.CompletedProcess(command, 1, "", "ERROR: (gcloud.storage) [you] does not have access\n")
         if command[2:4] == ["objects", "list"]:
@@ -106,7 +108,7 @@ class FakeGcloud:
 @pytest.fixture
 def gcs(spec, tmp_path, monkeypatch) -> FakeGcloud:
     """`[backup] remote` set to gs://shop-backups, and a fake `gcloud` that keeps the bucket in a folder."""
-    fake = FakeGcloud(tmp_path / "bucket")
+    fake = FakeGcloud(tmp_path / "bucket", subprocess.run)
     monkeypatch.setenv("SHOP_BACKUP_REMOTE", FakeGcloud.BUCKET)
-    monkeypatch.setattr("duckkit.backup.subprocess.run", fake)
+    monkeypatch.setattr(subprocess, "run", fake)  # one module for every caller: the fake passes the rest on
     return fake
