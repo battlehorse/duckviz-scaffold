@@ -18,7 +18,7 @@ from duckkit.llm import DEFAULT_MODEL, SMALL_RUN
 {%- endif %}
 
 {% if curations -%}
-from {{ package }}.curated import curating, restore
+from {{ package }}.curated import TABLES, curating, restore
 {% endif -%}
 from {{ package }}.db.store import connect
 from {{ package }}.spec import SPEC
@@ -161,5 +161,5 @@ def status_lines(con: duckdb.DuckDBPyConnection) -> list[str]:
 
 add_standard_commands(
     app, SPEC, connect=connect, status=status_lines,
-    backups={{ backup }}, publishing={{ motherduck }},{% if curations %} curations=True,{% endif %}
+    backups={{ backup }}, publishing={{ motherduck }},{% if curations %} curations=True, curated=TABLES,{% endif %}
 )

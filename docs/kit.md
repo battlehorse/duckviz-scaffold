@@ -320,9 +320,10 @@ Four parameters take the app's own code (its [hooks](#hooks-where-an-apps-domain
 - `connect` opens the database for writing; `backup` needs it.
 - `status` returns the app's summary lines.
 - `privacy_terms` returns the app's own personal terms.
-- `curated` is the app's curated tables (`TABLES` in its `curated.py`). With them, `status` adds a "Curated:" line
-  (the database's decisions are in line with `curated/`, or how many differ), `restore` compares the restored file
-  with `curated/`, and `curated-diff` and `curated-align` are added. Without them, none of this is there.
+- `curated` is the app's curated tables (`TABLES` in its `curated.py`). With them, `status` adds a "Curated:" line.
+  It says that the database's decisions are in line with `curated/`, or how many differ, or that it is a demo
+  database. `restore` compares the restored file with `curated/`, and `curated-diff` and `curated-align` are added.
+  Both refuse a demo database. Without `curated`, none of this is there.
 
 `backups`, `publishing` and `curations` follow the template's `backup`, `motherduck` and `curations` options: when
 one is False, its commands are left out. `privacy-check` is a capability every app has.
@@ -422,16 +423,17 @@ The functions:
   `after(con)` runs in the same transaction: what the app derives from the decisions.
 - `holds_decisions(con, tables)`: whether the database holds any.
 - `compare(con, directory, tables)`: the tables whose decisions differ from their files, as
-  `Difference(name, only_database, only_file, changed)`; empty when all match. A row is *changed* when its
-  `order_by` key (when that is a column) is on both sides with other values. The database side is written with
-  `export`'s `COPY`, so both sides compare as the same text. A missing file holds no decisions, and a file without
-  a column counts it as empty. `COPY` needs external access, so the CLI attaches the database read-only to an
-  in-memory one.
-- `align(con, directory, tables, after=None)`: makes a database hold the files' decisions instead of its own, in
-  one transaction. It clears the decisions (the `where` rows of a table without `key` are deleted; a keyed table's
-  decision columns become NULL), then loads the files as `restore` does. A missing file holds no decisions. It
-  raises `ValueError` and changes nothing when there are no files at all, or when the clearing leaves decisions.
-  It only reads the files. This is "git wins" for a restored backup (`/restore-backup`).
+  `Difference(name, only_database, only_file, changed)`. It is empty when all match. A row is *changed* when its
+  `order_by` key is on both sides with other values. This applies when `order_by` is a column that is unique on
+  both sides. Otherwise `compare` compares whole rows. The database side is written with `export`'s `COPY`, so both
+  sides compare as the same text. A missing file holds no decisions. A file without a column counts it as empty.
+  `COPY` needs external access, so the CLI attaches the database read-only to an in-memory one.
+- `align(con, directory, tables)`: makes a database hold the files' decisions instead of its own, in one
+  transaction. First it clears the decisions. It deletes the `where` rows of a table without `key`, and it sets the
+  decision columns of a keyed table to NULL. Then it loads the files, as `restore` does. A missing file holds no
+  decisions. It raises `ValueError`, and changes nothing, when there are no files at all, or when the clearing
+  leaves decisions. It only reads the files. Data that the app derives from the decisions is not made again. This
+  is "git wins" for a restored backup (`/restore-backup`).
 - `file_changes(spec, base=None)`: what a change does to each curated file: its rows before and after, and the
   rows added and removed (a changed row is one of each). Without `base`, it compares the staged files with HEAD,
   for the next commit. With `base`, it compares the working tree with the point where the branch left `base`, for

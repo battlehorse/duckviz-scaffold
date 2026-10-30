@@ -4,7 +4,7 @@ description: List, make or restore the verified Parquet backups of the {{ projec
 when_to_use: >-
   Use when the user says things like "back up the database", "list the backups", "is the data backed up", "restore from backup", "I lost the database", "back up to the cloud", "make off-machine backups", "fetch the backup on this new machine".
 argument-hint: "[list|now|verify|restore <snapshot>|setup-remote|fetch [<snapshot>]]"
-allowed-tools: Bash(uv run {{ project_name }} backup) Bash(uv run {{ project_name }} backups) Bash(uv run {{ project_name }} restore *) Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} status --remote) Bash(uv run {{ project_name }} fetch-backup) Bash(uv run {{ project_name }} fetch-backup *) Bash(uv run {{ project_name }} doctor --remote)
+allowed-tools: Bash(uv run {{ project_name }} backup) Bash(uv run {{ project_name }} backups) Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} status --remote) Bash(uv run {{ project_name }} fetch-backup) Bash(uv run {{ project_name }} fetch-backup *) Bash(uv run {{ project_name }} doctor --remote)
 ---
 
 # Backups
@@ -31,12 +31,8 @@ Action: $ARGUMENTS (default: list)
 - **now:** `uv run {{ project_name }} backup`.
 - **verify:** no command verifies an existing snapshot. `uv run {{ project_name }} backup` makes a new one and
   verifies it; tell the user that older snapshots are not verified again.
-- **restore:**
-  1. `uv run {{ project_name }} restore <snapshot folder>`. It writes `data/restored.duckdb` and never overwrites.
-  2. Show the counts, and compare them with `uv run {{ project_name }} status`. Ask the user (AskUserQuestion)
-     before you replace the database.
-  3. To use it: the user moves the current database away, then moves the restored file in its place. Do not delete
-     the old database: tell the user where it is.
+- **restore:** tell the user to run `/restore-backup`. Only the user starts it. It restores a snapshot into a new
+  file{% if curations %}, brings its curated decisions in line with `curated/`{% endif %}, and puts it in place with the user's yes.
 
 - **setup-remote:** a copy of each backup in Google Cloud Storage. The backups are otherwise on the same disk as
   the database. Each step that creates something waits for the user's yes.
@@ -56,7 +52,7 @@ Action: $ARGUMENTS (default: list)
   1. `uv run {{ project_name }} backups` lists what is in Cloud Storage.
   2. `uv run {{ project_name }} fetch-backup` (or `fetch-backup <snapshot>`) downloads the newest complete snapshot
      into the backup folder. It checks every file's MD5 and that the snapshot imports, and never overwrites one.
-  3. Then **restore** (above).
+  3. Then the user runs `/restore-backup`.
 
 The snapshots hold the whole database, private tables too. Never make the bucket public, and never put its
 contents anywhere else.{% if motherduck %} `/publish` is not a backup: it copies only the contract views.{% endif %}

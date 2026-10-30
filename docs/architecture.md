@@ -184,7 +184,15 @@ an existing one. `status` shows how old the newest backup is.
 snapshot, byte for byte, to Google Cloud Storage at `gs://<bucket>/<package>/<snapshot>/`, with `gcloud storage`
 and the user's own login. `load.sql` goes up last, and each file's MD5 must match the local one. A failed copy
 keeps the local snapshot and exits 1. The newest `keep` stay there too. `backups` lists both sides, and
-`fetch-backup` brings a snapshot to a new machine, checked, for `restore`. `status --remote` shows how old the
+`fetch-backup` brings a snapshot to a new machine, checked, for `restore`.
+
+**Restoring a backup** (`/restore-backup`). `restore` builds a new file from a snapshot. With `curations`, a
+backup is often older than the last commit of `curated/`, so the restored file can hold older decisions. The next
+command that changes a decision would then export them over the newer files. So `restore` compares the restored
+decisions with `curated/` (`curated-diff`), and the user chooses which side wins, for every table at once: git
+(`curated-align` gives the restored file the files' decisions) or the database (its decisions reach `curated/` with
+the next export, and the user commits them). `status` says whether the database's decisions are in line with
+`curated/`. Only then does the restored file take the database's place, with the user's yes. `status --remote` shows how old the
 newest copy there is, and `doctor --remote` checks that the bucket is private: a snapshot holds the whole database.
 
 ## Curated decisions (the `curations` option)
