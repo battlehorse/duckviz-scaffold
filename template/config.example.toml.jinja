@@ -5,7 +5,7 @@
 [backup]
 dir = "backups"      # Parquet snapshots; relative to the project, or absolute (a synced folder, say)
 keep = 30            # newest snapshots kept, here and in Cloud Storage
-remote = ""          # optional: "gs://<bucket>", a private bucket for a copy off this machine (/backup: setup)
+remote = ""          # optional: "gs://<bucket>", a private bucket for a copy off this machine (/backup setup-remote)
 {%- endif %}
 {%- if motherduck %}
 

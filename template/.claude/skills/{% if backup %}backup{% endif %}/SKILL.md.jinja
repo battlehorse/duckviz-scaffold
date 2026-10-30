@@ -2,7 +2,7 @@
 name: backup
 description: List, make or restore the verified Parquet backups of the {{ project_name }} database, and keep a copy in Google Cloud Storage. Use when the user asks about backups, wants a backup now, wants backups off the machine, or must recover the database (also on a new machine).
 when_to_use: >-
-  Use when the user says things like "back up the database", "list the backups", "is the data backed up", "restore from backup", "I lost the database", "back up to the cloud", "set up off-machine backups", "fetch the backup on this new machine".
+  Use when the user says things like "back up the database", "list the backups", "is the data backed up", "restore from backup", "I lost the database", "back up to the cloud", "make off-machine backups", "fetch the backup on this new machine".
 argument-hint: "[list|now|verify|restore <snapshot>|setup-remote|fetch [<snapshot>]]"
 allowed-tools: Bash(uv run {{ project_name }} backup) Bash(uv run {{ project_name }} backups) Bash(uv run {{ project_name }} restore *) Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} status --remote) Bash(uv run {{ project_name }} fetch-backup) Bash(uv run {{ project_name }} fetch-backup *) Bash(uv run {{ project_name }} doctor --remote)
 ---
@@ -20,13 +20,14 @@ Action: $ARGUMENTS (default: list)
 - The newest snapshots stay (default 30); older ones are deleted.
 - **Off the machine** (optional): with `[backup] remote = "gs://<bucket>"` in config.toml, `backup` also copies
   each snapshot, byte for byte, to `gs://<bucket>/{{ package }}/<snapshot>/` in Google Cloud Storage, with the
-  user's own `gcloud` login. `load.sql` goes up last, and every file's MD5 must match. The newest `keep` stay there
-  too. A failed copy keeps the local snapshot and makes `backup` exit 1.
+  user's own `gcloud` login. `load.sql` goes up last, and every file's MD5 must match. The newest `keep` snapshots
+  stay in Cloud Storage too. A failed copy keeps the local snapshot and makes `backup` exit 1.
 
 ## Actions
 
 - **list:** `uv run {{ project_name }} backups`. With a remote, each snapshot says where it is: here, in Cloud
-  Storage, both, or *incomplete* (an upload that stopped half-way; the next `backup` deletes it).
+  Storage, both, or *incomplete*. An incomplete snapshot is an upload that stopped half-way. The next `backup`
+  deletes it.
 - **now:** `uv run {{ project_name }} backup`.
 - **verify:** no command verifies an existing snapshot. `uv run {{ project_name }} backup` makes a new one and
   verifies it; tell the user that older snapshots are not verified again.

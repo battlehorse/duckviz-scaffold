@@ -16,12 +16,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   --remote` fails when the backup bucket isn't private** (no enforced public access prevention, or no uniform
   bucket-level access). New: `backup.bucket_problems`, and `remote_lines(spec, publishing, backups=False)`.
   **Steps:** none.
-- Template: **`/backup` sets up the copy in Cloud Storage** (a private bucket, one documented `gcloud` command, then
+- Template: **`/backup` makes the copy in Cloud Storage** (a private bucket, one documented `gcloud` command, then
   `[backup] remote`), and **fetches a snapshot on a new machine** (`fetch-backup`, then `restore`). This replaces
   the "point the backup folder at a synced folder" hint. `config.example.toml` has the `remote` key, and
-  `docs/cli.md` names `fetch-backup` and the new `--remote` checks. **Steps:** none for the managed files. An app
-  that wants the off-machine copy follows `/backup setup-remote`. `config.example.toml` is managed: `config.toml`,
-  the app's own, needs the `remote` line only for the copy.
+  `docs/cli.md` names `fetch-backup` and the new `--remote` checks. **Steps:** none. An app that wants the copy follows
+  `/backup setup-remote`.
 
 ## v0.8.5
 
