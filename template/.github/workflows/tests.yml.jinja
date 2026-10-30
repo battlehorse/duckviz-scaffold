@@ -12,8 +12,11 @@ jobs:
   test:
     if: github.event.action != 'edited'
     runs-on: ubuntu-latest
-    concurrency:  # one run per PR: a new push cancels the run of the one before, whose result no longer matters
-      group: test-${{ '{{' }} github.event.pull_request.number {{ '}}' }}
+    # One run per PR: a new push cancels the run of the one before, whose result no longer matters. An edited
+    # event (a new title, body or base) skips this job, and has a group of its own (its run id), so that it can
+    # never cancel a test that is running.
+    concurrency:
+      group: test-${{ '{{' }} github.event.action == 'edited' && github.run_id || github.event.pull_request.number {{ '}}' }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v7
