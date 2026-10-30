@@ -8,16 +8,22 @@ including the options and `opt_out`) and checks:
   curated/ (the user's decisions, duckkit.curated) isn't public (`gh repo view`), and that the Cloud Storage bucket
   of the off-machine backups (`[backup] remote`) is private (`gcloud storage buckets describe`);
 - that the files every app has are there, unless an option turns them off or `opt_out` lists them;
-- that every opted-out file is explained in docs/deviations.md (the app's own list of where it differs).
+- that every opted-out file is explained in docs/deviations.md (the app's own list of where it differs);
+- that the docs' paths hold: no Markdown file (docs, skills, agents) links to a missing file or names a missing
+  `docs/….md`, and every line of `.claude/spec-paths` matches a file (else `spec-diff` misses its changes). A doc
+  that `docs/README.md` (the index) doesn't list is a note.
 
 Problems make `doctor` fail; notes don't.
 """
 
+import os
 import re
 import subprocess
 from dataclasses import dataclass, field
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as installed_version
+from pathlib import Path, PurePosixPath
+from urllib.parse import unquote
 
 import yaml
 
@@ -154,7 +160,85 @@ def diagnose(spec: AppSpec, remote: bool = False) -> Report:
     for path in sorted(opt_out):
         if path not in deviations:
             report.problems.append(f"{path} is opted out but docs/deviations.md doesn't say why")
+    report.problems += [f"{source} names {target}, which doesn't exist" for source, target in broken_links(spec)]
+    report.problems += [f".claude/spec-paths: {pattern} matches no file, so `spec-diff` can't see it change (a file "
+                        "that moved, or a stale line)" for pattern in stale_spec_paths(spec)]
+    report.notes += [f"{path} is not in docs/README.md, the index: add a line for it" for path in unindexed_docs(spec)]
     return report
+
+
+# ─── The docs' paths ───
+
+SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache",
+             ".tox"}  # at any depth, when the repo is not a git repo
+SKIP_ROOT = {"data", "backups", "build", "dist"}  # at the root only
+LINK = re.compile(r"\]\(([^)\s]+)\)")  # [text](target)
+CODE_PATH = re.compile(r"`(docs/[\w./-]+\.md)`")  # `docs/contract.md`, a path from the repo root
+FENCE = re.compile(r"^(```|~~~).*?^\1", re.MULTILINE | re.DOTALL)
+INLINE_CODE = re.compile(r"`[^`\n]*`")
+
+
+def repo_files(spec: AppSpec) -> list[str]:
+    """Every file of the repo, as a path from the root. In a git repo, these are the files git tracks or would track
+    (`git ls-files`), so ignored folders drop out. Elsewhere, the walk skips .git, the virtualenvs, the caches, and
+    data/ and backups/ at the root."""
+    try:
+        out = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=spec.root,
+                             capture_output=True, text=True, check=False, timeout=30)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        out = None
+    if out is not None and out.returncode == 0:
+        return sorted(name for name in set(out.stdout.splitlines()) if (spec.root / name).is_file())
+    found = []
+    for folder, dirs, files in os.walk(spec.root):
+        rel = Path(folder).relative_to(spec.root)
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not (rel == Path(".") and d in SKIP_ROOT)]
+        found += [(rel / f).as_posix() for f in files]
+    return sorted(found)
+
+
+def broken_links(spec: AppSpec) -> list[tuple[str, str]]:
+    """(file, target) for each relative link in a Markdown file to a file that doesn't exist. Also (file, path) for
+    each `docs/….md` in backticks that doesn't exist. A link resolves from its file's folder. A backticked path
+    resolves from the repo root. Code blocks are examples, so they are skipped."""
+    broken = []
+    for name in repo_files(spec):
+        if not name.endswith(".md") or name == "CHANGELOG.md":  # the changelog names old paths on purpose
+            continue
+        text = FENCE.sub("", (spec.root / name).read_text(errors="replace"))
+        for path in CODE_PATH.findall(text):
+            if not (spec.root / path).exists():
+                broken.append((name, path))
+        for target in LINK.findall(INLINE_CODE.sub("", text)):
+            path = unquote(target.split("#", 1)[0])
+            if not path or re.match(r"[a-z][a-z0-9+.-]*:", path) or any(c in path for c in "<>{}*$"):
+                continue  # an anchor, a URL, a placeholder
+            if not os.path.exists(os.path.normpath(spec.root / PurePosixPath(name).parent / path)):
+                broken.append((name, target))
+    return broken
+
+
+def stale_spec_paths(spec: AppSpec) -> list[str]:
+    """The patterns of `.claude/spec-paths` that match no file of the repo."""
+    from duckkit.specdiff import read_spec_paths
+
+    try:
+        groups = read_spec_paths(spec.root).groups
+    except ValueError:
+        return []  # no file: EXPECTED reports it
+    files = [PurePosixPath(f) for f in repo_files(spec)]
+    return [pattern for patterns in groups.values() for pattern in patterns
+            if not any(f.full_match(pattern) for f in files)]
+
+
+def unindexed_docs(spec: AppSpec) -> list[str]:
+    """The docs that `docs/README.md` doesn't link to. Empty when there is no index."""
+    index = spec.root / "docs" / "README.md"
+    if not index.exists():
+        return []
+    linked = {os.path.normpath(index.parent / t.split("#", 1)[0]) for t in LINK.findall(index.read_text())}
+    return [name for name in repo_files(spec) if name.startswith("docs/") and name.endswith(".md")
+            and name != "docs/README.md" and os.path.normpath(spec.root / name) not in linked]
 
 
 def _check_backup_bucket(spec: AppSpec, report: Report) -> None:
