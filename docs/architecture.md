@@ -146,8 +146,7 @@ calls `duckkit.cli.add_standard_commands`, which adds the commands every app has
 | `status [--remote]` | the app's own summary lines, the backups line, then the contract check. `--remote` adds whether the published copy and the hosted app are current |
 | `sql "SELECT …"` | one read-only query on a snapshot of the whole database |
 | `publish [--to] [--dry-run] [--check]` | send the contract's views to MotherDuck; show what would go; compare the published copy |
-| `backup`, `backups`, `restore` | verified Parquet snapshots of the whole database, also in Cloud Storage with `[backup] remote` |
-| `fetch-backup [snapshot]` | bring a snapshot back from Cloud Storage into the backup folder, checked |
+| `backup`, `backups`, `restore` | verified Parquet snapshots of the whole database |
 | `app [name] [--tailnet] [--demo]` | serve a Streamlit app |
 | `privacy-check` | fail when a file git would commit contains personal data |
 | `doctor [--remote]` | compare the repo with the scaffold release it comes from. `--remote` also asks GitHub whether a newer release is out, and whether a repo that holds `curated/` is public. |
@@ -179,12 +178,6 @@ depend on the DuckDB version. Each export goes into its own folder in `backups/`
 is then imported into memory and compared with the source, table by table, by row count and a hash of the
 contents. Only the newest 30 are kept. `restore` builds a new database file from a snapshot and never overwrites
 an existing one. `status` shows how old the newest backup is.
-
-**Off the machine.** With `[backup] remote = "gs://<bucket>"` in `config.toml`, `backup` also copies each verified
-snapshot, byte for byte, to Google Cloud Storage at `gs://<bucket>/<package>/<snapshot>/`, with `gcloud storage`
-and the user's own login. `load.sql` goes up last, and each file's MD5 must match the local one. A failed copy
-keeps the local snapshot and exits 1. The newest `keep` stay there too. `backups` lists both sides, and
-`fetch-backup` brings a snapshot to a new machine, checked, for `restore`.
 
 ## Curated decisions (the `curations` option)
 

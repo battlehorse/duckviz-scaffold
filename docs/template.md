@@ -118,9 +118,7 @@ local app's.
 that can't be fetched again, or takes long to rebuild.
 
 **On:**
-- `backup`, `backups`, `fetch-backup`, `restore` and `/backup`;
-- the off-machine copy in Google Cloud Storage, when `[backup] remote` is set (no remote: the backups stay on the
-  machine);
+- `backup`, `backups`, `restore` and `/backup`;
 - the backups line in `status`;
 - `[backup] dir` and `keep` in `config.example.toml`;
 - `backups/` in `.gitignore` and `.dockerignore`;
