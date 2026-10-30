@@ -16,7 +16,7 @@ Every test runs on made-up data. The tests read your own data only when you ask 
 
 | Where | What it checks |
 |---|---|
-| `tests/test_ingest.py` | reading the sources into the database, on the made-up files of `tests/data/` |
+| `tests/test_ingest.py` | reading the sources into the database, on small made-up files that each test writes to a temporary folder |
 | `tests/test_contract.py` | the contract: the views fit the reference schema, and [the contract doc](../design/contract.md) lists them |
 | `tests/test_cli.py` | the commands |
 {%- if curations %}
@@ -35,8 +35,8 @@ revision ([how we work](../work/how-we-work.md)).
 ## Fixtures and test data
 
 - `tests/conftest.py` points the app at a temporary folder, so that no test reads or writes `data/` or `config.toml`.
-- `tests/data/` holds the made-up source files. They are committed, so they never hold personal data
-  (`privacy-check`).
+- When a test needs a bigger source file, keep it in `tests/data/`. It is committed, so it is made up and never
+  holds personal data (`privacy-check`).
 
 ## In a browser
 

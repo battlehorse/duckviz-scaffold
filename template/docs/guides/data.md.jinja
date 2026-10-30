@@ -25,7 +25,7 @@ pre-commit hook) stops a commit that holds personal data.
 
 **The source files are the record.** `ingest` only reads them. Keep a copy of them.
 
-**The database can be made again** from the source files{% if curations %} and `curated/`{% endif %}{% if curations %} (`/rebuild-database`){% else %} (`/ingest`){% endif %}{% if backup %}, or restored from a backup (`/restore-backup`){% endif %}.
+**The database can be made again** from the source files{% if curations %} and `curated/` (`/rebuild-database`){% else %} (`/ingest`){% endif %}{% if backup %}, or restored from a backup (`/restore-backup`){% endif %}.
 {%- if curations %}
 
 ## What goes into git: `curated/`

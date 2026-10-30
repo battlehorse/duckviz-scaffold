@@ -8,8 +8,8 @@ design behind each part is in [the architecture](../design/architecture.md). How
 
 1. Describe how the source is read in practice in `docs/sources/<source>.md`, and add it to the index
    ([docs/README.md](../README.md)).
-2. Add or change the reader in `src/{{ package }}/ingest/`, with a test on a made-up file in `tests/data/` (never a
-   real one).
+2. Add or change the reader in `src/{{ package }}/ingest/`, with a test on a small made-up file. The test writes it
+   to a temporary folder (`tmp_path`), or keeps it in `tests/data/` when it is bigger. Never use a real one.
 3. Run `uv run {{ project_name }} ingest` (`/ingest`), then `uv run {{ project_name }} status`.
 
 ## A schema change
@@ -17,8 +17,9 @@ design behind each part is in [the architecture](../design/architecture.md). How
 Run `uv run {{ project_name }} backup` before the change.
 {% endif %}
 1. Change `src/{{ package }}/db/schema.sql`, with a comment on each new column.
-2. A table that holds data the sources can't give again needs a migration in `src/{{ package }}/db/store.py`.
-   Otherwise, make the database again{% if curations %} (`/rebuild-database`){% endif %}.
+2. A table that holds data the sources can't give again needs a migration in `src/{{ package }}/db/store.py`: add
+   it to `MIGRATIONS` (it brings version N to N + 1), and raise `SCHEMA_VERSION` by one. Without the new version,
+   the migration never runs. Otherwise, make the database again{% if curations %} (`/rebuild-database`){% endif %}.
 
 ## A contract change
 
