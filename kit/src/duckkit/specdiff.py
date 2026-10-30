@@ -1,4 +1,4 @@
-"""`spec-diff`: the parts of the spec that a change touches (docs/how-we-work.md).
+"""`spec-diff`: the parts of the spec that a change touches (docs/work/how-we-work.md).
 
 The spec is what the app must keep doing: the docs that say what the app is for and how it is built,
 the contracts and schemas, the browser checks, the guardrails, and some of the tests. `.claude/spec-paths` lists it,
@@ -6,7 +6,7 @@ in groups:
 
     [data]
     contract/**
-    docs/contract.md
+    docs/design/contract.md
 
 A change is a spec change when it changes a file that a pattern matches, or a **spec test**: a test marked
 `@pytest.mark.spec` (or in a class or a module whose `pytestmark` holds that mark). A new spec test is not a spec
@@ -50,7 +50,7 @@ class SpecDiff:
     """What a change does to the spec."""
 
     base: str
-    files: dict[str, list[str]] = field(default_factory=dict)  # group → the changed files ("M docs/contract.md")
+    files: dict[str, list[str]] = field(default_factory=dict)  # group → the changed files ("M docs/design/contract.md")
     spec_tests: list[str] = field(default_factory=list)  # "tests/test_x.py::test_y: changed"
     new_spec_tests: list[str] = field(default_factory=list)  # not a spec change
     dependencies: list[str] = field(default_factory=list)  # reported, not a spec change
@@ -80,7 +80,7 @@ def read_spec_paths(root: Path) -> SpecPaths:
     """Read `.claude/spec-paths`: `[group]` lines, then one pattern a line. `#` starts a comment."""
     path = root / SPEC_PATHS
     if not path.exists():
-        raise ValueError(f"no {SPEC_PATHS}: it lists the spec's files (docs/spec.md)")
+        raise ValueError(f"no {SPEC_PATHS}: it lists the spec's files (docs/work/spec.md)")
     groups: dict[str, list[str]] = {}
     group = None
     for number, raw in enumerate(path.read_text().splitlines(), start=1):

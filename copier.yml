@@ -10,6 +10,22 @@ _subdirectory: template
 _templates_suffix: .jinja
 _answers_file: .copier-answers.yml
 
+# Run by `copier update --trust` when an app crosses the version. v0.9.0 groups docs/ by purpose (design, guides,
+# work): before the update, each old path that the app still has moves with `git mv`. A seeded file keeps its text
+# and history. A managed file keeps the app's edits (without the move, Copier writes the new path fresh and the
+# edits are lost), but each hunk the template changed is an inline conflict, because the old render has no file at
+# the new path: `/scaffold-update` resolves them by docs/work/deviations.md. A path already moved is left alone.
+_migrations:
+  - version: v0.9.0
+    when: "{{ _stage == 'before' }}"
+    command: >-
+      sh -c 'for move in
+      design/architecture design/contract design/dashboard design/browser-checks
+      guides/getting-started guides/cli guides/hosting guides/claude-chat
+      work/how-we-work work/review work/spec work/scaffold work/deviations;
+      do old="docs/${move#*/}.md"; new="docs/$move.md";
+      if [ -f "$old" ] && [ ! -e "$new" ]; then mkdir -p "$(dirname "$new")" && { git mv "$old" "$new" 2>/dev/null || mv "$old" "$new"; }; fi; done'
+
 # The scaffold's own release: the duckkit version every generated app depends on. scripts/release.py bumps it
 # together with kit/pyproject.toml and the tag. Hidden: never asked, never stored, so `copier update` always
 # brings in the release it updates to.
@@ -123,7 +139,7 @@ opt_out:
   multiline: true
   help: >-
     Template files this app doesn't want, as a YAML list of paths (e.g. [.claude/skills/catch-up/SKILL.md]). Say
-    why in docs/deviations.md: `doctor` checks.
+    why in docs/work/deviations.md: `doctor` checks.
   default: "[]"
 
 # Only for the scaffold's own CI: use the kit from a local folder instead of the release tag.
@@ -142,13 +158,17 @@ _exclude:
     {%- if _copier_operation == 'update' -%}
     README.md
     .claude/project-rules.md
-    docs/architecture.md
-    docs/contract.md
-    docs/dashboard.md
-    docs/getting-started.md
-    docs/deviations.md
-    docs/browser-checks.md
-    docs/spec.md
+    docs/README.md
+    docs/design/architecture.md
+    docs/design/contract.md
+    docs/design/dashboard.md
+    docs/guides/getting-started.md
+    docs/guides/data.md
+    docs/guides/extending.md
+    docs/guides/testing.md
+    docs/work/deviations.md
+    docs/design/browser-checks.md
+    docs/work/spec.md
     .claude/spec-paths
     .claude/skills/ingest/SKILL.md
     .claude/skills/ask/SKILL.md
@@ -173,13 +193,17 @@ _exclude:
 _skip_if_exists:
   - README.md
   - .claude/project-rules.md
-  - docs/architecture.md
-  - docs/contract.md
-  - docs/dashboard.md
-  - docs/getting-started.md
-  - docs/deviations.md
-  - docs/browser-checks.md
-  - docs/spec.md
+  - docs/README.md
+  - docs/design/architecture.md
+  - docs/design/contract.md
+  - docs/design/dashboard.md
+  - docs/guides/getting-started.md
+  - docs/guides/data.md
+  - docs/guides/extending.md
+  - docs/guides/testing.md
+  - docs/work/deviations.md
+  - docs/design/browser-checks.md
+  - docs/work/spec.md
   - .claude/spec-paths
   - .claude/skills/ingest/SKILL.md
   - .claude/skills/ask/SKILL.md
@@ -200,4 +224,4 @@ _message_after_copy: |
     cd {{ _copier_conf.dst_path }}
     git init -b main && uv sync && uv run pytest -q
     git config core.hooksPath .githooks
-  Then read docs/getting-started.md, and docs/scaffold.md for how updates work.
+  Then read docs/guides/getting-started.md, and docs/work/scaffold.md for how updates work.

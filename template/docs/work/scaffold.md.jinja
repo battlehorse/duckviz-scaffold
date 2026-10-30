@@ -2,7 +2,7 @@
 
 This repo was made from [duckviz-scaffold]({{ scaffold_repo }}), release **{{ kit_ref }}**. The scaffold gives every
 app of this kind the same architecture, commands, docs and skills, and brings new capabilities to all of them.
-`copier update` changes this file: write this app's differences in docs/deviations.md.
+`copier update` changes this file: write this app's differences in docs/work/deviations.md.
 
 ## What comes from where
 
@@ -18,12 +18,12 @@ Template-managed files:
 - `.gitignore`, `.python-version`, `.streamlit/config.toml`
 - `.github/workflows/tests.yml`, `.github/workflows/scaffold-update.yml`, `.github/pull_request_template.md`
 - `.githooks/pre-commit`
-- how we work: `docs/how-we-work.md`, `docs/review.md`, `.claude/settings.json` (the prompts before a hard stop),
+- how we work: `docs/work/how-we-work.md`, `docs/work/review.md`, `.claude/settings.json` (the prompts before a hard stop),
   `.claude/agents/reviewer.md`
 {%- if cloud_run %}
-- `Dockerfile`, `.dockerignore`, `.gcloudignore`, `docs/hosting.md`
+- `Dockerfile`, `.dockerignore`, `.gcloudignore`, `docs/guides/hosting.md`
 {%- endif %}
-- `docs/scaffold.md`, `docs/cli.md`{% if motherduck %}, `docs/claude-chat.md`{% endif %}
+- `docs/work/scaffold.md`, `docs/guides/cli.md`{% if motherduck %}, `docs/guides/claude-chat.md`{% endif %}
 - `tests/app/test_contract_only.py`
 - the skills: `app`, `app-check`, `catch-up`, `deliver-outcome`, `scaffold-update`{% if motherduck %}, `publish`{% endif %}{% if backup %}, `backup`{% endif %}{% if cloud_run %}, `hosting`{% endif %}{% if curations %}, `rebuild-database`{% endif %}
 
@@ -36,8 +36,8 @@ and the pre-commit hook, `app --tailnet`, settings in `config.toml`. These optio
 
 | Option | On here | What it adds |
 |---|---|---|
-| `motherduck` | {{ 'yes' if motherduck else 'no' }} | `publish [--dry-run] [--check]`, `/publish`, docs/claude-chat.md (asking the data in claude.ai) |
-| `cloud_run` | {{ 'yes' if cloud_run else 'no' }} | Dockerfile, `/hosting`, docs/hosting.md, the idle pause |
+| `motherduck` | {{ 'yes' if motherduck else 'no' }} | `publish [--dry-run] [--check]`, `/publish`, docs/guides/claude-chat.md (asking the data in claude.ai) |
+| `cloud_run` | {{ 'yes' if cloud_run else 'no' }} | Dockerfile, `/hosting`, docs/guides/hosting.md, the idle pause |
 | `backup` | {{ 'yes' if backup else 'no' }} | `backup`, `backups`, `restore`, `/backup` |
 | `demo_data` | {{ 'yes' if demo_data else 'no' }} | `demo` builds `data/demo.duckdb` (`src/{{ package }}/demo.py`), `app --demo` reads it, `/demo-data` |
 | `curations` | {{ 'yes' if curations else 'no' }} | decisions in `curated/*.csv`, committed (`src/{{ package }}/curated.py`), restored by `ingest`; `/rebuild-database`, `/fix-curation`; the repo stays private |

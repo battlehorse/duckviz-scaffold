@@ -176,7 +176,7 @@ def test_doctor(cli, spec):
     output = runner.invoke(cli, ["doctor"]).output
     assert "CLAUDE.md is missing" in output
     assert ".claude/skills/publish/SKILL.md is missing" in output and "Dockerfile" not in output
-    assert "docs/dashboard.md is opted out but docs/deviations.md doesn't say why" in output
+    assert "docs/dashboard.md is opted out but docs/work/deviations.md doesn't say why" in output
 
 
 def test_doctor_versions(cli, spec, monkeypatch):

@@ -34,11 +34,11 @@ git push origin vX.Y.Z
 
 In each app, either:
 - wait for the weekly `scaffold-update` workflow: it runs `copier update` and opens a PR, with conflict markers if any;
-- or run `/scaffold-update` (in Claude Code). It updates, resolves conflicts using docs/deviations.md, follows the
+- or run `/scaffold-update` (in Claude Code). It updates, resolves conflicts using docs/work/deviations.md, follows the
   CHANGELOG's steps, runs ruff, the tests and `doctor`, and opens a PR.
 
 To turn on an option that an app does not have: `/scaffold-update turn on cloud_run`, then the option's docs
-(docs/hosting.md).
+(docs/guides/hosting.md).
 
 ## Adopting the scaffold in an existing repo
 
@@ -54,5 +54,5 @@ For a repo that predates the scaffold:
 3. Delete the seeded examples the app doesn't use, such as the template's CSV ingest. Keep the
    names of the files the template expects: the landing page is `app/views/dashboard.py`, the CLI's tests are
    `tests/test_cli.py`. Updates never bring a seeded file back.
-4. Move CLAUDE.md's domain rules to `.claude/project-rules.md`; list the deviations in docs/deviations.md.
+4. Move CLAUDE.md's domain rules to `.claude/project-rules.md`; list the deviations in docs/work/deviations.md.
 5. `uv run <cli> doctor` must pass. From now on, `copier update` works.

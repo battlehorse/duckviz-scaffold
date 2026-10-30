@@ -11,10 +11,10 @@ only sends them, with the settings every app wants:
 - the API errors as one `LLMError`, with a message for the user;
 - the tokens of every call in `Claude.usage`, and their cost.
 
-A large paid run is a hard stop (docs/how-we-work.md): the user says yes in the chat first. `cost_gate` shows the
+A large paid run is a hard stop (docs/work/how-we-work.md): the user says yes in the chat first. `cost_gate` shows the
 estimate of every run. It starts a small one at once (at most `SMALL_RUN` rows waiting), and a larger one, or a full
 reclassification, only with `--yes`. The app adds the `--yes` command to the `ask` rules of its
-`.claude/settings.json` (docs/how-we-work.md). Tests use `duckkit.testing.FakeAnthropic`: no network and no key.
+`.claude/settings.json` (docs/work/how-we-work.md). Tests use `duckkit.testing.FakeAnthropic`: no network and no key.
 """
 
 import json
@@ -161,7 +161,7 @@ def cost_gate(spec: AppSpec, what: str, rows: int, estimate: Decimal, yes: bool,
     """Whether a paid run may start, after one line with what it sends and costs. A small run starts at once: at most
     `SMALL_RUN` rows waiting, and not a full reclassification. A larger run, or a full reclassification (`full`: every
     decision made by the model is made again, such as an app's `--reclassify`), starts only with `yes`. Without it,
-    print the command that runs it, and send nothing. Such a run is a hard stop (docs/how-we-work.md): the user says
+    print the command that runs it, and send nothing. Such a run is a hard stop (docs/work/how-we-work.md): the user says
     yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its `.claude/settings.json`.
 
     `what` says what the run sends ("120 rows"). `rows` counts every row waiting, not only the rows this run sends,

@@ -17,31 +17,32 @@ Read these first:
 - docs/upgrading.md: the cycle (discover → upstream → release → apply), and adopting the scaffold in an existing
   repo.
 - CHANGELOG.md
-- docs/how-we-work.md, docs/spec.md and docs/review.md: how we work, what the spec is, and the review standards.
-  docs/how-we-work.md and docs/review.md are the template's files (`template/docs/`), linked here.
+- docs/work/how-we-work.md, docs/work/spec.md and docs/work/review.md: how we work, what the spec is, and the review
+  standards. docs/work/how-we-work.md and docs/work/review.md are the template's files (`template/docs/work/`),
+  linked here. This repo's other docs stay in `docs/`: one audience, and a handful of files.
 
 ## How we work
 
-The user sets outcomes (GitHub issues with the label `outcome`). Inside the spec (docs/spec.md), you work on your
+The user sets outcomes (GitHub issues with the label `outcome`). Inside the spec (docs/work/spec.md), you work on your
 own: long sessions, PRs you merge yourself. A revision of the spec waits for the user's approval, but you go on
-building on top of it, in stacked PRs. docs/how-we-work.md is the canonical description.
+building on top of it, in stacked PRs. docs/work/how-we-work.md is the canonical description.
 - **Every change is a PR.** Each PR passes CI and gets one review by the `reviewer` agent: you decide what to do
   with its findings, with no second review. Run `uv run --project kit python -m duckkit.specdiff` on it: it lists
   the spec files that it touches, which the PR must name.
-- **Each PR keeps the spec.** Run the checks of docs/how-we-work.md ("Each PR keeps the spec": in this repo, the
+- **Each PR keeps the spec.** Run the checks of docs/work/how-we-work.md ("Each PR keeps the spec": in this repo, the
   kit's tests and ruff, `scripts/render.sh` and `spec-diff`), and show each result in the PR's *Evidence* section.
   When a check fails, fix the code. Never weaken a check so that it passes.
 - **Merge a PR that leaves the spec unchanged or extends it** on your own (`gh pr merge --merge`), with
-  the label `merged-by-claude` added first (docs/how-we-work.md, "The merge rule"). An extension adds to the spec
-  and keeps each promise that it already makes (docs/spec.md, "Extensions and revisions here"). It goes in the PR
-  of its feature, and follows the merge rule of docs/how-we-work.md ("The merge rule").
+  the label `merged-by-claude` added first (docs/work/how-we-work.md, "The merge rule"). An extension adds to the spec
+  and keeps each promise that it already makes (docs/work/spec.md, "Extensions and revisions here"). It goes in the PR
+  of its feature, and follows the merge rule of docs/work/how-we-work.md ("The merge rule").
 - **Never merge a PR that revises the spec**: one that alters or removes a promise, or edits the Guardrails. The
   user merges it, or tells you to. Keep it in a PR of its own. When you are not sure, it is a revision.
 - **Name each spec file the PR touches** in its *Spec changes* section, marked *extends* or *revises*.
 - **Report** dependency changes and new tags in the PR and in the outcome report.
 - **A release is part of an outcome.** It ships to every app, so its PR names the apps' **Steps**. Make the release
   PR and the tag only when the user's outcome includes them.
-- **The hard stops** (docs/how-we-work.md, "What waits for the user"): an action that cannot be undone needs the
+- **The hard stops** (docs/work/how-we-work.md, "What waits for the user"): an action that cannot be undone needs the
   user's yes in the chat first, for that action. In this repo: a force-push, deleting or moving a pushed tag, and
   `git clean`. `.claude/settings.json` makes Claude Code prompt before the usual commands. Never write a command
   another way to avoid the prompt.

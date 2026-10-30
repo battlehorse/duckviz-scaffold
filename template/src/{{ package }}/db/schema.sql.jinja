@@ -1,4 +1,4 @@
--- The ingestion's tables, then the contract's views over them (docs/contract.md). This file runs on every write
+-- The ingestion's tables, then the contract's views over them (docs/design/contract.md). This file runs on every write
 -- connection: create only what is missing, and replace the views. A change to a table needs a migration in store.py.
 
 CREATE TABLE IF NOT EXISTS readings (

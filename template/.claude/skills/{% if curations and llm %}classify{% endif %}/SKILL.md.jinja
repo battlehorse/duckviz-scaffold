@@ -12,7 +12,7 @@ allowed-tools: Bash(uv run {{ project_name }} classify) Bash(uv run {{ project_n
 Arguments: $ARGUMENTS
 
 A run costs money. A small run (at most 500 days waiting) is not a hard stop: the command states its cost and runs
-it, and a spend limit in the Anthropic Console caps it. A larger run is a hard stop (docs/how-we-work.md): the
+it, and a spend limit in the Anthropic Console caps it. A larger run is a hard stop (docs/work/how-we-work.md): the
 command sends nothing without `--yes`. A large run split into small ones (`--limit` again and again) is still a
 large run: ask first.
 

@@ -39,14 +39,14 @@ ingestion's code or data.
 
 ## The data contract
 
-The contract has three parts, all in the app's `src/<package>/contract/` and `docs/contract.md`:
+The contract has three parts, all in the app's `src/<package>/contract/` and `docs/design/contract.md`:
 
 | Part | Where | What it is |
 |---|---|---|
 | Reference schema | `contract/schema.sql` | Each view written as a `CREATE TABLE` of the same name: columns, types, `PRIMARY KEY`, `NOT NULL`. The comments describe each view and column. |
 | Name, version and rules | `contract/__init__.py` | `CONTRACT = Contract(name, version, schema, rules)`. Rules are SQL that counts the rows breaking a promise, such as "no negative values" or "every category exists". |
 | The views themselves | `db/schema.sql` | `CREATE OR REPLACE VIEW v_* AS …` over the ingestion's tables. |
-| Documentation | `docs/contract.md` | One section per view, listing its columns in order. A test checks it against the schema. |
+| Documentation | `docs/design/contract.md` | One section per view, listing its columns in order. A test checks it against the schema. |
 
 `v_contract` is always present and has one row with the contract's name and version, such as `shop 1.2`.
 
@@ -151,10 +151,10 @@ calls `duckkit.cli.add_standard_commands`, which adds the commands every app has
 | `app [name] [--tailnet] [--demo]` | serve a Streamlit app |
 | `privacy-check` | fail when a file git would commit contains personal data |
 | `doctor [--remote]` | compare the repo with the scaffold release it comes from. `--remote` also asks GitHub whether a newer release is out, whether a repo that holds `curated/` is public, and whether the backup bucket is private. |
-| `spec-diff [--base]` | list what a branch changes in the app's spec (docs/how-we-work.md) |
+| `spec-diff [--base]` | list what a branch changes in the app's spec (docs/work/how-we-work.md) |
 | `curated-check [--base]` | show what a commit does to the curated files, and fail on a large loss (the `curations` option) |
 
-The template writes `docs/cli.md` for each app, and the Claude Code skills (docs/skills.md) run these commands.
+The template writes `docs/guides/cli.md` for each app, and the Claude Code skills (docs/skills.md) run these commands.
 
 ## Settings, secrets and personal data
 
@@ -251,8 +251,8 @@ Each piece of an app is one of three kinds:
 | Kind | Examples | Changes through |
 |---|---|---|
 | **duckkit**, the same in every app | snapshots, contract check, publish, backups, privacy, serving, standard commands, test guard | a new duckkit version (`pyproject.toml`) |
-| **Template-managed files**, shared but editable | CLAUDE.md, CI, Dockerfile, generic skills, `docs/cli.md` | `copier update`, which keeps the app's edits |
-| **App-owned files**, seeded once | `spec.py`, ingest, `db/schema.sql`, the contract, pages, `docs/contract.md` | the app alone |
+| **Template-managed files**, shared but editable | CLAUDE.md, CI, Dockerfile, generic skills, `docs/guides/cli.md` | `copier update`, which keeps the app's edits |
+| **App-owned files**, seeded once | `spec.py`, ingest, `db/schema.sql`, the contract, pages, `docs/design/contract.md` | the app alone |
 
 duckkit knows nothing about any app. Each app describes itself once in `src/<package>/spec.py`, as an `AppSpec`:
 its package name, paths, ports, contract, settings and forbidden modules. Every duckkit function takes that spec.

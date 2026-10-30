@@ -1,0 +1,53 @@
+# Documentation
+
+Start with the [project README](../README.md). The docs are in four folders, by purpose. A new doc goes in the
+folder of its purpose and gets a line here (`doctor` notes a doc that this index doesn't list).
+
+## Design: what the app is
+
+| Page | Read it to… |
+|---|---|
+| [Architecture](design/architecture.md) | understand the design, from the sources to the browser app, and find your way in the code |
+| [Data contract](design/contract.md) | know which views the browser app reads, what they guarantee, and how to change them |
+| [Dashboard](design/dashboard.md) | see the questions each page answers, and the definitions behind its numbers |
+| [Browser checks](design/browser-checks.md) | walk through the app in a real browser after a change (`/app-check`) |
+
+## Guides: using and running the app
+
+| Page | Read it to… |
+|---|---|
+| [Getting started](guides/getting-started.md) | install, load the data, and open the app |
+| [Commands](guides/cli.md) | look up a `{{ project_name }}` command and its options |
+| [Your data](guides/data.md) | know where the data is, what git keeps, and what leaves the machine |
+| [Extending](guides/extending.md) | add a source, a column, a view or a page, and know which version to change |
+| [Testing](guides/testing.md) | run the tests, and know what each kind checks |
+{%- if cloud_run %}
+| [Hosting](guides/hosting.md) | run the browser app on Cloud Run, behind Google sign-in |
+{%- endif %}
+{%- if motherduck %}
+| [Claude chat](guides/claude-chat.md) | ask the data in claude.ai chat, on the copy that `publish` sends to MotherDuck |
+{%- endif %}
+
+## Sources: the app's references for its sources
+
+`docs/sources/` holds how each source is read in practice: a file format, an export, a device's API. Add one page
+per source when the app needs it.
+
+## Work: how the app is built and changed
+
+| Page | Read it to… |
+|---|---|
+| [How we work](work/how-we-work.md) | know how an outcome goes, from the brief to the report, and what waits for the user |
+| [Review standards](work/review.md) | know what every PR is reviewed against |
+| [The spec](work/spec.md) | know what the app must keep doing, and which files hold it |
+| [The scaffold](work/scaffold.md) | know what comes from duckviz-scaffold, and how to update |
+| [Deviations](work/deviations.md) | see where this app differs from the scaffold, and why |
+
+## Elsewhere in the repo
+
+- `src/{{ package }}/db/schema.sql`: every table and view, with a comment on each column.
+- `src/{{ package }}/contract/schema.sql`: the contract's reference schema.
+{%- if curations %}
+- `curated/README.md`: the decisions kept in git, column by column.
+{%- endif %}
+- `.claude/skills/`: the Claude Code skills.

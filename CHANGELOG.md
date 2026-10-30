@@ -5,6 +5,26 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **three new guides, seeded** (#92): `docs/guides/data.md` (where the data is, what git keeps, what leaves
+  the machine), `docs/guides/extending.md` (a new source, a schema, contract or page change) and
+  `docs/guides/testing.md` (the commands, and what each kind of test checks). They follow the docs that apps wrote
+  on their own. **Steps:** an app that has its own copies new ones from a new render, or moves its own (`data.md`,
+  `extending.md`, `testing.md` or `tests.md`) into `docs/guides/` with those names, and lists them in the index.
+- Template: **`docs/` by purpose** (#92). The docs move into `docs/design/` (architecture, contract, dashboard,
+  browser-checks), `docs/guides/` (getting-started, cli, hosting, claude-chat) and `docs/work/` (how-we-work, review,
+  spec, scaffold, deviations). `docs/sources/` is for the app's references for its sources. A seeded `docs/README.md`
+  indexes them, the template's CLAUDE.md says where a new doc goes, and `doctor` expects the index. **Steps:**
+  1. First, if `opt_out` in `.copier-answers.yml` names an old docs path (`docs/hosting.md`, say), rename it to the
+     new one (`docs/guides/hosting.md`), there and in `docs/work/deviations.md`. Otherwise the update writes the
+     file at its new path, and the opt-out is undone.
+  2. `/scaffold-update` (`copier update --trust`). Its v0.9.0 migration moves each old path with `git mv` before the
+     update. **Without `--trust`, the migration doesn't run**, and the app's edits to the moved managed docs are
+     lost. The moved managed files (`cli`, `hosting`, `claude-chat`, `how-we-work`, `review`, `scaffold`) show an
+     inline conflict for each hunk the template changed. Take the template's side, except where
+     `docs/work/deviations.md` names the file.
+  3. Copy `docs/README.md` from a new render (it is seeded). An app with its own index merges the two.
+  4. Move the app's own docs into their folders, add each to the index, and fix the links `doctor` reports.
+  5. Update `.claude/spec-paths` (seeded): `doctor` names each line that matches no file.
 - duckkit: **`doctor` checks the docs' paths** (#92). A relative link in a Markdown file, or a backticked
   `docs/….md`, to a missing file is a problem. So is a line of `.claude/spec-paths` that matches no file. A doc
   that the index `docs/README.md` doesn't list is a note. **Steps:** fix what `doctor` reports (a broken link, a

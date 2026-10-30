@@ -1,4 +1,4 @@
-# The spec of duckviz-scaffold: what the scaffold must keep doing. docs/spec.md explains each group: keep
+# The spec of duckviz-scaffold: what the scaffold must keep doing. docs/work/spec.md explains each group: keep
 # the two in step.
 # `uv run --project kit python -m duckkit.specdiff` and CI read it.
 
@@ -16,17 +16,17 @@ copier.yml
 
 [guardrails]
 CLAUDE.md
-docs/spec.md
+docs/work/spec.md
 .claude/settings.json
 .claude/spec-paths
 template/CLAUDE.md.jinja
-template/docs/how-we-work.md
-template/docs/review.md
+template/docs/work/how-we-work.md
+template/docs/work/review.md
 template/.claude/settings.json.jinja
 template/.claude/agents/**
 template/.claude/spec-paths.jinja
 template/.claude/skills/deliver-outcome/**
-template/docs/spec.md.jinja
+template/docs/work/spec.md.jinja
 template/tests/app/test_contract_only.py.jinja
 template/.githooks/**
 template/pyproject.toml.jinja

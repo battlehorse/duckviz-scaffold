@@ -15,9 +15,9 @@ docs/architecture.md how the skills fit in an app.
 | `/ingest` | seeded | bring in new data with `ingest`, report what was added, and check the contract |
 | `/ask` | seeded | answer a question with read-only SQL on the contract views (`sql`) |
 | `/app` | managed | start, stop or restart a Streamlit app, on localhost or on the tailnet |
-| `/app-check` | managed | walk the browser checks of docs/browser-checks.md in light mode, dark mode or both, with screenshots of failures |
+| `/app-check` | managed | walk the browser checks of docs/design/browser-checks.md in light mode, dark mode or both, with screenshots of failures |
 | `/catch-up` | managed | brief the start of a session: a remote session (the Mac kept awake, Remote Control) on request, git and the merged branches, PRs and their stacks, issues, the tests after a pull, the database status, the published copy, the hosted app, each app's health, a newer scaffold release (`doctor --remote`), and the app's own checks (a "Catch-up" section in `.claude/project-rules.md`) |
-| `/deliver-outcome` | managed | work on an outcome issue, from the brief to the report, as docs/how-we-work.md describes |
+| `/deliver-outcome` | managed | work on an outcome issue, from the brief to the report, as docs/work/how-we-work.md describes |
 | `/scaffold-update` | managed | move the repo to a newer scaffold release, or turn an option on, and open a PR |
 
 ## With an option
@@ -46,4 +46,4 @@ docs/architecture.md how the skills fit in an app.
 An app adds its own skills beside these, and can opt out of a managed one (docs/template.md, "Deviations").
 
 The template also writes one agent, `.claude/agents/reviewer.md`: the independent reviewer of each PR
-(docs/how-we-work.md, docs/review.md).
+(docs/work/how-we-work.md, docs/work/review.md).

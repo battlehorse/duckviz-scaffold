@@ -5,7 +5,7 @@ scaffold manages this file: an app adds its own rules in `.claude/project-rules.
 against them before opening a PR. The reviewer agent (`.claude/agents/reviewer.md`) checks the PR against them. The
 reviewer gets the PR and this file, and nothing of the author's reasoning.
 
-Each PR gets one review (docs/how-we-work.md, "The independent review"). Each finding has a level:
+Each PR gets one review (docs/work/how-we-work.md, "The independent review"). Each finding has a level:
 
 - **Blocking**: the author fixes it before the merge. If the author finds that the finding is wrong, the author says
   why, and the PR waits for the user. A bug, personal data, a spec file the PR touches but does not declare, a spec
@@ -165,10 +165,10 @@ module). Good: `lines_in_scope`, `receipts_in_period`, `weekly_spend`.
 - **Keep the PR to its purpose.** Put an unrelated fix in its own PR, or name it in the PR text.
 - **Explain each change the reader did not ask for,** above all a removal: "The comment changed, the file did
   not." Without it, the reviewer has to ask.
-- **Declare each spec file that the PR touches** (docs/spec.md) in its *Spec changes* section, marked *extends* or
+- **Declare each spec file that the PR touches** (docs/work/spec.md) in its *Spec changes* section, marked *extends* or
   *revises*, each with its reason.
 - **Report dependency changes and new tags** in the PR text.
-- **Give the evidence that the PR keeps the spec** (docs/how-we-work.md): the tests that pass, the checks in the
+- **Give the evidence that the PR keeps the spec** (docs/work/how-we-work.md): the tests that pass, the checks in the
   browser, the commands on real data.
 
 ## 8. Privacy

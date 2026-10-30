@@ -8,10 +8,10 @@ The user sets the project up once: see the first-time setup in the `/publish` sk
 
 ## The data
 
-- The MotherDuck database **`{{ motherduck_db }}`** holds the app's data contract (docs/contract.md): one table per
+- The MotherDuck database **`{{ motherduck_db }}`** holds the app's data contract (docs/design/contract.md): one table per
   contract view, `v_contract` among them (the contract's name and version).
 - It is a snapshot, as new as the user's last `/publish`. The newest date in the data says how new.
-- **Read the contract first.** The project's files hold `contract.md` (docs/contract.md): what each view holds,
+- **Read the contract first.** The project's files hold `contract.md` (docs/design/contract.md): what each view holds,
   the meaning of each column, and the rules the data keeps (keys, allowed values, what to sum and what not to).
   `schema.sql` (`src/{{ package }}/contract/schema.sql`) is the same contract as SQL: the exact columns and types.
 - **The database describes itself too.** Before the first query of a conversation, read its descriptions:

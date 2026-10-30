@@ -8,7 +8,7 @@ from {{ package }}.spec import SPEC
 
 @pytest.mark.spec
 def test_the_views_conform(ingested):
-    """The views that ingest builds hold the shape that docs/contract.md promises."""
+    """The views that ingest builds hold the shape that docs/design/contract.md promises."""
     assert SPEC.contract.check(ingested) == []
     assert ingested.execute("SELECT count(*) FROM v_daily").fetchone()[0] == 3
 

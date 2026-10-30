@@ -10,32 +10,36 @@ it reads that file as part of this one.
 
 Read these first:
 - README.md
-- docs/getting-started.md
-- docs/architecture.md
-- docs/contract.md: the views the app reads.
-- docs/dashboard.md: the app's pages, and the questions that they answer.
-- docs/scaffold.md and docs/deviations.md: what comes from the scaffold, and where this app differs.
-- docs/how-we-work.md, docs/spec.md and docs/review.md: how we work, what the spec is, and the review standards.
+- docs/README.md: the index of the docs. They are in four folders, by purpose: `design/` (what the app is),
+  `guides/` (using and running it), `sources/` (how each source is read) and `work/` (how it is built and changed).
+  A new doc goes in the folder of its purpose, with a line in the index.
+- docs/guides/getting-started.md
+- docs/design/architecture.md
+- docs/design/contract.md: the views the app reads.
+- docs/design/dashboard.md: the app's pages, and the questions that they answer.
+- docs/work/scaffold.md and docs/work/deviations.md: what comes from the scaffold, and where this app differs.
+- docs/work/how-we-work.md, docs/work/spec.md and docs/work/review.md: how we work, what the spec is, and the
+  review standards.
 
 ## How we work
 
 The user sets outcomes (GitHub issues with the label `outcome`, run with `/deliver-outcome`). Inside the spec
-(docs/spec.md), you work on your own: long sessions, PRs you merge yourself. A revision of the spec waits for the
-user's approval, but you go on building on top of it, in stacked PRs. docs/how-we-work.md is the canonical description.
+(docs/work/spec.md), you work on your own: long sessions, PRs you merge yourself. A revision of the spec waits for the
+user's approval, but you go on building on top of it, in stacked PRs. docs/work/how-we-work.md is the canonical description.
 - **Every change is a PR.** Each PR passes CI and gets one review by the `reviewer` agent: you decide what to do
   with its findings, with no second review. Run `uv run {{ project_name }} spec-diff` on it: it lists the spec files
   that it touches, which the PR must name.
-- **Each PR keeps the spec.** Run the checks of docs/how-we-work.md ("Each PR keeps the spec"), and show each
+- **Each PR keeps the spec.** Run the checks of docs/work/how-we-work.md ("Each PR keeps the spec"), and show each
   result in the PR's *Evidence* section. When a check fails, fix the code. Never weaken a check so that it passes.
 - **Merge a PR that leaves the spec unchanged or extends it** on your own (`gh pr merge --merge`), with
-  the label `merged-by-claude` added first (docs/how-we-work.md, "The merge rule"). An extension adds to the spec
+  the label `merged-by-claude` added first (docs/work/how-we-work.md, "The merge rule"). An extension adds to the spec
   and keeps each promise that it already makes, such as a new browser check for a new page. It goes in the PR of
-  its feature, and follows the merge rule of docs/how-we-work.md ("The merge rule").
+  its feature, and follows the merge rule of docs/work/how-we-work.md ("The merge rule").
 - **Never merge a PR that revises the spec**: one that alters or removes a promise, or edits the Guardrails. The
   user merges it, or tells you to. Keep it in a PR of its own. When you are not sure, it is a revision.
 - **Name each spec file the PR touches** in its *Spec changes* section, marked *extends* or *revises*.
 - **Report** dependency changes and new tags in the PR and in the outcome report.
-- **The hard stops** (docs/how-we-work.md, "What waits for the user"): an action that cannot be undone needs the
+- **The hard stops** (docs/work/how-we-work.md, "What waits for the user"): an action that cannot be undone needs the
   user's yes in the chat first, for that action. These are: publishing, deploying, changing who can open the hosted
   app, a command that costs money, anything sent to another person; deleting `data/`{% if backup %} or `backups/`{% endif %},
   `git clean`, a force-push, deleting a pushed tag. `.claude/settings.json` makes Claude Code prompt before the usual
@@ -48,9 +52,9 @@ user's approval, but you go on building on top of it, in stacked PRs. docs/how-w
 
 ## Rules
 
-- **Data contract.** The browser app reads only the `v_*` views of docs/contract.md, through
+- **Data contract.** The browser app reads only the `v_*` views of docs/design/contract.md, through
   `duckkit.snapshot.contract_snapshot`. `tests/app/test_contract_only.py` enforces this. To change the shape of a
-  view, increase the contract version in `src/{{ package }}/contract/__init__.py` and follow docs/contract.md.
+  view, increase the contract version in `src/{{ package }}/contract/__init__.py` and follow docs/design/contract.md.
 - **The database may hold data you cannot get again.** Do not delete `data/`{% if backup %} or `backups/`{% endif %}.
   Do not drop a table. For a schema change, write a migration in `src/{{ package }}/db/store.py`.
 {%- if backup %}
@@ -70,18 +74,18 @@ user's approval, but you go on building on top of it, in stacked PRs. docs/how-w
 - **Publishing** sends personal data to MotherDuck. Run `publish` only when the user asks (`/publish`).
 {%- endif %}
 - **Charts.** Load the `dataviz` skill before you change a chart. Give each chart a table view. Update
-  docs/dashboard.md in the same change.
+  docs/design/dashboard.md in the same change.
 - **The app** uses port **{{ app_port }}**{% for a in extra_apps %}, `{{ a.name }}` port **{{ a.port }}**{% endfor %}. Restart it after a code change (`/app restart`).
 - **Shared code lives in the scaffold.** `duckkit` (snapshots, contract check, publish, backups, privacy, serving,
-  the standard commands, theme) and the template-managed files (docs/scaffold.md lists them) come from
+  the standard commands, theme) and the template-managed files (docs/work/scaffold.md lists them) come from
   duckviz-scaffold. Do not copy duckkit code into this repo, and do not change it here. When you build something
   every app of this kind could use, say so, and propose to upstream it to the scaffold first (its `/upstream`
   skill); this app then gets it with `/scaffold-update`. A change that only this app needs stays here; if it
-  changes a template-managed file, record it in docs/deviations.md.
+  changes a template-managed file, record it in docs/work/deviations.md.
 
 ## Running
 
-- Run the commands with `uv run {{ project_name }} …` (see docs/cli.md). Use `uv` for all Python work. Report a
+- Run the commands with `uv run {{ project_name }} …` (see docs/guides/cli.md). Use `uv` for all Python work. Report a
   dependency you add or remove in the PR. Discuss a choice of language or library with the user before you build on
   it.
 - Keep DuckDB at 1.5.x. MotherDuck does not support DuckDB 2.0 yet. DuckDB 2.0 writes a file that 1.x cannot open.
@@ -95,7 +99,7 @@ user's approval, but you go on building on top of it, in stacked PRs. docs/how-w
   variants stays in builder code (`tests/app/contract_data.py`).
 - `uv run ruff check .` must pass before a commit.
 - `uv run {{ project_name }} doctor` must pass: the repo is in step with the scaffold.
-- `uv run pytest -m spec` runs the spec tests: the key rules of the logic (docs/spec.md).
+- `uv run pytest -m spec` runs the spec tests: the key rules of the logic (docs/work/spec.md).
 
 ## Notifications
 

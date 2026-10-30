@@ -1,6 +1,6 @@
 ---
 name: deliver-outcome
-description: Work on an outcome the user set as a GitHub issue (label `outcome`), from the brief to the report, as docs/how-we-work.md describes. Posts a brief and waits for the user's approval, then works on its own in PRs, merges those that leave the spec unchanged or extend it, and ends with a report of the evidence and of each extension and revision.
+description: Work on an outcome the user set as a GitHub issue (label `outcome`), from the brief to the report, as docs/work/how-we-work.md describes. Posts a brief and waits for the user's approval, then works on its own in PRs, merges those that leave the spec unchanged or extend it, and ends with a report of the evidence and of each extension and revision.
 when_to_use: >-
   Use when the user says things like "work on issue 12", "take the outcome in #12", "here is an outcome", or opens an
   issue with the label `outcome` and asks to start.
@@ -11,14 +11,14 @@ argument-hint: "<issue number>"
 
 Issue: $ARGUMENTS
 
-Read `docs/how-we-work.md` (the cycle), `docs/spec.md` (the spec) and `docs/review.md` (the standards) first. The rules
-of `docs/how-we-work.md` hold at every step.
+Read `docs/work/how-we-work.md` (the cycle), `docs/work/spec.md` (the spec) and `docs/work/review.md` (the standards) first. The rules
+of `docs/work/how-we-work.md` hold at every step.
 
 ## 1. The brief
 
 1. Read the issue: `gh issue view <number> --comments`. If it has no `outcome` label, ask the user whether it is one.
 2. Read the parts of the spec that the outcome touches, and the code behind them.
-3. Write the brief, with the parts that docs/how-we-work.md ("The cycle", step 2) lists. Post it as a comment on the
+3. Write the brief, with the parts that docs/work/how-we-work.md ("The cycle", step 2) lists. Post it as a comment on the
    issue: `gh issue comment <number> --body-file <file>`.
 4. Stop, and ask the user to approve the brief. Do not start the work before a yes, in a comment or in the chat.
 
@@ -27,23 +27,23 @@ of `docs/how-we-work.md` hold at every step.
 For each PR of the plan:
 1. Branch from `main`, or from the PR it builds on. Make the change, with its tests. Mark a new test of a key rule
    `@pytest.mark.spec`. A new feature extends the spec in the same PR: its browser checks, its questions in
-   docs/dashboard.md, its section of the docs.
-2. **Show that the PR keeps the spec**: run the checks of docs/how-we-work.md ("Each PR keeps the spec"), with
+   docs/design/dashboard.md, its section of the docs.
+2. **Show that the PR keeps the spec**: run the checks of docs/work/how-we-work.md ("Each PR keeps the spec"), with
    `uv run ruff check .` first. The commands are `uv run pytest -q`, `uv run pytest -m spec`, `uv run pytest -m
    realdata`, `uv run {{ project_name }} status`, `uv run {{ project_name }} doctor`, `uv run {{ project_name }}
    privacy-check` and `/app-check`. Fix the code when a check fails: never weaken the check.
 3. Run `uv run {{ project_name }} spec-diff`, and mark each spec file that it lists *extends* or *revises*
-   (docs/how-we-work.md, "Extensions and revisions"). A revision goes in a PR of its own.
+   (docs/work/how-we-work.md, "Extensions and revisions"). A revision goes in a PR of its own.
 4. Open the PR, with the sections of `.github/pull_request_template.md`.
 5. When CI passes and the *Evidence* is complete, ask the `reviewer` agent to review the PR, once: give it the PR
-   number only. Then decide what to do with each finding (docs/how-we-work.md, "The independent review"): fix each
+   number only. Then decide what to do with each finding (docs/work/how-we-work.md, "The independent review"): fix each
    blocking finding (if you find that it is wrong, say why: the PR then waits for the user); fix a should finding, or give the reason; fix a nit only when the fix
    is trivial and goes in a commit that fixes something else. Do not ask for a second review. In the PR's *Review*
    section, list each blocking and should finding and what you did with it.
 6. Wait for CI.
    - **The spec is unchanged:** merge it on your own: add the label (`gh pr edit <number> --add-label merged-by-claude`), merge it with a
      merge commit (`gh pr merge <number> --merge`), and go on.
-   - **The spec is only extended:** follow the merge rule of docs/how-we-work.md ("The merge rule").
+   - **The spec is only extended:** follow the merge rule of docs/work/how-we-work.md ("The merge rule").
      Record each `Extension agreed` line, with the commit the review read, in the PR's *Evidence*, then add the
      label `merged-by-claude` and merge. A file marked *extends* that a commit after the review changed is a
      revision.
@@ -56,12 +56,12 @@ database.
 {%- else -%}
 This app has no backups: before any command that changes the data, copy the database file (`data/{{ db_file }}`) to
 `data/{{ db_file }}.before`, and try risky changes on another copy.
-{%- endif %} A hard stop (docs/how-we-work.md, "What waits for the user") needs the user's yes in the chat first.
+{%- endif %} A hard stop (docs/work/how-we-work.md, "What waits for the user") needs the user's yes in the chat first.
 
 ## 3. The report
 
 When every acceptance criterion holds:
-1. Collect the evidence that docs/how-we-work.md ("The cycle", step 4) lists: the extensions and revisions of each
+1. Collect the evidence that docs/work/how-we-work.md ("The cycle", step 4) lists: the extensions and revisions of each
    merged PR, `uv run pytest -q`, `uv run pytest -m spec`, `uv run pytest -m realdata`, `/app-check` in light and dark
    mode, `uv run {{ project_name }} doctor` and `uv run {{ project_name }} privacy-check`.
 2. Post the report as a comment on the issue, with the parts that step 4 lists, and what the outcome did not do.

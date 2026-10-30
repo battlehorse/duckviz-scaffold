@@ -21,7 +21,7 @@ Run this skill only when the user asks. It sends personal data to a third party.
    - No MotherDuck token: make one in MotherDuck (Settings → Access tokens), then set `[motherduck] token` in config.toml.
    - The first run downloads DuckDB's `motherduck` extension.
 5. Report the counts. Later, `uv run {{ project_name }} publish --check` tells whether the copy is up to date.
-   If `docs/claude-chat.md`, `src/{{ package }}/contract/schema.sql`, `docs/contract.md` or the `/ask` skill changed
+   If `docs/guides/claude-chat.md`, `src/{{ package }}/contract/schema.sql`, `docs/design/contract.md` or the `/ask` skill changed
    since the last publish, tell the user to press **Sync** in their claude.ai project.
 {%- if cloud_run %}
 6. The hosted app reads the new copy after *Reload data* (or its next start).
@@ -36,7 +36,7 @@ Run this skill only when the user asks. It sends personal data to a third party.
 3. To ask the data in claude.ai chat:
    - In claude.ai → Settings → Connectors, add **MotherDuck** and sign in.
    - Create a claude.ai project. Add these files from GitHub (the Claude GitHub app needs access to this repo):
-     `docs/claude-chat.md`, `.claude/skills/ask/SKILL.md`, `src/{{ package }}/contract/schema.sql` and
-     `docs/contract.md`.
+     `docs/guides/claude-chat.md`, `.claude/skills/ask/SKILL.md`, `src/{{ package }}/contract/schema.sql` and
+     `docs/design/contract.md`.
    - As the project's instructions, use: "Answer questions about my {{ project_name }} data. Follow claude-chat.md."
 

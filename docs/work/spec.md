@@ -1,7 +1,7 @@
 # The spec
 
 The spec of duckviz-scaffold is what the scaffold must keep doing. Each PR keeps it, and Claude merges a PR that
-leaves it unchanged or only extends it (docs/how-we-work.md). A PR that revises what it promises waits for the user.
+leaves it unchanged or only extends it (docs/work/how-we-work.md). A PR that revises what it promises waits for the user.
 `.claude/spec-paths` holds the same list as patterns, for `spec-diff` and CI: keep the two in step.
 
 A release changes every app that updates to it. So the scaffold's spec is what the apps depend on: how an app is
@@ -11,11 +11,11 @@ built, the interface that apps call, and the guardrails of every app and of this
 |---|---|---|
 | **Shape** | how an app made from the scaffold works, what duckkit and the template hold, and how apps stay current | `docs/architecture.md`, `docs/kit.md`, `docs/template.md`, `docs/skills.md`, `docs/upgrading.md` |
 | **API** | what apps depend on: duckkit's public names and the `AppSpec` fields, and the Copier questions with the files that are managed or seeded | `kit/src/duckkit/__init__.py`, `kit/src/duckkit/spec.py`, `copier.yml` |
-| **Guardrails** | how the work is done, in this repo and in every app, and what it must not do | this repo's CLAUDE.md, `.claude/settings.json`, `.claude/spec-paths` and this file; the template's CLAUDE.md, settings, agents, `/deliver-outcome`, spec files, PR template, CI, git hooks, `pyproject.toml` (its pytest settings and its dependencies) and guard test; `docs/how-we-work.md`, `docs/review.md`; `specdiff.py`; this repo's CI and `scripts/render.sh` |
+| **Guardrails** | how the work is done, in this repo and in every app, and what it must not do | this repo's CLAUDE.md, `.claude/settings.json`, `.claude/spec-paths` and this file; the template's CLAUDE.md, settings, agents, `/deliver-outcome`, spec files, PR template, CI, git hooks, `pyproject.toml` (its pytest settings and its dependencies) and guard test; `docs/work/how-we-work.md`, `docs/work/review.md`; `specdiff.py`; this repo's CI and `scripts/render.sh` |
 
 ## Extensions and revisions here
 
-docs/how-we-work.md defines the two kinds of spec change. In this repo:
+docs/work/how-we-work.md defines the two kinds of spec change. In this repo:
 - **Extensions:** a new public name in duckkit, a new `AppSpec` field whose default keeps today's behaviour, a new
   section of a Shape doc for a new part, a new answer or file of the template that changes nothing for an app that
   updates.
@@ -40,5 +40,5 @@ docs/how-we-work.md defines the two kinds of spec change. In this repo:
 - duckkit's dependency changes (`kit/pyproject.toml`, `kit/uv.lock`) and new release tags: the PR text and the
   outcome report list them. A change to the template's dependencies is a spec change: its `pyproject.toml` is in
   the Guardrails.
-- Not files, but always the user's call (the hard stops of docs/how-we-work.md): a force-push, moving or deleting a
+- Not files, but always the user's call (the hard stops of docs/work/how-we-work.md): a force-push, moving or deleting a
   pushed tag, `git clean`.

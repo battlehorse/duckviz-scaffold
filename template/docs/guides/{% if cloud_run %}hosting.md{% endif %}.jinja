@@ -168,7 +168,7 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
    ```
    Read-scaling tokens need a paid MotherDuck plan. Without one, the hosted app would need the read-write token that
    `publish` uses. The scaffold promises a read-only token ({{ scaffold_repo }}, docs/architecture.md), so that is a
-   deviation of this app: record it in docs/deviations.md. A read-scaling token reads replicas that take up to a
+   deviation of this app: record it in docs/work/deviations.md. A read-scaling token reads replicas that take up to a
    minute to see a new `publish`.
 5. **Make a service account for the app.** It can read that one secret, and nothing else:
    ```sh

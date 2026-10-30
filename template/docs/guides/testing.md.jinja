@@ -1,0 +1,44 @@
+# Testing
+
+Every test runs on made-up data. The tests read your own data only when you ask (`-m realdata`), and never in CI.
+
+## Running them
+
+| Command | What it runs |
+|---|---|
+| `uv run pytest -q` | the suite, on made-up data: what CI runs |
+| `uv run pytest -q -m spec` | the spec tests: the key rules of the logic ([the spec](../work/spec.md)) |
+| `uv run pytest -q -m realdata` | the checks on the real data of this machine (`tests/test_real_data.py`) |
+| `uv run pytest -q tests/app` | the browser app only |
+| `uv run ruff check .` | the lint |
+
+## The kinds of test
+
+| Where | What it checks |
+|---|---|
+| `tests/test_ingest.py` | reading the sources into the database, on small made-up files that each test writes to a temporary folder |
+| `tests/test_contract.py` | the contract: the views fit the reference schema, and [the contract doc](../design/contract.md) lists them |
+| `tests/test_cli.py` | the commands |
+{%- if curations %}
+| `tests/test_curated.py` | the curated decisions: exported after each command, and restored into a rebuilt database |
+{%- endif %}
+{%- if demo_data %}
+| `tests/test_demo.py` | the demo database: made-up, and it fits the contract |
+{%- endif %}
+| `tests/app/test_app.py` | the browser app's pages, on the contract data of `tests/app/contract_data.py` |
+| `tests/app/test_contract_only.py` | the guard: the browser app imports and reads only the contract (from the scaffold) |
+| `tests/test_real_data.py` | the real data: opt-in, `-m realdata` |
+
+A test marked `@pytest.mark.spec` states a key rule in its docstring, and is part of the spec: changing it is a
+revision ([how we work](../work/how-we-work.md)).
+
+## Fixtures and test data
+
+- `tests/conftest.py` points the app at a temporary folder, so that no test reads or writes `data/` or `config.toml`.
+- When a test needs a bigger source file, keep it in `tests/data/`. It is committed, so it is made up and never
+  holds personal data (`privacy-check`).
+
+## In a browser
+
+The tests don't open a browser. After a change to a page, walk [the browser checks](../design/browser-checks.md)
+with `/app-check`.

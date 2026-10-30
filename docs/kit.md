@@ -159,7 +159,7 @@ Methods:
 |---|---|
 | `reference()` | an empty in-memory database with the contract's exact shape |
 | `views()`, `columns()` | the view names, and each view's columns, in the schema's order |
-| `descriptions()` | `{view: (description, {column: description})}`, from the comments. `publish` writes these as comments, and the guard checks docs/contract.md against them. |
+| `descriptions()` | `{view: (description, {column: description})}`, from the comments. `publish` writes these as comments, and the guard checks docs/design/contract.md against them. |
 | `check(con)` | one message per problem, or `[]` when `con` conforms. It checks the shape first (views, columns, types; extra columns are fine), then primary keys, `NOT NULL`, the rules, the custom checks, and `v_contract`. |
 | `accepts(name, version)` | whether code for this contract can read a database at that name and version: the same name and major version |
 
@@ -390,9 +390,9 @@ view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the an
   A small run (at most `SMALL_RUN`, 500 rows waiting) starts at once. The user sets a spend limit in the Anthropic
   Console before the first run: it caps what the runs can cost. A larger run, or a full reclassification (`full=True`:
   every decision the model made is made again, an app's `--reclassify`), starts only with `--yes`. Without it, the
-  gate prints the command line that runs it, and sends nothing. Such a run is a hard stop (docs/how-we-work.md): the
+  gate prints the command line that runs it, and sends nothing. Such a run is a hard stop (docs/work/how-we-work.md): the
   user says yes in the chat first, and the app adds the `--yes` command to the `ask` rules of its
-  `.claude/settings.json` (docs/how-we-work.md, "What waits for the user").
+  `.claude/settings.json` (docs/work/how-we-work.md, "What waits for the user").
 
 ## `duckkit.curated`
 
@@ -461,7 +461,7 @@ make `doctor` fail; notes don't. It checks that:
   if it doesn't enforce public access prevention or lacks uniform bucket-level access, a note if `gcloud` can't
   tell;
 - every file in `EXPECTED` is present, unless an option turns it off or `opt_out` lists it;
-- every opted-out file is explained in `docs/deviations.md`;
+- every opted-out file is explained in `docs/work/deviations.md`;
 - the docs' paths hold (`broken_links`, `stale_spec_paths`, `unindexed_docs`):
   - a relative link in a Markdown file (docs, skills, agents, READMEs) to a missing file is a problem. So is a
     `docs/….md` in backticks, read from the repo root, that is missing. URLs, anchors and placeholders (`<file>`)
@@ -469,7 +469,9 @@ make `doctor` fail; notes don't. It checks that:
   - a line of `.claude/spec-paths` that matches no file is a problem: `spec-diff` can't see that file change;
   - a doc in `docs/` that `docs/README.md` (the index) doesn't link to is a note. With no index, there is no note.
 
-  They read the files on disk, without `.git`, the virtualenv, caches, `data/` and `backups/`.
+  In a git repo, they read the files that git tracks or would track (`git ls-files`), so ignored folders drop out.
+  Elsewhere, they walk the folder, without `.git`, the virtualenvs and caches, and `data/` and `backups/` at the
+  root.
 
 CI runs `doctor` on every PR. `/catch-up` runs it with `--remote`.
 
@@ -489,7 +491,7 @@ CI runs `doctor` on every PR. `/catch-up` runs it with `--remote`.
 ## `duckkit.specdiff`
 
 **What it is for:** telling whether a branch touches the app's spec, the part that each PR must keep and only the
-user revises (docs/how-we-work.md).
+user revises (docs/work/how-we-work.md).
 
 `spec_diff(root, base="origin/main")` compares the working tree with its merge base with `base`: commits,
 uncommitted changes and untracked files. It returns a `SpecDiff`:
@@ -563,7 +565,7 @@ the template keeps current, calls:
   `snapshot.database_snapshot`), by import, as an attribute or as a bare name after `import *`.
 - `loaded_problems(spec)` imports the app and its tests in a fresh interpreter and lists every forbidden module
   that got loaded, which catches indirect imports.
-- `doc_problems(spec, doc)` checks that `docs/contract.md` has a section for every view, listing its columns in
+- `doc_problems(spec, doc)` checks that `docs/design/contract.md` has a section for every view, listing its columns in
   the schema's order.
 
 There are also smaller helpers: `app_files`, `app_tests`, `sql_strings`, `tables`, `check_sql`, `imports`,

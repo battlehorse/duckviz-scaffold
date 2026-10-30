@@ -9,10 +9,10 @@ argument-hint: "[vX.Y.Z] [turn on <option> …]"
 # Update from the scaffold
 
 Arguments: $ARGUMENTS (default: the newest release, same answers). They are plain words: a release, and the options
-to turn on, such as "turn on cloud_run" (docs/scaffold.md lists the options). To turn an option off or to change
+to turn on, such as "turn on cloud_run" (docs/work/scaffold.md lists the options). To turn an option off or to change
 an answer, agree each change with the user first.
 
-Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app differs) first.
+Read docs/work/scaffold.md (how updates work) and docs/work/deviations.md (where this app differs) first.
 
 1. **Start clean.** `git status` must be clean, on an up-to-date `main`. Make a branch: `scaffold/<release>`.
    If a `scaffold/<release>` PR from the weekly workflow exists, check it out instead and go to step 3.
@@ -31,7 +31,7 @@ Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app 
 3. **Read the release notes**: the scaffold's CHANGELOG.md entries between `_commit` before and after
    (`git diff .copier-answers.yml`). Do the steps they list by hand.
 4. **Resolve conflicts.** `git grep -n '^<<<<<<< '`. For each:
-   - the file is listed in docs/deviations.md → keep this app's side, and take any scaffold change that doesn't
+   - the file is listed in docs/work/deviations.md → keep this app's side, and take any scaffold change that doesn't
      touch the deviation;
    - otherwise → take the scaffold's side, and keep this app's lines that are clearly its own (its dependencies in
      pyproject.toml, its names).
@@ -39,8 +39,8 @@ Read docs/scaffold.md (how updates work) and docs/deviations.md (where this app 
 5. **Lock and check.** `uv lock`, `uv sync`, then `uv run ruff check .`, `uv run pytest -q`,
    `uv run {{ project_name }} doctor`. Fix what this app's code needs for the new duckkit (the CHANGELOG says).
 6. **Show the user** the diff summary (`git diff --stat main`), every conflict and how you resolved it, and any
-   new deviation (add it to docs/deviations.md).
+   new deviation (add it to docs/work/deviations.md).
 7. **Ask** before you commit, then commit and open a PR titled "Update the scaffold to <release>".
 
 To turn an option on (such as `turn on cloud_run`): use the same steps, then follow the docs that it adds
-(docs/hosting.md).
+(docs/guides/hosting.md).
