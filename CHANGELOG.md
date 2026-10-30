@@ -3,7 +3,7 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.8.5
 
 CI uses fewer Actions minutes: **no second test run after a merge**, **one run per PR**, and **fewer pushes**.
 
