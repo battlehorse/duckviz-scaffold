@@ -247,6 +247,27 @@ def fetch(spec: AppSpec, name: str | None = None, folder: Path | None = None) ->
     return target
 
 
+def bucket_problems(spec: AppSpec) -> list[str]:
+    """What keeps the bucket of `[backup] remote` from being private: public access not prevented, or no uniform
+    bucket-level access (so an object could have its own, public, ACL). Raises OffsiteError."""
+    bucket = _remote(spec).rsplit("/", 1)[0]
+    described = _gcloud(spec, ["storage", "buckets", "describe", bucket, "--raw", "--format=json"])
+    try:
+        iam = json.loads(described or "{}").get("iamConfiguration")
+    except json.JSONDecodeError as e:
+        raise OffsiteError("`gcloud storage buckets describe` gave an answer that is not JSON") from e
+    if not isinstance(iam, dict):  # an answer this code doesn't know: say so, rather than call the bucket public
+        raise OffsiteError(f"`gcloud storage buckets describe {bucket}` gave no iamConfiguration")
+    problems = []
+    if iam.get("publicAccessPrevention") != "enforced":
+        problems.append(f"{bucket} holds the whole database and doesn't prevent public access: "
+                        f"`gcloud storage buckets update {bucket} --public-access-prevention`")
+    if not (iam.get("uniformBucketLevelAccess") or {}).get("enabled"):
+        problems.append(f"{bucket} has no uniform bucket-level access: "
+                        f"`gcloud storage buckets update {bucket} --uniform-bucket-level-access`")
+    return problems
+
+
 def _remote(spec: AppSpec) -> str:
     root = spec.backup_remote()
     if root is None:

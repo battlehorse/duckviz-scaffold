@@ -49,9 +49,10 @@ def contract_line(spec: AppSpec, problems: list[str], pad: str = "") -> None:
         typer.echo(f"  ✗ {problem}")
 
 
-def remote_lines(spec: AppSpec, publishing: bool) -> list[str]:
-    """The lines of `status --remote`: whether the published copy and the hosted app are current. A check that can't
-    run says why, in its line."""
+def remote_lines(spec: AppSpec, publishing: bool, backups: bool = False) -> list[str]:
+    """The lines of `status --remote`: whether the published copy and the hosted app are current, and (`backups`)
+    how old the newest backup in Cloud Storage is. A check that can't run says why, in its line."""
+    from duckkit.backup import OffsiteError, remote_snapshots
     from duckkit.demo import is_demo
     from duckkit.hosting import HostingError, deployed
     from duckkit.publish import compare
@@ -69,6 +70,19 @@ def remote_lines(spec: AppSpec, publishing: bool) -> list[str]:
                 lines.append(f"Published:    {spec.motherduck_target} is up to date")
         except (FileNotFoundError, ContractError, ValueError, duckdb.Error) as e:
             lines.append(f"Published:    can't tell: {str(e).splitlines()[0]}")
+    if backups:
+        try:
+            root = spec.backup_remote()
+            found = [r for r in remote_snapshots(spec) if r.complete]
+        except (OffsiteError, ValueError) as e:
+            lines.append(f"Off-machine:  can't tell: {e}")
+        else:
+            if root is None:
+                lines.append("Off-machine:  none: the backups are only on this machine ([backup] remote)")
+            elif not found:
+                lines.append(f"Off-machine:  none yet in {root} (`{spec.cli} backup`)")
+            else:
+                lines.append(f"Off-machine:  {len(found)}, the newest {_age(spec, found[-1].name)} old ({root})")
     try:
         hosted = deployed(spec)
     except HostingError as e:
@@ -117,17 +131,21 @@ def stale_demo_line(spec: AppSpec) -> str | None:
 
 def backups_line(spec: AppSpec) -> str:
     """How many backup snapshots there are, and how old the newest is."""
-    from datetime import UTC, datetime
-
     from duckkit.backup import snapshots
 
     found = snapshots(spec)
     if not found:
         return "Backups:      none yet (`backup`)"
-    stamp = datetime.strptime(found[-1].name.removeprefix(spec.backup_prefix), "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
+    return f"Backups:      {len(found)}, the newest {_age(spec, found[-1].name)} old ({spec.backup_dir()})"
+
+
+def _age(spec: AppSpec, snapshot: str) -> str:
+    """How old a snapshot is, from its folder name: "5 hours", "3 days"."""
+    from datetime import UTC, datetime
+
+    stamp = datetime.strptime(snapshot.removeprefix(spec.backup_prefix), "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
     hours = (datetime.now(UTC) - stamp).total_seconds() / 3600
-    age = f"{hours:.0f} hours" if hours < 48 else f"{hours / 24:.0f} days"
-    return f"Backups:      {len(found)}, the newest {age} old ({spec.backup_dir()})"
+    return f"{hours:.0f} hours" if hours < 48 else f"{hours / 24:.0f} days"
 
 
 def print_spec_diff(root: Path, base: str) -> None:
@@ -169,7 +187,8 @@ def add_standard_commands(
     @app.command("status")
     def status_command(
         remote: bool = typer.Option(False, "--remote", help="Also say whether the published copy and the hosted app "
-                                    "are current (reads MotherDuck and Cloud Run; changes nothing)."),
+                                    "are current, and how old the newest off-machine backup is (reads MotherDuck, "
+                                    "Cloud Run and Cloud Storage; changes nothing)."),
     ) -> None:
         """What the database holds (the app's summary), and the contract check."""
         from duckkit.snapshot import database_snapshot
@@ -181,7 +200,7 @@ def add_standard_commands(
             if demo_line := stale_demo_line(spec):  # a fresh clone may have only the demo
                 typer.echo(demo_line)
             if remote:  # the hosted app can be checked without a local database
-                for line in remote_lines(spec, publishing=False):
+                for line in remote_lines(spec, publishing=False, backups=bool(backups and connect)):
                     typer.echo(line)
             return
         from duckkit.demo import has_marker
@@ -197,7 +216,7 @@ def add_standard_commands(
         if demo_line := stale_demo_line(spec):
             typer.echo(demo_line)
         if remote:
-            for line in remote_lines(spec, publishing):
+            for line in remote_lines(spec, publishing, backups=bool(backups and connect)):
                 typer.echo(line)
 
     @app.command("sql")

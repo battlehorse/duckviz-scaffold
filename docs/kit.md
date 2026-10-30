@@ -249,12 +249,14 @@ leaves the machine.
   It raises `OffsiteError` on any failure or difference, and never touches the local snapshot.
 - `remote_snapshots(spec)` lists them, oldest first, as `RemoteSnapshot(name, files)`: each file's base64 MD5,
   and `complete` when it has `load.sql`. `differences(local, remote)` lists the files that differ.
-- `prune_remote(spec, keep=None)` deletes all but the newest `keep` there (default `[backup] keep`). It counts
-  snapshots, as on the machine. A lifecycle rule would delete by age, so backups that stopped for longer would lose
+- `prune_remote(spec, keep=None)` deletes all but the newest `keep` complete ones there (default `[backup] keep`),
+  and the incomplete ones older than the newest complete one. It counts snapshots, as on the machine. A lifecycle rule would delete by age, so backups that stopped for longer would lose
   them all.
 - `fetch(spec, name=None, folder=None)` downloads one (default: the newest complete one) into the backup folder. It
   works in a hidden `.fetching-<name>` folder, checks every MD5 and that the snapshot imports, and only then gives
   it its name. It never overwrites a local snapshot, and leaves nothing behind when it fails.
+- `bucket_problems(spec)` lists what keeps the bucket from being private: public access prevention not
+  `enforced`, or no uniform bucket-level access. Each problem names the `gcloud` command that fixes it.
 
 `backup()` itself stays on the machine. The CLI's `backup` adds the upload and the remote pruning.
 
@@ -301,7 +303,7 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 
 | Command | Does | Built on |
 |---|---|---|
-| `status [--remote]` | prints the app's `status(con)` lines, a "Demo:" line for a demo database, the backups line, the contract check, then a "Demo file:" warning when the demo database doesn't fit the contract (see `stale_demo_line`). `--remote` adds whether the published copy is current ("Published:", with `publishing`) and whether the hosted app runs the latest commit ("Deployed:", with `cloud_run`) | `snapshot.database_snapshot`, `Contract.check`, `publish.compare`, `hosting.deployed` |
+| `status [--remote]` | prints the app's `status(con)` lines, a "Demo:" line for a demo database, the backups line, the contract check, then a "Demo file:" warning when the demo database doesn't fit the contract (see `stale_demo_line`). `--remote` adds whether the published copy is current ("Published:", with `publishing`) whether the hosted app runs the latest commit ("Deployed:", with `cloud_run`), and how old the newest complete backup in Cloud Storage is ("Off-machine:", with `backups`). Plain `status` uses no network | `snapshot.database_snapshot`, `Contract.check`, `publish.compare`, `hosting.deployed`, `backup.remote_snapshots` |
 | `sql "SELECT …" [--limit]` | runs exactly one `SELECT` on a snapshot of the whole database and prints a table | `snapshot.database_snapshot` |
 | `publish [--to] [--dry-run] [--check]` | sends the views (refusing a demo database), shows what would go, or compares | `publish`, `demo.is_demo` |
 | `backup` / `backups` / `restore <snapshot> [--to]` | makes a verified snapshot, lists them, or rebuilds a new file from one. With `[backup] remote`, `backup` also copies the snapshot to Cloud Storage and prunes it there; a failed copy keeps the local snapshot and exits 1. `backups` marks each snapshot here, in Cloud Storage, both, or incomplete | `backup` |
@@ -436,6 +438,9 @@ make `doctor` fail; notes don't. It checks that:
 - with `--remote`, whether a newer release exists (`git ls-remote --tags` on the scaffold);
 - with `--remote`, that a repo whose git holds `curated/` is not public on GitHub (`gh repo view`): a problem if it
   is, a note if `gh` can't tell;
+- with `--remote` and `[backup] remote` set, that the backup bucket is private (`backup.bucket_problems`): a problem
+  if it doesn't enforce public access prevention or lacks uniform bucket-level access, a note if `gcloud` can't
+  tell;
 - every file in `EXPECTED` is present, unless an option turns it off or `opt_out` lists it;
 - every opted-out file is explained in `docs/deviations.md`.
 

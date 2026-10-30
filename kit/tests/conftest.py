@@ -57,12 +57,15 @@ def closed_db(db, spec):
 
 class FakeGcloud:
     """Answers `gcloud storage` as Cloud Storage would, with the bucket gs://shop-backups kept in a folder. Keeps the
-    commands. `fail`: the subcommand ("cp", "rm", …) that fails; `corrupt`: uploads change each file's last byte."""
+    commands. `fail`: the subcommand ("cp", "rm", …) that fails; `corrupt`: uploads change each file's last byte;
+    `bucket`: what `buckets describe` gives (private by default)."""
 
     BUCKET = "gs://shop-backups"
 
     def __init__(self, folder: Path, run):
         self.folder, self.run, self.commands, self.fail, self.corrupt = folder, run, [], None, False
+        self.bucket = {"iamConfiguration": {"publicAccessPrevention": "enforced",
+                                            "uniformBucketLevelAccess": {"enabled": True}}}
 
     def path(self, url: str) -> Path:
         return self.folder / url.removeprefix(self.BUCKET + "/").rstrip("/*")
@@ -99,6 +102,8 @@ class FakeGcloud:
             for source in self.path(command[3]).iterdir():
                 shutil.copy(source, Path(command[4]) / source.name)
             return subprocess.CompletedProcess(command, 0, "", "")
+        if command[2:4] == ["buckets", "describe"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"name": "shop-backups", **self.bucket}), "")
         if command[2:4] == ["rm", "--recursive"]:
             shutil.rmtree(self.path(command[4]))
             return subprocess.CompletedProcess(command, 0, "", "")
