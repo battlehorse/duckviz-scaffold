@@ -31,7 +31,7 @@ _migrations:
 # brings in the release it updates to.
 kit_ref:
   type: str
-  default: v0.8.5
+  default: v0.9.0
   when: false
 scaffold_repo:
   type: str
