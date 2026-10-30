@@ -313,11 +313,16 @@ add_standard_commands(app, SPEC, connect=connect, status=status_lines, privacy_t
 | `doctor [--remote]` | compares the repo with the scaffold | `doctor.diagnose` |
 | `spec-diff [--base]` | lists what a branch changes in the app's spec, and exits 1 if anything | `specdiff.spec_diff` |
 | `curated-check [--base]` | what a commit (or a branch) does to the curated files; fails on a large loss | `curated.file_changes` |
+| `curated-diff [--db]` | compares a database's decisions (default: the app's) with the curated files. Reads only; fails when they differ (with `curated`) | `curated.compare` |
+| `curated-align --db <file>` | makes a restored file hold the curated files' decisions (git wins). Refuses the app's database and a demo database; never writes the files (with `curated`) | `curated.align` |
 
-Three parameters take functions from the app's own code (its [hooks](#hooks-where-an-apps-domain-goes-in)):
+Four parameters take the app's own code (its [hooks](#hooks-where-an-apps-domain-goes-in)):
 - `connect` opens the database for writing; `backup` needs it.
 - `status` returns the app's summary lines.
 - `privacy_terms` returns the app's own personal terms.
+- `curated` is the app's curated tables (`TABLES` in its `curated.py`). With them, `status` adds a "Curated:" line
+  (the database's decisions are in line with `curated/`, or how many differ), `restore` compares the restored file
+  with `curated/`, and `curated-diff` and `curated-align` are added. Without them, none of this is there.
 
 `backups`, `publishing` and `curations` follow the template's `backup`, `motherduck` and `curations` options: when
 one is False, its commands are left out. `privacy-check` is a capability every app has.
@@ -326,6 +331,7 @@ The module also exports helpers for the app's own commands:
 - `fail(message)` prints the message and exits with status 1.
 - `contract_line(spec, problems)` prints the contract check, as `ingest` does at the end.
 - `backups_line(spec)` returns the backups line of `status`.
+- `curated_line(spec, tables, path=None)` returns the "Curated:" line of `status`.
 - `stale_demo_line(spec)` returns the "Demo file:" line of `status`: the demo database (`spec.demo_file`), attached
   read-only, doesn't fit the contract (rebuild it), or can't be read (the error). None when it fits, when
   `demo_file` is unset or the file is missing, or when it is the database `status` checks (`<PREFIX>_DB`). A rebuild
@@ -415,6 +421,17 @@ The functions:
   read both as NULL. A file written before a column existed restores the column as NULL. A missing file is skipped.
   `after(con)` runs in the same transaction: what the app derives from the decisions.
 - `holds_decisions(con, tables)`: whether the database holds any.
+- `compare(con, directory, tables)`: the tables whose decisions differ from their files, as
+  `Difference(name, only_database, only_file, changed)`; empty when all match. A row is *changed* when its
+  `order_by` key (when that is a column) is on both sides with other values. The database side is written with
+  `export`'s `COPY`, so both sides compare as the same text. A missing file holds no decisions, and a file without
+  a column counts it as empty. `COPY` needs external access, so the CLI attaches the database read-only to an
+  in-memory one.
+- `align(con, directory, tables, after=None)`: makes a database hold the files' decisions instead of its own, in
+  one transaction. It clears the decisions (the `where` rows of a table without `key` are deleted; a keyed table's
+  decision columns become NULL), then loads the files as `restore` does. A missing file holds no decisions. It
+  raises `ValueError` and changes nothing when there are no files at all, or when the clearing leaves decisions.
+  It only reads the files. This is "git wins" for a restored backup (`/restore-backup`).
 - `file_changes(spec, base=None)`: what a change does to each curated file: its rows before and after, and the
   rows added and removed (a changed row is one of each). Without `base`, it compares the staged files with HEAD,
   for the next commit. With `base`, it compares the working tree with the point where the branch left `base`, for

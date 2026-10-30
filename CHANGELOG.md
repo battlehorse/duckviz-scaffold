@@ -5,6 +5,13 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: **a restored backup against the curated decisions** (#85). A backup is often older than the last commit
+  of `curated/`, so a restored database can hold older decisions, and the next command that changes one would
+  export them over the newer files. New: `curated.compare` and `curated.align`. `add_standard_commands` gets
+  `curated=TABLES`: then `status` adds a "Curated:" line, `restore` compares the restored file with `curated/`,
+  `curated-diff [--db]` shows the differences, and `curated-align --db <file>` makes a restored file hold git's
+  decisions. **Steps:** an app with curations adds `curated=TABLES` (from its `curated.py`) to its
+  `add_standard_commands(...)` call in `src/<package>/cli.py`. Without it, nothing changes.
 - duckkit: **off-machine backups in Google Cloud Storage** (#84). With `[backup] remote = "gs://<bucket>"` in
   `config.toml`, `backup` also copies each verified snapshot, byte for byte, to `gs://<bucket>/<package>/`,
   checks every file's MD5 there, and keeps the newest `keep` there too. A failed copy keeps the local snapshot and

@@ -16,6 +16,7 @@
 | `doctor` | how this repo compares with the scaffold it was made from |
 | `spec-diff [--base]` | the parts of the spec a change touches (`.claude/spec-paths`); exits 1 if any |
 | `curated-check [--base]` | what a commit (or a branch) does to curated/*.csv; fails when a file loses many rows (`curations=True`) |
+| `curated-diff [--db]`, `curated-align --db` | a database's decisions against curated/*.csv, and a restored file made to hold the files' decisions (`curated=`) |
 """
 
 from collections.abc import Callable
@@ -28,6 +29,7 @@ import typer
 from duckkit.spec import AppSpec
 
 if TYPE_CHECKING:
+    from duckkit.curated import CuratedTable
     from duckkit.hosting import Deployed
 
 
@@ -139,6 +141,53 @@ def backups_line(spec: AppSpec) -> str:
     return f"Backups:      {len(found)}, the newest {_age(spec, found[-1].name)} old ({spec.backup_dir()})"
 
 
+def curated_line(spec: AppSpec, tables: list[CuratedTable], path: Path | None = None) -> str:
+    """Whether the decisions of the database at `path` (default: the app's) match curated/*.csv, for `status`."""
+    try:
+        differences = _differences(spec, tables, path)
+    except duckdb.Error as e:
+        return f"Curated:      can't tell: {str(e).splitlines()[0]}"
+    if differences is None:
+        return "Curated:      a demo database: its decisions are made up, and curated/ is not compared"
+    if not differences:
+        return "Curated:      in line with curated/"
+    n = sum(d.changed + d.only_database + d.only_file for d in differences)
+    return f"Curated:      {n} decisions differ from curated/ (`{spec.cli} curated-diff`)"
+
+
+def _print_differences(spec: AppSpec, tables: list[CuratedTable], path: Path) -> bool:
+    """Print how the decisions of the database at `path` differ from curated/; whether they do."""
+    try:
+        differences = _differences(spec, tables, path)
+    except (FileNotFoundError, duckdb.Error) as e:
+        fail(str(e).splitlines()[0])
+    if differences is None:
+        fail(f"{path} is a demo database: its decisions are made up")
+    if not differences:
+        typer.echo(f"✓ the decisions in {path.name} match curated/")
+        return False
+    typer.echo(f"✗ the decisions in {path.name} differ from curated/:")
+    for difference in differences:
+        typer.echo(f"  {difference.line()}")
+    typer.echo(f"  For git to win: `{spec.cli} curated-align --db {path}`. It works on a restored file only.")
+    typer.echo("  For the database to win: the next command that changes a decision writes curated/. Then commit it.")
+    return True
+
+
+def _differences(spec: AppSpec, tables: list[CuratedTable], path: Path | None):
+    """`curated.compare` on the database at `path`, attached read-only to an in-memory database (which may COPY).
+    None for a demo database."""
+    from duckkit.curated import compare
+    from duckkit.demo import has_marker
+    from duckkit.snapshot import attach
+
+    with attach(spec, path) as con:
+        con.execute("USE src")
+        if has_marker(con):
+            return None
+        return compare(con, spec.curated_dir, tables)
+
+
 def _age(spec: AppSpec, snapshot: str) -> str:
     """How old a snapshot is, from its folder name: "5 hours", "3 days"."""
     from datetime import UTC, datetime
@@ -174,6 +223,7 @@ def add_standard_commands(
     backups: bool = True,
     publishing: bool = True,
     curations: bool = False,
+    curated: list[CuratedTable] | None = None,
 ) -> None:
     """Add the standard commands to `app`.
 
@@ -182,6 +232,9 @@ def add_standard_commands(
     - `privacy_terms`: the app's own personal terms for `privacy-check` (names in its database, say).
     - `backups`, `publishing`: False leaves those commands out (the scaffold's `backup` and `motherduck` options).
     - `curations`: True adds `curated-check` (the scaffold's `curations` option).
+    - `curated`: the app's curated tables (its curated.py's TABLES). With them, `status` says whether the database's
+      decisions match curated/, `restore` compares a restored file with it, and `curated-diff` and `curated-align`
+      are added.
     """
 
     @app.command("status")
@@ -212,6 +265,8 @@ def add_standard_commands(
             typer.echo(line)
         if backups and connect:
             typer.echo(backups_line(spec))
+        if curated:
+            typer.echo(curated_line(spec, curated))
         contract_line(spec, spec.contract.check(con), pad="    ")
         if demo_line := stale_demo_line(spec):
             typer.echo(demo_line)
@@ -364,6 +419,8 @@ def add_standard_commands(
             except FileExistsError as e:
                 fail(str(e))
             typer.echo(f"Restored {target}: " + ", ".join(f"{t} {n:,}" for t, (n, _) in counts.items()))
+            if curated:
+                _print_differences(spec, curated, target)
             typer.echo(f"To use it: move {spec.db_path} away, then move {target} to {spec.db_path}")
 
     names = ", ".join(f"{a.name} (:{a.port})" for a in spec.apps)
@@ -424,6 +481,40 @@ def add_standard_commands(
                 fail(f"{many} would lose many decisions. Check `git diff --cached curated/`. If you meant it, commit"
                      " again with ALLOW_CURATED_LOSS=1. If not, unstage them: `git restore --staged curated/`")
             typer.echo("✓ curated decisions: " + (f"{len(changes)} files change" if changes else "no change"))
+
+    if curated:
+        @app.command("curated-diff")
+        def curated_diff_command(
+            db: Annotated[Path | None, typer.Option(help="The database to compare (default: the app's).")] = None,
+        ) -> None:
+            """Compare a database's curated decisions with curated/*.csv. Reads only. Fails when they differ."""
+            if _print_differences(spec, curated, db or spec.db_path):
+                raise typer.Exit(1)
+
+        @app.command("curated-align")
+        def curated_align_command(
+            db: Annotated[Path, typer.Option(exists=True, dir_okay=False,
+                                             help="A restored database file (never the app's own).")],
+        ) -> None:
+            """Make a restored database hold the decisions of curated/*.csv instead of its own (git wins). Changes
+            only that file: never the app's database, and never curated/."""
+            from duckkit.curated import align
+            from duckkit.demo import has_marker
+            from duckkit.snapshot import literal
+
+            if db.resolve() == spec.db_path.resolve():
+                fail(f"{db} is the app's database: align a restored copy (`{spec.cli} restore`), then move it in place")
+            with duckdb.connect(str(db)) as con:
+                if spec.timezone:
+                    con.execute(f"SET TimeZone = {literal(spec.timezone)}")
+                if has_marker(con):
+                    fail(f"{db} is a demo database: its decisions are made up")
+                try:
+                    counts = align(con, spec.curated_dir, curated)
+                except (ValueError, duckdb.Error) as e:
+                    fail(f"{db} is unchanged (the transaction rolled back): {str(e).splitlines()[0]}")
+            typer.echo(f"Aligned {db} with curated/: " + ", ".join(f"{t} {n:,}" for t, n in counts.items()))
+            _print_differences(spec, curated, db)
 
     @app.command("doctor")
     def doctor_command(
