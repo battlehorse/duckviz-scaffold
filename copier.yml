@@ -11,9 +11,10 @@ _templates_suffix: .jinja
 _answers_file: .copier-answers.yml
 
 # Run by `copier update --trust` when an app crosses the version. v0.9.0 groups docs/ by purpose (design, guides,
-# work): before the update, each old path that the app still has moves with `git mv`, so a seeded file keeps its
-# text and history, and a managed file keeps the app's edits (without it, Copier writes the new path fresh and the
-# edits are lost). A path already moved is left alone.
+# work): before the update, each old path that the app still has moves with `git mv`. A seeded file keeps its text
+# and history. A managed file keeps the app's edits (without the move, Copier writes the new path fresh and the
+# edits are lost), but each hunk the template changed is an inline conflict, because the old render has no file at
+# the new path: `/scaffold-update` resolves them by docs/work/deviations.md. A path already moved is left alone.
 _migrations:
   - version: v0.9.0
     when: "{{ _stage == 'before' }}"

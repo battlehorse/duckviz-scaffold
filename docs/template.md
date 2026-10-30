@@ -241,8 +241,10 @@ domain rules never conflict with the scaffold's.
 **A file that moves.** Copier sees a moved file as a file removed and a file added. Alone, it would delete a moved
 managed file and write the new path fresh, so the app's edits to it would be lost, and it never moves a seeded file.
 So a release that moves files carries a `_migrations` step in `copier.yml`: before the update, it moves each old
-path that the app still has (`git mv`). A seeded file then keeps its text and its history, and a managed file keeps
-the app's edits, with any clash as an inline conflict. A path already moved is left alone.
+path that the app still has (`git mv`). A seeded file then keeps its text and its history. A managed file keeps the
+app's edits, but each hunk that the template changed is an inline conflict, because the old render has no file at
+the new path. `/scaffold-update` resolves them as any other conflict: the app's side where `docs/work/deviations.md`
+names the file, the template's side elsewhere. A path already moved is left alone.
 
 ## The docs folder
 
