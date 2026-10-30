@@ -253,9 +253,11 @@ def bucket_problems(spec: AppSpec) -> list[str]:
     bucket = _remote(spec).rsplit("/", 1)[0]
     described = _gcloud(spec, ["storage", "buckets", "describe", bucket, "--raw", "--format=json"])
     try:
-        iam = json.loads(described or "{}").get("iamConfiguration") or {}
+        iam = json.loads(described or "{}").get("iamConfiguration")
     except json.JSONDecodeError as e:
         raise OffsiteError("`gcloud storage buckets describe` gave an answer that is not JSON") from e
+    if not isinstance(iam, dict):  # an answer this code doesn't know: say so, rather than call the bucket public
+        raise OffsiteError(f"`gcloud storage buckets describe {bucket}` gave no iamConfiguration")
     problems = []
     if iam.get("publicAccessPrevention") != "enforced":
         problems.append(f"{bucket} holds the whole database and doesn't prevent public access: "

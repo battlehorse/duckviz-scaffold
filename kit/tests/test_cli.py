@@ -208,12 +208,18 @@ def test_doctor_remote_refuses_curated_decisions_in_a_public_repo(cli, spec, mon
 def test_doctor_remote_refuses_a_backup_bucket_that_isnt_private(cli, spec, gcs, monkeypatch):
     (spec.root / ".copier-answers.yml").write_text("_commit: v0.1.0\n")
     monkeypatch.setattr("duckkit.doctor.newest_release", lambda _source: None)
-    assert "gs://shop-backups" not in runner.invoke(cli, ["doctor", "--remote"]).output
+    private = runner.invoke(cli, ["doctor", "--remote"])
+    assert "gs://shop-backups" not in private.output  # (the test repo lacks the expected files: doctor exits 1)
+    assert ["gcloud", "storage", "buckets", "describe", "gs://shop-backups", "--raw", "--format=json"] in gcs.commands
     gcs.bucket = {"iamConfiguration": {"publicAccessPrevention": "inherited"}}
     out = runner.invoke(cli, ["doctor", "--remote"])
-    assert out.exit_code == 1 and "gs://shop-backups holds the whole database and doesn't prevent public access" in out.output
+    assert "gs://shop-backups holds the whole database and doesn't prevent public access" in out.output
     assert "gs://shop-backups has no uniform bucket-level access" in out.output
     assert "gs://shop-backups" not in runner.invoke(cli, ["doctor"]).output  # only with --remote
+    gcs.bucket = {}  # an answer without iamConfiguration: a note, not a problem
+    unknown = runner.invoke(cli, ["doctor", "--remote"])
+    assert "couldn't check that the backup bucket is private" in unknown.output and "public access" not in unknown.output
+    assert "gave no iamConfiguration" in unknown.output
     gcs.fail = "buckets"
     assert "couldn't check that the backup bucket is private" in runner.invoke(cli, ["doctor", "--remote"]).output
     monkeypatch.delenv("SHOP_BACKUP_REMOTE")
