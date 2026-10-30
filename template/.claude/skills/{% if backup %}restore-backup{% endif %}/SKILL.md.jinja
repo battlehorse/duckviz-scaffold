@@ -1,15 +1,14 @@
 ---
 name: restore-backup
 description: Bring the {{ project_name }} database back from a backup snapshot{% if curations %}, with its curated decisions in line with curated/{% endif %}. Use when the database is lost or damaged, or to start on a new machine from a backup, without the source files.
-disable-model-invocation: true
-allowed-tools: Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} backups) Bash(uv run {{ project_name }} restore *) Bash(uv run {{ project_name }} fetch-backup) Bash(uv run {{ project_name }} fetch-backup *) Bash(uv run {{ project_name }} doctor){% if curations %} Bash(uv run {{ project_name }} curated-diff) Bash(uv run {{ project_name }} curated-diff *) Bash(git status *) Bash(git diff *){% endif %}
+allowed-tools: Bash(uv run {{ project_name }} status) Bash(uv run {{ project_name }} backups) Bash(uv run {{ project_name }} restore *) Bash(uv run {{ project_name }} fetch-backup) Bash(uv run {{ project_name }} fetch-backup *) Bash(uv run {{ project_name }} doctor) Bash(lsof data/{{ db_file }}){% if curations %} Bash(uv run {{ project_name }} curated-diff) Bash(uv run {{ project_name }} curated-diff *) Bash(git status --short curated/) Bash(git diff curated/){% endif %}
 ---
 
 # Restore a backup
 
-Only the user starts this skill. It restores a snapshot into a new file, {% if curations %}brings its curated
-decisions in line with `curated/`, {% endif %}and then puts the file in place of the database, with the user's yes.
-Nothing is deleted. To make the database again from the source files instead, use {% if curations %}`/rebuild-database`{% else %}`/ingest`{% endif %}.
+It restores a snapshot into a new file, {% if curations %}brings its curated decisions in line with `curated/`,
+{% endif %}and then puts the file in place of the database, with the user's yes. Nothing is deleted. `/backup
+restore` follows this skill. To make the database again from the source files instead, use {% if curations %}`/rebuild-database`{% else %}`/ingest`{% endif %}.
 
 1. **Make the current state safe.**
    - If the database is there and opens (`uv run {{ project_name }} status`), make a backup of it first:
@@ -43,6 +42,8 @@ Nothing is deleted. To make the database again from the source files instead, us
 {{ 5 if curations else 4 }}. **Ask the user** (AskUserQuestion) to put the restored file in place. Say what changes: the
    counts of `status` before, and of the restored file.
 {{ 6 if curations else 5 }}. **Move the files.** Do not delete anything.
+   - First the app must not have the database open. Ask the user to stop `uv run {{ project_name }} app` (and any
+     other command that runs), and check it: `lsof data/{{ db_file }}` must print nothing.
    - If there is a database: rename `data/{{ db_file }}` to `data/{{ db_file }}.old`. Also rename its `.wal` file, if
      there is one.
    - Rename `data/restored.duckdb` to `data/{{ db_file }}`.

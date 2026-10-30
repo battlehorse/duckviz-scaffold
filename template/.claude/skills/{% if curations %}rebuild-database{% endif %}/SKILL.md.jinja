@@ -16,7 +16,7 @@ everything else in the database again.
    first, or says why not.
 {%- if backup %}
 2. **Back up the database**, if it still opens: `uv run {{ project_name }} backup`. If it does not open, say so.
-   Then name the newest backup (`uv run {{ project_name }} backups`): `/backup` can restore it instead of a rebuild.
+   Then name the newest backup (`uv run {{ project_name }} backups`): `/restore-backup` can restore it instead of a rebuild.
 {%- else %}
 2. **Warn the user.** If the database still opens, say that step 5 keeps it as `{{ db_file }}.old`.
 {%- endif %}

@@ -12,10 +12,10 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   `curated-diff [--db]` shows the differences, and `curated-align --db <file>` makes a restored file hold git's
   decisions. **Steps:** an app with curations adds `curated=TABLES` (from its `curated.py`) to its
   `add_standard_commands(...)` call in `src/<package>/cli.py`. Without it, nothing changes.
-- Template: **`/restore-backup`** (with `backup`; the user starts it). It restores a snapshot, the newest local one or
-  one from `fetch-backup`, into a new file. With `curations`, it compares the decisions with `curated/` and asks
-  which side wins (git: `curated-align`; or the database). Then it puts the file in place with the user's yes, and
-  deletes nothing. `/backup`'s restore action points to it, and `doctor` expects it. New apps pass
+- Template: **`/restore-backup`** (with `backup`). It restores a snapshot, the newest local one or one from
+  `fetch-backup`, into a new file. With `curations`, it compares the decisions with `curated/` and asks which side
+  wins: git (`curated-align`) or the database. Then it puts the file in place with the user's yes, and deletes
+  nothing. `/backup restore` follows it, and `doctor` expects it. New apps pass
   `curated=TABLES` in `cli.py`. **Steps:** none for the skill: `copier update` brings it. The `cli.py` step is in
   the entry above.
 - duckkit: **off-machine backups in Google Cloud Storage** (#84). With `[backup] remote = "gs://<bucket>"` in
