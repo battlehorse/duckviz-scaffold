@@ -325,7 +325,7 @@ def test_a_restore_older_than_curated_is_shown_and_git_can_win(curated_cli, db, 
     restored = tmp_path / "restored.duckdb"
     out = runner.invoke(curated_cli, ["restore", str(snapshot), "--to", str(restored)]).output
     assert "✗ the decisions in restored.duckdb differ from curated/:" in out
-    assert "items: 1 changed, 0 only in the database, 0 only in curated/" in out and "git wins:" in out
+    assert "items: 1 changed, 0 only in the database, 0 only in curated/" in out and "For git to win:" in out
     assert runner.invoke(curated_cli, ["curated-diff", "--db", str(restored)]).exit_code == 1
     files = (spec.curated_dir / "items.csv").read_text()
     refused = runner.invoke(curated_cli, ["curated-align", "--db", str(spec.db_path)])
@@ -356,6 +356,20 @@ def test_curated_align_refuses_a_demo_database(curated_cli, db, spec, tmp_path):
         con.execute(f"CREATE TABLE {MARKER} (params VARCHAR)")
     out = runner.invoke(curated_cli, ["curated-align", "--db", str(demo)])
     assert out.exit_code == 1 and "is a demo database" in out.output
+    assert runner.invoke(curated_cli, ["curated-diff", "--db", str(demo)]).exit_code == 1
+    spec.db_path.unlink()
+    shutil.copy(demo, spec.db_path)  # the demo as the app's database
+    assert "Curated:      a demo database" in runner.invoke(curated_cli, ["status"]).output
+
+
+def test_curated_align_reports_a_failure_and_leaves_the_file(curated_cli, db, spec, tmp_path):
+    export(db, spec.curated_dir, [KINDS])
+    db.close()
+    other = tmp_path / "other.duckdb"
+    with duckdb.connect(str(other)) as con:  # an older schema: no items table
+        con.execute("CREATE TABLE labels (day DATE)")
+    out = runner.invoke(curated_cli, ["curated-align", "--db", str(other)])
+    assert out.exit_code == 1 and "is unchanged (the transaction rolled back)" in out.output
 
 
 def test_without_curated_tables_there_are_no_curated_commands(cli, closed_db):

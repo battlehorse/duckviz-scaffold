@@ -144,27 +144,38 @@ def compare(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[Curate
             there = _rows(_file_text(directory / f"{table.name}.csv"), table.columns)
             if Counter(here) == Counter(there):
                 continue
-            if table.order_by in table.columns:
-                at = table.columns.index(table.order_by)
-                mine, theirs = {r[at]: r for r in here}, {r[at]: r for r in there}
-                both = mine.keys() & theirs.keys()
-                differences.append(Difference(table.name, len(mine.keys() - theirs.keys()),
-                                              len(theirs.keys() - mine.keys()),
-                                              sum(1 for k in both if mine[k] != theirs[k])))
-            else:
-                extra, missing = Counter(here) - Counter(there), Counter(there) - Counter(here)
-                differences.append(Difference(table.name, sum(extra.values()), sum(missing.values()), 0))
+            difference = _by_key(table, here, there)
+            if difference is None:  # no key column, or a key that isn't unique: compare whole rows
+                only_database = sum((Counter(here) - Counter(there)).values())
+                only_file = sum((Counter(there) - Counter(here)).values())
+                difference = Difference(table.name, only_database, only_file, 0)
+            differences.append(difference)
     return differences
 
 
-def align(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedTable],
-          after: Callable[[duckdb.DuckDBPyConnection], None] | None = None) -> dict[str, int]:
-    """Make the database hold the decisions of `directory`/*.csv instead of its own, in one transaction: clear its
-    decisions (a table's `where` rows are deleted; a keyed table's decision columns become NULL), then load the files
-    as `restore` does. A missing file holds no decisions. Returns the rows loaded per table.
+def _by_key(table: CuratedTable, here: list[tuple[str, ...]], there: list[tuple[str, ...]]) -> Difference | None:
+    """The difference of two sides matched by `order_by`. None when it is not a column, or is not unique."""
+    if table.order_by not in table.columns:
+        return None
+    at = table.columns.index(table.order_by)
+    mine = {row[at]: row for row in here}
+    theirs = {row[at]: row for row in there}
+    if len(mine) != len(here) or len(theirs) != len(there):
+        return None
+    only_database = len(mine.keys() - theirs.keys())
+    only_file = len(theirs.keys() - mine.keys())
+    changed = sum(1 for key in mine.keys() & theirs.keys() if mine[key] != theirs[key])
+    return Difference(table.name, only_database, only_file, changed)
 
-    Raises ValueError, and changes nothing, when there are no files at all, or when the clearing leaves decisions (a
-    keyed table whose `where` still holds with NULL decision columns). The files are only read."""
+
+def align(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedTable]) -> dict[str, int]:
+    """Make the database hold the decisions of `directory`/*.csv instead of its own, in one transaction. First it
+    clears the decisions: it deletes the `where` rows of a table without `key`, and it sets the decision columns of a
+    keyed table to NULL. Then it loads the files, as `restore` does. A missing file holds no decisions. Returns the
+    rows loaded per table. The files are only read. Data that the app derives from the decisions is not made again.
+
+    Raises ValueError, and changes nothing, when there are no files at all. It does the same when the clearing leaves
+    decisions: a keyed table whose `where` is still true with NULL decision columns."""
     files = {t.name: directory / f"{t.name}.csv" for t in tables}
     if not any(f.exists() for f in files.values()):
         raise ValueError(f"no curated files in {directory}: nothing to align with")
@@ -181,8 +192,6 @@ def align(con: duckdb.DuckDBPyConnection, directory: Path, tables: list[CuratedT
             raise ValueError("clearing the decisions left some: a keyed table's `where` must be false when its "
                              "decision columns are NULL")
         counts = {t.name: _load(con, t, files[t.name]) for t in tables if files[t.name].exists()}
-        if after:
-            after(con)
         con.commit()
     except BaseException:
         con.rollback()

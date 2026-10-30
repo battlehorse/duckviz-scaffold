@@ -339,3 +339,11 @@ def test_align_refuses_and_changes_nothing_without_files_or_when_decisions_stay(
         align(con, spec.curated_dir, [LABELS, stuck])
     assert con.execute("SELECT * FROM labels ORDER BY day").fetchall() == before
     assert con.execute("SELECT count(*) FROM items WHERE kind IS NOT NULL").fetchone() == (2,)
+
+
+def test_a_key_that_isnt_unique_compares_whole_rows(con, spec):
+    by_label = CuratedTable("labels", ("label", "day"), "label")
+    con.execute("UPDATE labels SET label = 'same'")  # two rows, one key
+    export(con, spec.curated_dir, [by_label])
+    con.execute("UPDATE labels SET day = '2026-05-01' WHERE day = '2026-01-05'")
+    assert compare(con, spec.curated_dir, [by_label]) == [Difference("labels", 1, 1, 0)]

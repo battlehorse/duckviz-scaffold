@@ -147,6 +147,8 @@ def curated_line(spec: AppSpec, tables: list[CuratedTable], path: Path | None = 
         differences = _differences(spec, tables, path)
     except duckdb.Error as e:
         return f"Curated:      can't tell: {str(e).splitlines()[0]}"
+    if differences is None:
+        return "Curated:      a demo database: its decisions are made up, and curated/ is not compared"
     if not differences:
         return "Curated:      in line with curated/"
     n = sum(d.changed + d.only_database + d.only_file for d in differences)
@@ -159,24 +161,30 @@ def _print_differences(spec: AppSpec, tables: list[CuratedTable], path: Path) ->
         differences = _differences(spec, tables, path)
     except (FileNotFoundError, duckdb.Error) as e:
         fail(str(e).splitlines()[0])
+    if differences is None:
+        fail(f"{path} is a demo database: its decisions are made up")
     if not differences:
         typer.echo(f"✓ the decisions in {path.name} match curated/")
         return False
     typer.echo(f"✗ the decisions in {path.name} differ from curated/:")
     for difference in differences:
         typer.echo(f"  {difference.line()}")
-    typer.echo(f"  git wins: `{spec.cli} curated-align --db {path}` (a restored file only). The database wins: the "
-               "next command that changes a decision writes curated/, and you commit it.")
+    typer.echo(f"  For git to win: `{spec.cli} curated-align --db {path}`. It works on a restored file only.")
+    typer.echo("  For the database to win: the next command that changes a decision writes curated/. Then commit it.")
     return True
 
 
 def _differences(spec: AppSpec, tables: list[CuratedTable], path: Path | None):
-    """`curated.compare` on the database at `path`, attached read-only to an in-memory database (which may COPY)."""
+    """`curated.compare` on the database at `path`, attached read-only to an in-memory database (which may COPY).
+    None for a demo database."""
     from duckkit.curated import compare
+    from duckkit.demo import has_marker
     from duckkit.snapshot import attach
 
     with attach(spec, path) as con:
         con.execute("USE src")
+        if has_marker(con):
+            return None
         return compare(con, spec.curated_dir, tables)
 
 
@@ -503,8 +511,8 @@ def add_standard_commands(
                     fail(f"{db} is a demo database: its decisions are made up")
                 try:
                     counts = align(con, spec.curated_dir, curated)
-                except ValueError as e:
-                    fail(str(e))
+                except (ValueError, duckdb.Error) as e:
+                    fail(f"{db} is unchanged (the transaction rolled back): {str(e).splitlines()[0]}")
             typer.echo(f"Aligned {db} with curated/: " + ", ".join(f"{t} {n:,}" for t, n in counts.items()))
             _print_differences(spec, curated, db)
 
