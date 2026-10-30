@@ -1,0 +1,46 @@
+# Extending
+
+How to add a source, a column, a view or a page, and which version to change, so that nothing goes stale. The
+design behind each part is in [the architecture](../design/architecture.md). How to test it is in
+[testing](testing.md). Add a section here for each kind of change that this app makes often.
+
+## A new source, or a change in a source's format
+
+1. Describe how the source is read in practice in `docs/sources/<source>.md`, and add it to the index
+   ([docs/README.md](../README.md)).
+2. Add or change the reader in `src/{{ package }}/ingest/`, with a test on a made-up file in `tests/data/` (never a
+   real one).
+3. Run `uv run {{ project_name }} ingest` (`/ingest`), then `uv run {{ project_name }} status`.
+
+## A schema change
+{% if backup %}
+Run `uv run {{ project_name }} backup` before the change.
+{% endif %}
+1. Change `src/{{ package }}/db/schema.sql`, with a comment on each new column.
+2. A table that holds data the sources can't give again needs a migration in `src/{{ package }}/db/store.py`.
+   Otherwise, make the database again{% if curations %} (`/rebuild-database`){% endif %}.
+
+## A contract change
+
+The browser app reads only the contract's views ([the contract](../design/contract.md)).
+
+1. Change the view in `src/{{ package }}/db/schema.sql` and in the reference schema,
+   `src/{{ package }}/contract/schema.sql`.
+2. Change the version in `src/{{ package }}/contract/__init__.py`: the minor version for a new view or column, the
+   major version for a removed or changed one.
+3. Update [the contract](../design/contract.md): a test checks it against the schema.
+
+## A page of the app
+
+1. Add the page in `src/{{ package }}/app/`, reading only the contract views.
+2. Add its questions to [the dashboard](../design/dashboard.md), and its checks to
+   [the browser checks](../design/browser-checks.md).
+3. Walk the checks with `/app-check`.
+{%- if curations %}
+
+## A new kind of decision
+
+1. Add the table in `src/{{ package }}/db/schema.sql`, and a `CuratedTable` for it in `src/{{ package }}/curated.py`.
+2. Every command that changes it runs inside `curating()`, which writes `curated/` after it.
+3. Describe the file in `curated/README.md`.
+{%- endif %}

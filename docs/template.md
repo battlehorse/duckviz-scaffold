@@ -227,7 +227,7 @@ Hidden answers are never asked:
 | Kind | Examples | On `copier update` |
 |---|---|---|
 | **Template-managed** | CLAUDE.md, pyproject.toml, CI, the PR template, Dockerfile, .streamlit/, .githooks/, generic skills, docs/work/scaffold.md, docs/guides/cli.md, docs/guides/hosting.md, docs/work/how-we-work.md, docs/work/review.md, .claude/settings.json, .claude/agents/, tests/app/test_contract_only.py | The template's change is merged in, and the app's edits stay. |
-| **Seeded once** (`_skip_if_exists`, and excluded from updates) | src/<package>/, contract/schema.sql, README.md, config.example.toml, docs/README.md (the index), docs/design/architecture, contract, dashboard and browser-checks, docs/guides/getting-started, docs/work/deviations and spec, .claude/project-rules.md, .claude/spec-paths, the ingest, ask, demo-data, fix-curation and classify skills, the tests other than the guard | Never touched again. |
+| **Seeded once** (`_skip_if_exists`, and excluded from updates) | src/<package>/, contract/schema.sql, README.md, config.example.toml, docs/README.md (the index), docs/design/architecture, contract, dashboard and browser-checks, docs/guides/getting-started, data, extending and testing, docs/work/deviations and spec, .claude/project-rules.md, .claude/spec-paths, the ingest, ask, demo-data, fix-curation and classify skills, the tests other than the guard | Never touched again. |
 | **Shared code** | duckkit | Not in the app at all. It is a version in pyproject.toml. |
 
 **How the merge works:** Copier renders the template twice with the same answers, once at the app's recorded
@@ -254,7 +254,7 @@ An app's `docs/` is in four folders, by purpose, with an index:
 |---|---|---|
 | `docs/README.md` | the index: "Page \| Read it to…" by folder, then "Elsewhere in the repo" | seeded |
 | `docs/design/` | what the app is: architecture, contract, dashboard, browser-checks, and the app's deeper design docs | seeded |
-| `docs/guides/` | using and running it: getting-started (seeded), cli, hosting, claude-chat (managed), and the app's how-tos | both |
+| `docs/guides/` | using and running it: getting-started, data, extending, testing (seeded), cli, hosting, claude-chat (managed), and the app's how-tos | both |
 | `docs/sources/` | how each of the app's sources is read in practice: a file format, an export, a device's API | none |
 | `docs/work/` | how it is built and changed: how-we-work, review (managed), spec, deviations (seeded), scaffold (managed) | both |
 

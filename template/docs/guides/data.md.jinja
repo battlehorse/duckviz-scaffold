@@ -1,0 +1,57 @@
+# Your data
+
+The data that {{ project_name }} reads is yours, and it stays on this machine unless you send it somewhere. This page
+says where each part is, what git keeps, and what leaves the machine. Fill in the rows for this app's sources.
+
+## Where it is
+
+| What | Where | In git? | Made again from |
+|---|---|---|---|
+| The source files | `data/` (this app's sources: say which) | no | where they came from |
+| The database | `data/{{ db_file }}` (or `{{ env_prefix }}_DB`) | no | the source files{% if curations %} and `curated/`{% endif %} (`/ingest`) |
+{%- if demo_data %}
+| The demo database | `data/demo.duckdb` | no | `uv run {{ project_name }} demo` |
+{%- endif %}
+{%- if backup %}
+| Backups | `backups/` (or `[backup] dir`), and Cloud Storage with `[backup] remote` | no | `uv run {{ project_name }} backup` |
+{%- endif %}
+| Settings and keys | `config.toml` | no | `config.example.toml`, and the services' consoles |
+{%- if curations %}
+| Curated decisions | `curated/*.csv` | **yes** | nothing: they are the backup of the decisions |
+{%- endif %}
+
+`.gitignore` keeps `data/`, `backups/`, every `*.duckdb` file and `config.toml` out of git. `privacy-check` (the
+pre-commit hook) stops a commit that holds personal data.
+
+**The source files are the record.** `ingest` only reads them. Keep a copy of them.
+
+**The database can be made again** from the source files{% if curations %} and `curated/`{% endif %}{% if curations %} (`/rebuild-database`){% else %} (`/ingest`){% endif %}{% if backup %}, or restored from a backup (`/restore-backup`){% endif %}.
+{%- if curations %}
+
+## What goes into git: `curated/`
+
+The decisions that people or a model make cost time or money, so git keeps them (`curated/README.md` lists each
+file). Each command that changes a decision writes the files again. The repo must stay private.
+{%- endif %}
+
+## What leaves the machine
+{%- if not (motherduck or (curations and llm) or cloud_run or backup) %}
+
+Nothing: no command sends the data anywhere.
+{%- endif %}
+{%- if backup %}
+
+- **`backup`, with `[backup] remote`:** a copy of the whole database goes to your own Google Cloud Storage bucket,
+  which must be private (`doctor --remote` checks).
+{%- endif %}
+{%- if motherduck %}
+- **`publish`:** the contract's views go to MotherDuck (`md:{{ motherduck_db }}`), only when you run it. Only those
+  views go, never the tables.
+{%- endif %}
+{%- if curations and llm %}
+- **`classify`:** the text of the items to classify goes to Anthropic's API. It costs money, and the command says how
+  much before a large run.
+{%- endif %}
+{%- if cloud_run %}
+- **The hosted app** reads the MotherDuck copy, behind Google sign-in (`docs/guides/hosting.md`).
+{%- endif %}
