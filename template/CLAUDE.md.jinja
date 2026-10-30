@@ -107,3 +107,5 @@ user's approval, but you go on building on top of it, in stacked PRs. docs/how-w
   parts, send them as stacked PRs, each on the one before.
 - Merge with a merge commit, so that each merge reverts on its own. Delete a branch once its PR is merged.
 - Never force-push, and never move or delete a pushed tag.
+- Push a branch when a round of work on it is done, not after each commit: each push runs CI on its PR, and a
+  private repo's Actions minutes are limited. In a stack, update each branch with one push, at the end.

@@ -3,6 +3,18 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+CI uses fewer Actions minutes: **no second test run after a merge**, **one run per PR**, and **fewer pushes**.
+
+- Template: **the `tests` workflow runs on pull requests only**, not again on each push to `main`: the PR was
+  tested before it merged. A break that two PRs make only together shows in the next PR's run. **Steps:** none,
+  unless the app changed its own `tests.yml`: keep its deviations when `copier update` shows a conflict.
+- Template: **a new push to a PR cancels the `test` job of the push before**, as the `spec` job already did.
+  **Steps:** none.
+- Template: **CLAUDE.md: Claude pushes a branch when a round of work is done**, not after each commit, and in a
+  stack updates each branch with one push, at the end. **Steps:** none.
+
 ## v0.8.4
 
 Two small capabilities: **`/catch-up` runs `gh pr view` and `gh pr checks` without a prompt**, and **`status`
