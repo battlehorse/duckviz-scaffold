@@ -3,7 +3,25 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.9.0
+
+Three outcomes: **off-machine backups** in Google Cloud Storage (#84), **`/restore-backup`**, which brings the curated
+decisions of a restored backup in line with git (#85), and **`docs/` by purpose**, with an index, new guides and
+`doctor` checks of the docs' paths (#92).
+
+**Steps, in order** (each entry below says why):
+1. If `opt_out` in `.copier-answers.yml` names an old docs path, rename it to the new one, there and in
+   `docs/deviations.md` (which becomes `docs/work/deviations.md`).
+2. `/scaffold-update` (`copier update --trust`: without `--trust`, the docs migration doesn't run). In the moved
+   managed docs, take the template's side of each conflict, except where `docs/work/deviations.md` names the file.
+3. Copy the new seeded files from a new render: `docs/README.md` (merge it with the app's own index, if any),
+   `docs/guides/data.md`, `extending.md`, `testing.md` (or move the app's own there), and `tests/test_real_data.py`
+   if the app has none.
+4. Move the app's own docs into their folders, list them in the index, and fix what `doctor` reports: broken links,
+   and `.claude/spec-paths` lines that match no file.
+5. With curations: add `curated=TABLES` to `add_standard_commands(...)` in `src/<package>/cli.py`.
+6. For the off-machine copy (optional): `/backup setup-remote`. It sets `[backup] remote` in `config.toml`. Add
+   `remote = ""` under `[backup]` in `config.example.toml` by hand, if you like.
 
 - Template: **three new guides, seeded** (#92): `docs/guides/data.md` (where the data is, what git keeps, what leaves
   the machine), `docs/guides/extending.md` (a new source, a schema, contract or page change) and
