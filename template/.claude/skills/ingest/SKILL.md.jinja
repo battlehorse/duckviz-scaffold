@@ -4,7 +4,7 @@ description: Load new data into the {{ project_name }} database, report what was
 when_to_use: >-
   Use when the user says things like "ingest", "load the new files", "update the data", "refresh the database".
 argument-hint: "[files…]"
-allowed-tools: Bash(uv run {{ project_name }} ingest *) Bash(uv run {{ project_name }} status)
+allowed-tools: Bash(uv run {{ project_name }} ingest *) Bash(uv run {{ project_name }} status){% if backup %} Bash(uv run {{ project_name }} backup) Bash(uv run {{ project_name }} status --remote){% endif %}
 ---
 
 # Ingest
@@ -13,8 +13,28 @@ Files: $ARGUMENTS
 
 1. `uv run {{ project_name }} status`: how fresh the data is now.
 2. `uv run {{ project_name }} ingest <files>`.
+{%- if backup %}
+3. Report the counts, every error, and the contract line. If the contract has problems, show them, and still do
+   steps 4 and 5 (the data is stored), then stop.
+4. If the ingest stored data, also when `ingest` exited 1, run `uv run {{ project_name }} backup`. The `ingest`
+   command makes no backup: `backup` is the one command that checks the snapshot and copies it off the machine.
+5. Report what `backup` printed:
+   - **It failed before "Backed up to …"** (no database, or a snapshot that doesn't match it): report the error and
+     stop. Don't run it again until the cause is fixed.
+   - **"Backed up to …" and "Copied to gs://…"**: report both lines. The backup is on this machine and in Cloud
+     Storage.
+   - **"Backed up to …", then a failed copy**: the local snapshot is safe. Report the error (often an expired
+     `gcloud` login), and run `backup` again once it is fixed. Never delete anything.
+   - **"Backed up to …" only** (`[backup] remote` is not set): say that the backup is on this machine only, and
+     offer `/backup setup-remote`.
+
+   To check the copy later, run `uv run {{ project_name }} status --remote`, and report only its "Off-machine:"
+   line.
+6. If the app is running, tell the user to click *Reload data*.
+{%- else %}
 3. Report the counts, every error, and the contract line. If the contract has problems, show them and stop.
 4. If the app is running, tell the user to click *Reload data*.
+{%- endif %}
 {%- if motherduck %} Do not publish: suggest `/publish` only if the user wants the copy current.{% endif %}
 
 (Describe this app's sources here: where new data comes from, how to get it, what can go wrong.)
