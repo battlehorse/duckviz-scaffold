@@ -13,8 +13,8 @@ design behind each part is in [the architecture](../design/architecture.md). How
 3. Run `uv run {{ project_name }} ingest` (`/ingest`), then `uv run {{ project_name }} status`.
 {%- if backup %}
 
-A command of the app never makes its own backups (`duckkit.backup.backup()`): that snapshot would stay on this
-machine. The `backup` command makes them, and copies them off the machine. `/ingest` runs it after each ingest.
+Don't call `duckkit.backup.backup()` in a command of the app: its snapshot would stay on this machine. Leave
+backups to the `backup` command, which also copies them off the machine. `/ingest` runs it after each ingest.
 {%- endif %}
 
 ## A schema change

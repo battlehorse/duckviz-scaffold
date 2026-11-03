@@ -12,7 +12,7 @@ docs/architecture.md how the skills fit in an app.
 
 | Skill | Kind | What it does |
 |---|---|---|
-| `/ingest` | seeded | bring in new data with `ingest`, report what was added, and check the contract; with `backup`, then run `backup` (local and off-machine) |
+| `/ingest` | seeded | bring in new data with `ingest`, report what was added, and check the contract; with the `backup` option, then run the `backup` command (local and off-machine) |
 | `/ask` | seeded | answer a question with read-only SQL on the contract views (`sql`) |
 | `/app` | managed | start, stop or restart a Streamlit app, on localhost or on the tailnet |
 | `/app-check` | managed | walk the browser checks of docs/design/browser-checks.md in light mode, dark mode or both, with screenshots of failures |

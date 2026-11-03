@@ -16,7 +16,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   Cloud Storage lines. `docs/guides/extending.md` says that the app's commands leave backups to `backup`.
   **Steps** (`/ingest` and `extending.md` are seeded, so `copier update` doesn't bring them):
   1. If the app's `ingest` command calls `duckkit.backup.backup()`, remove the call.
-  2. Add the backup steps to `.claude/skills/ingest/SKILL.md` from a new render: steps 4 and 5, and the two
+  2. Bring `.claude/skills/ingest/SKILL.md` in line with a new render: steps 3 to 6 (step 3 now goes on to the
+     backup when the contract has problems; the old step 4, *Reload data*, becomes step 6), and the two
      `allowed-tools` entries (`backup`, `status --remote`).
   3. Optional: copy the backup paragraph into `docs/guides/extending.md`.
 
