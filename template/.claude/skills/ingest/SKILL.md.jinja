@@ -14,8 +14,8 @@ Files: $ARGUMENTS
 1. `uv run {{ project_name }} status`: how fresh the data is now.
 2. `uv run {{ project_name }} ingest <files>`.
 {%- if backup %}
-3. Report the counts, every error, and the contract line. If the contract has problems, show them, and still go on
-   to step 4 (the data is stored), then stop.
+3. Report the counts, every error, and the contract line. If the contract has problems, show them, and still do
+   steps 4 and 5 (the data is stored), then stop.
 4. If the ingest stored data, also when `ingest` exited 1, run `uv run {{ project_name }} backup`. The `ingest`
    command makes no backup: `backup` is the one command that checks the snapshot and copies it off the machine.
 5. Report what `backup` printed:
