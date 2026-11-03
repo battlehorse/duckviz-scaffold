@@ -166,8 +166,8 @@ def diagnose(spec: AppSpec, remote: bool = False) -> Report:
     report.problems += [f"{source} names {target}, which doesn't exist" for source, target in broken_links(spec)]
     report.problems += [f".claude/spec-paths: {pattern} matches no file, so `spec-diff` can't see it change (a file "
                         "that moved, or a stale line)" for pattern in stale_spec_paths(spec)]
-    report.problems += [f"{source} has {text}, which Claude Code replaces with an argument of the skill: write an "
-                        "amount as USD 0.02" for source, text in positional_args(spec)]
+    report.problems += [f"{source} has {text}, which Claude Code replaces with the skill's arguments: write an amount "
+                        "as USD 0.02, and avoid a `$` before a digit elsewhere" for source, text in positional_args(spec)]
     report.notes += [f"{path} is not in docs/README.md, the index: add a line for it" for path in unindexed_docs(spec)]
     return report
 
@@ -227,13 +227,16 @@ POSITIONAL = re.compile(r"\$\d+")  # $0, $1, …: a skill's positional arguments
 
 
 def positional_args(spec: AppSpec) -> list[tuple[str, str]]:
-    """(file, text) for each `$` followed by a digit in a skill (`.claude/skills/*/SKILL.md`) or a command
-    (`.claude/commands/*.md`). Claude Code substitutes them everywhere in the file, code blocks too."""
+    """(file, texts) for each skill (`.claude/skills/*/SKILL.md`) or command (`.claude/commands/**/*.md`) with a
+    `$` followed by a digit: the distinct ones, comma-separated. Claude Code substitutes them everywhere in the file,
+    code blocks too."""
     found = []
     for name in repo_files(spec):
         path = PurePosixPath(name)
         if path.full_match(".claude/skills/*/SKILL.md") or path.full_match(".claude/commands/**/*.md"):
-            found += [(name, text) for text in POSITIONAL.findall((spec.root / name).read_text(errors="replace"))]
+            texts = sorted(set(POSITIONAL.findall((spec.root / name).read_text(errors="replace"))))
+            if texts:
+                found.append((name, ", ".join(texts)))
     return found
 
 
