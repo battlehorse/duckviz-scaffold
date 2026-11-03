@@ -45,8 +45,8 @@ Action: $ARGUMENTS (default: list)
   4. `uv run {{ project_name }} backup`, then `uv run {{ project_name }} doctor --remote` (the bucket must be private)
      and `uv run {{ project_name }} status --remote` (the "Off-machine:" line).
 
-  Cost: about $0.02–0.03 per GB per month. 30 snapshots of a 50 MB database are about 1.5 GB, so about $0.04 a
-  month. A fetch to another machine costs about $0.12 per GB. New buckets keep deleted files for 7 days (soft
+  Cost: about USD 0.02–0.03 per GB per month. 30 snapshots of a 50 MB database are about 1.5 GB, so about USD 0.04 a
+  month. A fetch to another machine costs about USD 0.12 per GB. New buckets keep deleted files for 7 days (soft
   delete), so pruned snapshots cost a little for a week.
 - **fetch:** on a new machine, or after the old one is lost. Needs `remote` set and the user's `gcloud` login.
   1. `uv run {{ project_name }} backups` lists what is in Cloud Storage.

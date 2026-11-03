@@ -402,6 +402,23 @@ def test_doctor_finds_broken_doc_links_and_backticked_paths(spec):
                                           ("docs/data/sources.md", "gone.md")]
 
 
+def test_doctor_finds_positional_arguments_in_skills(spec):
+    from duckkit.doctor import positional_args
+
+    (spec.root / ".claude" / "skills" / "x").mkdir(parents=True)
+    (spec.root / ".claude" / "skills" / "x" / "SKILL.md").write_text(
+        "Action: $ARGUMENTS ($ARGUMENTS[0]). Cost: about $0.02 or $0.03, or USD 0.04.\n```\necho $1\n```\n")
+    (spec.root / ".claude" / "skills" / "x" / "notes.md").write_text("$0.02\n")  # read with Read: not substituted
+    (spec.root / ".claude" / "commands").mkdir()
+    (spec.root / ".claude" / "commands" / "go.md").write_text("Run $2.\n")
+    (spec.root / "docs").mkdir()
+    (spec.root / "docs" / "costs.md").write_text("About $0.02.\n")  # not a skill
+    (spec.root / ".claude" / "commands" / "sub").mkdir()
+    (spec.root / ".claude" / "commands" / "sub" / "deep.md").write_text("Run $3.\n")  # commands in sub-folders count
+    assert sorted(positional_args(spec)) == [(".claude/commands/go.md", "$2"), (".claude/commands/sub/deep.md", "$3"),
+                                             (".claude/skills/x/SKILL.md", "$0, $1")]
+
+
 def test_doctor_reads_the_files_git_would_track(spec):
     from duckkit.doctor import broken_links
 
@@ -442,6 +459,11 @@ def test_doctor_reports_the_docs_paths(cli, spec):
     (spec.root / "docs").mkdir()
     (spec.root / "docs" / "README.md").write_text("[gone](gone.md)\n")
     (spec.root / "docs" / "extra.md").write_text("")
-    out = runner.invoke(cli, ["doctor"]).output
+    (spec.root / ".claude" / "skills" / "x").mkdir(parents=True)
+    (spec.root / ".claude" / "skills" / "x" / "SKILL.md").write_text("Cost: about $0.02.\n")
+    result = runner.invoke(cli, ["doctor"])
+    out = result.output
+    assert result.exit_code == 1
+    assert "✗ .claude/skills/x/SKILL.md has $0, which Claude Code replaces with the skill's arguments" in out
     assert "✗ docs/README.md names gone.md, which doesn't exist" in out
     assert "· docs/extra.md is not in docs/README.md, the index" in out
