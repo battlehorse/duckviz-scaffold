@@ -11,6 +11,11 @@ design behind each part is in [the architecture](../design/architecture.md). How
 2. Add or change the reader in `src/{{ package }}/ingest/`, with a test on a small made-up file. The test writes it
    to a temporary folder (`tmp_path`), or keeps it in `tests/data/` when it is bigger. Never use a real one.
 3. Run `uv run {{ project_name }} ingest` (`/ingest`), then `uv run {{ project_name }} status`.
+{%- if backup %}
+
+A command of the app never makes its own backups (`duckkit.backup.backup()`): that snapshot would stay on this
+machine. The `backup` command makes them, and copies them off the machine. `/ingest` runs it after each ingest.
+{%- endif %}
 
 ## A schema change
 {% if backup %}

@@ -10,6 +10,15 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   `doctor` now fails on a `$` followed by a digit in any skill or command, the app's own too. **Steps:** if
   `doctor` reports a skill or command of the app's own, write the amount as "USD 0.02" (or reword it).
   `/scaffold-update` brings the managed skill.
+- Template: **`/ingest` ends with `backup`**, with the `backup` option (#98). The `backup` command is the only one
+  that copies a snapshot off the machine, so a backup that an app's own command makes (`duckkit.backup.backup()`)
+  stays local. `/ingest` now runs `backup` after every ingest that stored data, and reports the local and the
+  Cloud Storage lines. `docs/guides/extending.md` says that the app's commands leave backups to `backup`.
+  **Steps** (`/ingest` and `extending.md` are seeded, so `copier update` doesn't bring them):
+  1. If the app's `ingest` command calls `duckkit.backup.backup()`, remove the call.
+  2. Add the backup steps to `.claude/skills/ingest/SKILL.md` from a new render: steps 4 and 5, and the two
+     `allowed-tools` entries (`backup`, `status --remote`).
+  3. Optional: copy the backup paragraph into `docs/guides/extending.md`.
 
 ## v0.9.0
 

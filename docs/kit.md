@@ -229,6 +229,10 @@ format any tool can read.
   2. imports the export into memory and compares every table's row count and content hash with the source,
      raising `BackupError` on any difference;
   3. deletes all but the newest `keep` snapshots.
+
+  An app's own commands don't call `backup()`: its snapshot would stay on the machine. The `backup` command makes
+  every backup and, with `[backup] remote`, copies it off the machine. The template's `/ingest` runs it after each
+  ingest.
 - `verify(spec, snapshot, expected=None)` imports a snapshot and lists its differences from `expected`.
 - `snapshots(spec)` lists the snapshot folders, oldest first. `prune(spec, folder, keep)` deletes the older ones.
 - `restore(spec, snapshot, db_path)` builds a **new** database file from a snapshot. It refuses to overwrite an

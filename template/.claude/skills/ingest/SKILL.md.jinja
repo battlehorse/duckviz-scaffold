@@ -4,7 +4,7 @@ description: Load new data into the {{ project_name }} database, report what was
 when_to_use: >-
   Use when the user says things like "ingest", "load the new files", "update the data", "refresh the database".
 argument-hint: "[files…]"
-allowed-tools: Bash(uv run {{ project_name }} ingest *) Bash(uv run {{ project_name }} status)
+allowed-tools: Bash(uv run {{ project_name }} ingest *) Bash(uv run {{ project_name }} status){% if backup %} Bash(uv run {{ project_name }} backup) Bash(uv run {{ project_name }} status --remote){% endif %}
 ---
 
 # Ingest
@@ -14,7 +14,18 @@ Files: $ARGUMENTS
 1. `uv run {{ project_name }} status`: how fresh the data is now.
 2. `uv run {{ project_name }} ingest <files>`.
 3. Report the counts, every error, and the contract line. If the contract has problems, show them and stop.
+{%- if backup %}
+4. `uv run {{ project_name }} backup`, after every ingest that stored data, also when `ingest` exited 1. It is the
+   one command that verifies the snapshot and, with `[backup] remote`, copies it to Cloud Storage and checks the
+   MD5s. The `ingest` command itself makes no backup.
+5. Report the "Backed up to …" line, and the "Copied to gs://…" line, or `uv run {{ project_name }} status --remote`
+   ("Off-machine:"). If the copy failed, the local snapshot is safe: report the error (often an expired `gcloud`
+   login), and run `backup` again once it is fixed. Never delete anything. If `[backup] remote` is not set, say
+   that the backup is on this machine only, and offer `/backup setup-remote`.
+6. If the app is running, tell the user to click *Reload data*.
+{%- else %}
 4. If the app is running, tell the user to click *Reload data*.
+{%- endif %}
 {%- if motherduck %} Do not publish: suggest `/publish` only if the user wants the copy current.{% endif %}
 
 (Describe this app's sources here: where new data comes from, how to get it, what can go wrong.)
