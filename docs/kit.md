@@ -472,6 +472,9 @@ make `doctor` fail; notes don't. It checks that:
   In a git repo, they read the files that git tracks or would track (`git ls-files`), so ignored folders drop out.
   Elsewhere, they walk the folder, without `.git`, the virtualenvs and caches, and `data/` and `backups/` at the
   root.
+- no skill (`.claude/skills/*/SKILL.md`) or command (`.claude/commands/*.md`) has a `$` followed by a digit
+  (`positional_args`): Claude Code replaces `$0`, `$1`, … with the skill's arguments, so an amount such as "$0.02"
+  would reach Claude as "<argument>.02". Write it as "USD 0.02".
 
 CI runs `doctor` on every PR. `/catch-up` runs it with `--remote`.
 

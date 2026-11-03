@@ -402,6 +402,21 @@ def test_doctor_finds_broken_doc_links_and_backticked_paths(spec):
                                           ("docs/data/sources.md", "gone.md")]
 
 
+def test_doctor_finds_positional_arguments_in_skills(spec):
+    from duckkit.doctor import positional_args
+
+    (spec.root / ".claude" / "skills" / "x").mkdir(parents=True)
+    (spec.root / ".claude" / "skills" / "x" / "SKILL.md").write_text(
+        "Action: $ARGUMENTS ($ARGUMENTS[0]). Cost: about $0.02, or USD 0.04.\n```\necho $1\n```\n")
+    (spec.root / ".claude" / "skills" / "x" / "notes.md").write_text("$0.02\n")  # read with Read: not substituted
+    (spec.root / ".claude" / "commands").mkdir()
+    (spec.root / ".claude" / "commands" / "go.md").write_text("Run $2.\n")
+    (spec.root / "docs").mkdir()
+    (spec.root / "docs" / "costs.md").write_text("About $0.02.\n")  # not a skill
+    assert sorted(positional_args(spec)) == [(".claude/commands/go.md", "$2"), (".claude/skills/x/SKILL.md", "$0"),
+                                             (".claude/skills/x/SKILL.md", "$1")]
+
+
 def test_doctor_reads_the_files_git_would_track(spec):
     from duckkit.doctor import broken_links
 

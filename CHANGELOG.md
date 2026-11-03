@@ -3,6 +3,13 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- Template: **the costs in `/backup setup-remote` read right** (#97). Claude Code replaces `$0`, `$1`, … in a skill
+  with its arguments, so "$0.02" reached Claude as "setup-remote.02". The amounts are now written "USD 0.02".
+  `doctor` reports a `$` followed by a digit in any skill or command, the app's own too. **Steps:** none
+  (`/scaffold-update` brings the managed skill; fix any skill of the app's own that `doctor` reports).
+
 ## v0.9.0
 
 Three outcomes: **off-machine backups** in Google Cloud Storage (#84), **`/restore-backup`**, which brings the curated

@@ -11,7 +11,9 @@ including the options and `opt_out`) and checks:
 - that every opted-out file is explained in docs/work/deviations.md (the app's own list of where it differs);
 - that the docs' paths hold: no Markdown file (docs, skills, agents) links to a missing file or names a missing
   `docs/….md`, and every line of `.claude/spec-paths` matches a file (else `spec-diff` misses its changes). A doc
-  that `docs/README.md` (the index) doesn't list is a note.
+  that `docs/README.md` (the index) doesn't list is a note;
+- that no skill or command has a `$` followed by a digit: Claude Code replaces `$0`, `$1`, … with the skill's
+  arguments, so "$0.02" would reach Claude as "<argument>.02".
 
 Problems make `doctor` fail; notes don't.
 """
@@ -164,6 +166,8 @@ def diagnose(spec: AppSpec, remote: bool = False) -> Report:
     report.problems += [f"{source} names {target}, which doesn't exist" for source, target in broken_links(spec)]
     report.problems += [f".claude/spec-paths: {pattern} matches no file, so `spec-diff` can't see it change (a file "
                         "that moved, or a stale line)" for pattern in stale_spec_paths(spec)]
+    report.problems += [f"{source} has {text}, which Claude Code replaces with an argument of the skill: write an "
+                        "amount as USD 0.02" for source, text in positional_args(spec)]
     report.notes += [f"{path} is not in docs/README.md, the index: add a line for it" for path in unindexed_docs(spec)]
     return report
 
@@ -217,6 +221,20 @@ def broken_links(spec: AppSpec) -> list[tuple[str, str]]:
             if not os.path.exists(os.path.normpath(spec.root / PurePosixPath(name).parent / path)):
                 broken.append((name, target))
     return broken
+
+
+POSITIONAL = re.compile(r"\$\d+")  # $0, $1, …: a skill's positional arguments
+
+
+def positional_args(spec: AppSpec) -> list[tuple[str, str]]:
+    """(file, text) for each `$` followed by a digit in a skill (`.claude/skills/*/SKILL.md`) or a command
+    (`.claude/commands/*.md`). Claude Code substitutes them everywhere in the file, code blocks too."""
+    found = []
+    for name in repo_files(spec):
+        path = PurePosixPath(name)
+        if path.full_match(".claude/skills/*/SKILL.md") or path.full_match(".claude/commands/**/*.md"):
+            found += [(name, text) for text in POSITIONAL.findall((spec.root / name).read_text(errors="replace"))]
+    return found
 
 
 def stale_spec_paths(spec: AppSpec) -> list[str]:
