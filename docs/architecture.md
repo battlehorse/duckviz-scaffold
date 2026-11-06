@@ -96,6 +96,8 @@ flowchart LR
   Each is a function of a cursor that returns a DataFrame. Pure calculations go in `analysis.py`.
 - **A hosted app** reads the published copy in MotherDuck instead (`<PREFIX>_APP_DB=md:<name>`). The code doesn't
   change: `contract_snapshot` accepts a file or `md:`.
+- **One look.** `.streamlit/theme.toml` is managed by the template and comes from `duckkit.app.theme`. It holds the
+  colours for light and dark, and the font, embedded so that the app asks no other host for it.
 - **Charts** use the shared palettes in `duckkit.app.theme`, follow the viewer's light or dark theme
   (`watch_theme`), and have a table view beside them.
 

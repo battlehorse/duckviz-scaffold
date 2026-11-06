@@ -1,4 +1,8 @@
-"""Colours and shared chart styling for ECharts charts, in light and dark.
+"""The look every app shares: its colours, its font and the chart styling, in light and dark.
+
+These tokens are the one source. `scripts/theme.py` writes them into the template's `.streamlit/theme.toml`, and a test
+holds the file to them, because Streamlit gives its theme to no CSS on the page: code that draws on the page takes its
+colours from here.
 
 The palettes come from the dataviz reference palette and were checked with its validator (light and dark): the
 categorical order passes CVD and normal-vision separation for adjacent series. Three light-mode categorical colours
@@ -15,18 +19,44 @@ CATEGORICAL = {
 OTHER = {"light": "#b5b3ab", "dark": "#5c5b56"}  # de-emphasis grey for "Other" / context
 
 INK = {
-    "light": {"primary": "#0b0b0b", "secondary": "#52514e", "muted": "#898781", "grid": "#e1e0d9",
-              "axis": "#c3c2b7", "surface": "#fcfcfb"},
-    "dark": {"primary": "#ffffff", "secondary": "#c3c2b7", "muted": "#898781", "grid": "#2c2c2a",
+    "light": {"primary": "#22211e", "secondary": "#52514e", "muted": "#6a6862", "grid": "#e1e0d9",
+              "axis": "#c3c2b7", "surface": "#ffffff"},
+    "dark": {"primary": "#f2f1ec", "secondary": "#c3c2b7", "muted": "#a5a39b", "grid": "#2c2c2a",
              "axis": "#383835", "surface": "#1a1a19"},
 }
 
-# Streamlit's own page background (its default light and dark themes), for elements that must cover the page.
-PAGE = {"light": "#ffffff", "dark": "#0e1117"}
+# The page's background, for elements that must cover the page.
+PAGE = {"light": "#fbfaf7", "dark": "#141412"}
+SIDEBAR = {"light": "#f1efe9", "dark": "#1c1c1a"}  # the sidebar and the background of widgets
+BORDER = {"light": "#e1e0d9", "dark": "#2f2f2b"}
+TABLE_HEADER = {"light": "#f4f3ee", "dark": "#20201e"}
+# The one colour of a selected control, table row or chart mark. It is Streamlit's primary colour, so widgets and tables
+# follow it with no CSS. Red is not a selection: it is bad news. Kept at OKLab distance 8 or more from every CATEGORICAL
+# colour, so a selection never reads as a series.
+SELECTED = {"light": "#0f6e7c", "dark": "#5fc9d6"}
+RED = {"light": "#b42318", "dark": "#ffa198"}
+GREEN = {"light": "#0b6b2f", "dark": "#7fdc9b"}
 
-FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif"  # single quotes: safe inside SVG attributes
+# Its figures are tabular by default. A table needs that: Streamlit draws tables on a canvas that CSS can't reach.
+FONT = "'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif"  # single quotes: safe in SVG attributes
 
 WATCH_KEY = "theme-watch"  # session state of the theme watcher (see common.watch_theme)
+
+
+def streamlit_theme(m: str) -> dict:
+    """The options of `[theme.light]` or `[theme.dark]` in `.streamlit/theme.toml`."""
+    return {
+        "primaryColor": SELECTED[m],
+        "backgroundColor": PAGE[m],
+        "secondaryBackgroundColor": SIDEBAR[m],
+        "textColor": INK[m]["primary"],
+        "borderColor": BORDER[m],
+        "dataframeBorderColor": BORDER[m],
+        "dataframeHeaderBackgroundColor": TABLE_HEADER[m],
+        "redColor": RED[m],
+        "greenColor": GREEN[m],
+        "chartCategoricalColors": CATEGORICAL[m],
+    }
 
 
 def mode() -> str:
