@@ -10,7 +10,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   asks no other host for it. `duckkit.app.theme` is the one source, and `INK`, `PAGE` and `FONT` have new values:
   code that uses the names follows on its own. New names: `SELECTED`, `SIDEBAR`, `BORDER`, `TABLE_HEADER`, `RED`,
   `GREEN`, `streamlit_theme()`. **Steps:**
-  1. If `opt_out` names `.streamlit/config.toml`, add the `[theme]` table from a new render by hand.
+  1. If `opt_out` names `.streamlit/config.toml`, add the `[theme]` table from a new render by hand. If it names
+     `.streamlit/theme.toml`, remove that entry, or remove `base` from `config.toml`: it would point at a missing file,
+     and `PAGE`, `INK` and `SELECTED` would no longer match the page.
   2. Replace colours written by hand that stand for Streamlit's old look (`#ff4b4b`, `#0e1117`, `#ffffff` as the page).
      Use `theme.SELECTED` for a selection and `theme.PAGE` for the page.
   3. Run the dataviz validator again on the app's own chart colours, against the new `PAGE` and `INK` surfaces.

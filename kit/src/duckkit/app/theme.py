@@ -1,8 +1,8 @@
 """The look every app shares: its colours, its font and the chart styling, in light and dark.
 
 These tokens are the one source. `scripts/theme.py` writes them into the template's `.streamlit/theme.toml`, and a test
-holds the file to them, because Streamlit gives its theme to no CSS on the page: code that draws on the page takes its
-colours from here.
+holds the file to them. Streamlit does not pass its theme to CSS on the page, so code that draws on the page must take
+its colours from here.
 
 The palettes come from the dataviz reference palette and were checked with its validator (light and dark): the
 categorical order passes CVD and normal-vision separation for adjacent series. Three light-mode categorical colours

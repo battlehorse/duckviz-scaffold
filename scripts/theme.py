@@ -34,7 +34,8 @@ def table(options: dict) -> str:
 def main() -> None:
     font = base64.b64encode(FONT_FILE.read_bytes()).decode()
     OUT.write_text(
-        "# Written by the scaffold's scripts/theme.py from duckkit.app.theme. Don't edit: `copier update` replaces it.\n"
+        "# Written by the scaffold's scripts/theme.py from duckkit.app.theme.\n"
+        "# Don't edit: it comes from the scaffold, and an edit clashes with the next `copier update`.\n"
         "# Hanken Grotesk is under the SIL Open Font License (OFL-HankenGrotesk.txt, in this folder).\n\n"
         f"[theme]\n{table(BASE)}\n"
         f'[[theme.fontFaces]]\nfamily = "Hanken Grotesk"\nweight = "100 900"\nurl = "data:font/woff2;base64,{font}"\n\n'

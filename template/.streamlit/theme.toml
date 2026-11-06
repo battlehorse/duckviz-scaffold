@@ -1,4 +1,5 @@
-# Written by the scaffold's scripts/theme.py from duckkit.app.theme. Don't edit: `copier update` replaces it.
+# Written by the scaffold's scripts/theme.py from duckkit.app.theme.
+# Don't edit: it comes from the scaffold, and an edit clashes with the next `copier update`.
 # Hanken Grotesk is under the SIL Open Font License (OFL-HankenGrotesk.txt, in this folder).
 
 [theme]

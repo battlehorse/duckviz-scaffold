@@ -44,7 +44,7 @@ def theme_file() -> dict:
 
 @pytest.mark.parametrize("m", MODES)
 def test_the_theme_file_follows_the_tokens(theme_file, m):
-    assert theme_file[m] == theme.streamlit_theme(m), "run scripts/theme.py"
+    assert theme_file[m] == theme.streamlit_theme(m), "run: uv run --project kit python scripts/theme.py"
 
 
 def test_the_font_is_embedded_so_an_update_brings_it(theme_file):
