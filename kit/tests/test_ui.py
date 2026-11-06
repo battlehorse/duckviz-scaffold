@@ -36,14 +36,42 @@ def test_two_sections_with_one_title_need_a_key():
     assert [h.value for h in run(page).subheader] == ["Totals", "Totals"]
 
 
-def test_a_status_always_has_an_icon_and_a_word():
+def test_each_status_shows_its_icon_and_its_word():
+    def page():
+        from duckkit.app import ui
+        for kind in ui.STATUS:
+            ui.status(kind, f"{kind} text")
+
+    shown = " ".join(m.value for m in run(page).markdown)
     assert set(ui.STATUS) == {"good", "info", "warning", "error"}
-    assert all(icon.startswith(":material/") for icon, _ in ui.STATUS.values())
+    for kind, (icon, color) in ui.STATUS.items():
+        assert icon in shown and f"{kind} text" in shown and f":{color}-badge[" in shown
 
 
-def test_an_unknown_status_is_refused():
-    with pytest.raises(KeyError):
+def test_an_unknown_status_names_the_valid_ones():
+    with pytest.raises(ValueError, match="good, info, warning, error"):
         ui.status("fine", "text")
+
+
+def test_a_card_needs_no_title():
+    def page():
+        import streamlit as st
+
+        from duckkit.app import ui
+        with ui.card("plain"):
+            st.write("inside")
+
+    at = run(page)
+    assert not at.subheader and "inside" in [m.value for m in at.markdown]
+
+
+def test_a_card_and_a_subsection_can_share_a_name():
+    def page():
+        from duckkit.app import ui
+        ui.subsection("Spend")
+        ui.card("spend", "Top items")
+
+    assert [h.value for h in run(page).subheader] == ["Spend", "Top items"]
 
 
 def test_the_stylesheet_takes_its_colours_from_the_tokens():

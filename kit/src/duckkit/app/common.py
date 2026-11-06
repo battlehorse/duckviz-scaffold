@@ -104,7 +104,7 @@ def watch_idle(spec: AppSpec) -> None:
 
 def sidebar(spec: AppSpec, caption: str | None = None) -> None:
     """The top of every page's sidebar: how fresh the data is (`caption`), the version a hosted app runs, the
-    "Reload data" button; the shared widgets' stylesheet; and the theme and idle watchers."""
+    "Reload data" button, the shared widgets' stylesheet, and the theme and idle watchers."""
     ui.style()
     with st.sidebar:
         parts = [p for p in (caption, spec.version and f"version {spec.version}") if p]

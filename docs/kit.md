@@ -569,6 +569,9 @@ stylesheet to every page. Without it the widgets still work, and look like plain
 The CSS targets `.st-key-ui-*`, our own keys. A `data-testid` selector is allowed only with a comment that says why.
 `key` tells apart two sections with the same title on one page: Streamlit refuses a repeated key.
 
+The colours use CSS `light-dark()`, so a theme switch needs no rerun. It needs Chrome or Edge 123, Firefox 120 or Safari
+17.5, or newer. An older browser drops those rules: the page still works, with plain Streamlit's cards and selected pills.
+
 ## `duckkit.testing`
 
 **What it is for:** tests that can't touch real data, and tests for the browser app that need no ingestion.

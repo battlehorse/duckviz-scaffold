@@ -4,7 +4,7 @@ Each one is a Streamlit widget in a keyed container, styled by one stylesheet (`
 every page). Without the stylesheet they still work, and look like plain Streamlit. The CSS targets `.st-key-ui-*`, our
 own keys, so a Streamlit release can't rename them. A `data-testid` selector is allowed only with a comment that says
 why. Streamlit does not pass its theme to CSS on the page, so colours come from `duckkit.app.theme`, through
-`light-dark()`, which follows the color-scheme Streamlit sets: a theme switch needs no rerun.
+`light-dark()`, which follows the color-scheme Streamlit sets. A theme switch then needs no rerun.
 """
 
 import re
@@ -80,11 +80,13 @@ def card(key: str, title: str | None = None, caption: str | None = None):
     box = st.container(border=True, key=f"ui-card-{key}")
     if title:
         with box:
-            subsection(title, caption, key=key)
+            subsection(title, caption, key=f"card-{key}")  # its own key: a page may also have a subsection `key`
     return box
 
 
 def status(kind: str, text: str) -> None:
     """A chip that says how something stands: `kind` is good, info, warning or error."""
+    if kind not in STATUS:
+        raise ValueError(f"no status {kind!r}: use one of {', '.join(STATUS)}")
     icon, color = STATUS[kind]
     st.badge(text, icon=icon, color=color)
