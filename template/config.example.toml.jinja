@@ -12,10 +12,10 @@ remote = ""          # optional: "gs://<bucket>", a private bucket for a copy of
 [motherduck]
 token = ""           # optional: `{{ project_name }} publish` (MotherDuck → Settings → Access tokens)
 {%- endif %}
-{%- if curations and llm %}
+{%- if (curations and llm) or ask %}
 
 [anthropic]
-api_key = ""         # `{{ project_name }} classify` (console.anthropic.com → API keys). It costs money: set a spending limit.
+api_key = ""         # {% if curations and llm %}`{{ project_name }} classify`{% if ask %} and the Ask window{% endif %}{% else %}the Ask window{% endif %} (console.anthropic.com → API keys). It costs money: set a spending limit.
 {%- endif %}
 
 [privacy]

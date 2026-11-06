@@ -132,6 +132,12 @@ llm:
     money and sends the rows it labels to Anthropic)?
   default: false
   when: "{{ curations }}"
+ask:
+  type: bool
+  help: >-
+    An Ask window in the browser app, where the user chats with Claude about the data (through the Anthropic API, which
+    costs money for each answer and sends the rows of each query to Anthropic)?
+  default: false
 
 # ─── Deviations ───
 opt_out:

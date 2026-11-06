@@ -89,7 +89,8 @@ update, and follow the docs it adds.
 A hosted app, Claude, or any DuckDB client can then read the views from anywhere. Nothing is ever sent unless
 someone runs `publish`.
 
-**Off:** there is no `publish` command, and no data ever leaves the machine. Choose off for data that must stay
+**Off:** there is no `publish` command, so `publish` sends nothing. Other options can still send data: `llm` and `ask`
+send rows to Anthropic, and `backup` can copy to your own bucket. Choose off, with those off too, for data that must stay
 local.
 
 **Needed by:** `cloud_run`, because a hosted app reads the published copy.
@@ -183,6 +184,21 @@ Which runs wait for the user's yes is in docs/work/how-we-work.md ("What waits f
 Set a spend limit in the Anthropic Console before the first run: it caps what any run can cost.
 
 **Off:** no model: every decision is made by hand.
+
+### `ask`: an Ask window in the browser app (default: off)
+
+**What it decides:** whether the user can chat with Claude about the app's data, in a drawer over each page. It costs
+money for each answer, and it sends each question and the rows of each query to Anthropic, so some apps should refuse
+it. It does not need `motherduck`: the chat reads the data the pages read.
+
+**On:**
+- duckkit's `llm` extra (`duckkit[llm]` in `pyproject.toml`);
+- `[anthropic] api_key` in `config.example.toml` (a private setting for every app: `privacy-check` refuses it);
+- a line in `docs/guides/data.md`, under "What leaves the machine".
+
+Set a spend limit in the Anthropic Console, on a key of its own: anyone who can open a hosted app can spend that key.
+
+**Off:** no chat, nothing goes to Anthropic from the browser app, and the app does not load `anthropic`.
 
 ## Capabilities: what every app has
 

@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# duckkit.llm: the apps whose commands ask Claude for decisions
+# The anthropic package: the apps whose commands ask Claude for decisions, and the Ask window
 llm = ["anthropic>=1.11.0"]
 
 [build-system]

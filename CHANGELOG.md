@@ -5,6 +5,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **the `ask` option** (#83), off by default: the question, the `llm` extra and the API key's setting. The
+  window itself comes in later entries. `docs/template.md` no longer says that with `motherduck` off no data ever leaves
+  the machine: `llm`, `ask` and `backup` can each send data. No app changes until it turns `ask` on. **Steps:** an app
+  that turns it on copies the Ask line of `docs/guides/data.md`, and `[anthropic]` of `config.example.toml`, from a new
+  render (both are seeded).
 - Template: **the costs in `/backup setup-remote` read right** (#97). Claude Code replaces `$0`, `$1`, … in a skill
   with its arguments, so "$0.02" reached Claude as "setup-remote.02". The amounts are now written "USD 0.02".
   `doctor` now fails on a `$` followed by a digit in any skill or command, the app's own too. **Steps:** if
