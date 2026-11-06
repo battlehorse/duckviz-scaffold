@@ -570,7 +570,8 @@ stylesheet to every page. Without it the widgets still work, and look like plain
 - `tile_row(n, key="page")` and `tile(where, label, value, note=None, **metric_args)`: headline tiles that wrap rather
   than cut a number short.
 - `chart_row(spec, key="page")`: columns for charts, one under the other below 900px.
-- `style()`: adds the stylesheet. It also makes a selected pill or segment solid, in `SELECTED`.
+- `style()`: adds the stylesheet. It also makes the selected segment of a segmented control solid, in `SELECTED`. Pills
+  stay as Streamlit draws them: a multi-select is often all on, and a row of solid pills shouts.
 
 The CSS targets `.st-key-ui-*`, our own keys. A `data-testid` selector is allowed only with a comment that says why,
 and a test lists the ones in use.

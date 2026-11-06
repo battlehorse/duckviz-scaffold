@@ -114,3 +114,9 @@ def test_each_filter_bar_needs_its_own_key():
         ui.filter_bar("b")
 
     run(page)
+
+
+def test_only_a_single_choice_is_solid():
+    """A multi-select is often all on, and a row of solid pills shouts."""
+    css = ui.stylesheet()
+    assert 'aria-checked="true"' in css and 'aria-pressed="true"' not in css

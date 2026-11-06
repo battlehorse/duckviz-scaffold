@@ -19,6 +19,10 @@ BASE = {
     "font": "Hanken Grotesk, sans-serif",
     "headingFont": "Hanken Grotesk, sans-serif",
     "baseRadius": "6px",
+    # Hanken Grotesk runs about 5% wider than Streamlit's font. At the default sizes, real apps cut headline numbers
+    # short ("£158…") and clip their controls. These two sizes win that width back.
+    "baseFontSize": 15,
+    "metricValueFontSize": "1.9rem",
     "headingFontWeights": [700, 600, 600, 600, 600, 600],
     "metricValueFontWeight": 500,
     "showWidgetBorder": True,

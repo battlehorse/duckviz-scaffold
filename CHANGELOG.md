@@ -6,7 +6,7 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 ## Unreleased
 
 - duckkit: **`duckkit.app.ui`, the shared widgets** (#101): `section`, `subsection`, `card` and `status`, on Streamlit's
-  own widgets, styled by one stylesheet that `common.sidebar` adds to every page. A selected pill or segment is now solid.
+  own widgets, styled by one stylesheet that `common.sidebar` adds to every page. The selected segment of a segmented control is now solid.
   No code has to change. **Steps:** an app that draws its own sidebar calls `ui.style()`.
 - duckkit: **the helpers that apps copied are now shared** (#101): `ui.filter_bar`, `ui.tile_row`, `ui.tile`,
   `ui.chart_row`, and in `duckkit.app.theme` `contrast`, `color_distance`, `ink_on`, `mix`, `shades`, `hex_rgb`, `oklab`,
