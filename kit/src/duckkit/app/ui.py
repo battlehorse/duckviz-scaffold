@@ -39,13 +39,14 @@ def stylesheet() -> str:
 [class*="st-key-ui-subsection-"] {{ gap: 0; }}
 [class*="st-key-ui-subsection-"] h3 {{ font-size: 0.95rem; padding: 0 0 1rem; color: {both(muted)}; }}
 [class*="st-key-ui-card-"] {{ background: {both(surface)}; }}
-/* A selected pill or segment reads at a glance. A key can't reach inside these widgets, so the test id finds them, and
-   ARIA, which is a standard, says which is selected. !important: Streamlit's own rule for a selected one wins without. */
-[data-testid="stButtonGroup"] button:is([aria-checked="true"], [aria-pressed="true"]) {{
+/* The one selected segment reads at a glance. Pills stay as Streamlit draws them: a multi-select is often all on, and a
+   row of solid pills shouts. A key can't reach inside these widgets, so the test id finds them, and ARIA, which is a
+   standard, says which is selected. !important: Streamlit's own rule for a selected one wins without. */
+[data-testid="stButtonGroup"] button[aria-checked="true"] {{
   background-color: {both(theme.SELECTED)} !important; border-color: {both(theme.SELECTED)};
   color: {both(on_selected)} !important;
 }}
-[data-testid="stButtonGroup"] button:is([aria-checked="true"], [aria-pressed="true"]) p {{ color: inherit !important; }}
+[data-testid="stButtonGroup"] button[aria-checked="true"] p {{ color: inherit !important; }}
 </style>"""
 
 

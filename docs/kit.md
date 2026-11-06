@@ -564,7 +564,8 @@ stylesheet to every page. Without it the widgets still work, and look like plain
 - `card(key, title=None, caption=None)`: a container that stands apart from the page, for `with card("spend"): ...`.
 - `status(kind, text)`: a chip that says how something stands: `good`, `info`, `warning` or `error`. It always has an
   icon and a word, so colour never carries the meaning alone.
-- `style()`: adds the stylesheet. It also makes a selected pill or segment solid, in `SELECTED`.
+- `style()`: adds the stylesheet. It also makes the selected segment of a segmented control solid, in `SELECTED`. Pills
+  stay as Streamlit draws them: a multi-select is often all on, and a row of solid pills shouts.
 
 The CSS targets `.st-key-ui-*`, our own keys. A `data-testid` selector is allowed only with a comment that says why.
 `key` tells apart two sections with the same title on one page: Streamlit refuses a repeated key.
