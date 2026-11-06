@@ -19,7 +19,7 @@ see where the modules fit in an app, read docs/architecture.md first.
   [serve](#duckkitserve) · [cli](#duckkitcli) · [demo](#duckkitdemo) · [curated](#duckkitcurated) ·
   [llm](#duckkitllm) · [doctor](#duckkitdoctor) · [hosting](#duckkithosting) · [specdiff](#duckkitspecdiff) ·
   [app.common](#duckkitappcommon) ·
-  [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
+  [app.ui](#duckkitappui) · [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
 - [Hooks](#hooks-where-an-apps-domain-goes-in)
 - [Compatibility](#compatibility)
 
@@ -67,6 +67,7 @@ module belongs to one of them:
 | [`contract`](#duckkitcontract) | both | the contract: reference schema, descriptions, conformance check |
 | [`snapshot`](#duckkitsnapshot) | both | read-only, in-memory copies of the database or of its contract views |
 | [`app.common`](#duckkitappcommon) | browser | the cached snapshot, sidebar, theme and idle watchers, tables |
+| [`app.ui`](#duckkitappui) | browser | the shared widgets: sections, cards, status chips |
 | [`app.theme`](#duckkitapptheme) | browser | the shared look: colours, font and chart options, light and dark |
 | [`testing`](#duckkittesting) | tests | isolate tests from real data; build contract databases |
 | [`testing.guard`](#duckkittestingguard) | tests | keep the browser app on the contract |
@@ -552,6 +553,21 @@ the page must take its colours from here.
 - `base_option(mode)` gives the ECharts options every chart shares: font, tooltip, animation.
 - `entity_colors(names, mode)` gives each entity a fixed colour. Pass the full list, so a filter never repaints
   an entity. Entities past the eighth share `OTHER`.
+
+## `duckkit.app.ui`
+
+**What it is for:** pages whose sections and subsections stand apart, in the same way in every app. Each widget is a
+thin wrapper on Streamlit's own, in a keyed container, so it follows Streamlit and the theme. `common.sidebar` adds the
+stylesheet to every page. Without it the widgets still work, and look like plain Streamlit.
+- `section(title, caption=None, key=None)`: a section's heading, with a rule under it.
+- `subsection(title, caption=None, key=None)`: a smaller heading inside a section.
+- `card(key, title=None, caption=None)`: a container that stands apart from the page, for `with card("spend"): ...`.
+- `status(kind, text)`: a chip that says how something stands: `good`, `info`, `warning` or `error`. It always has an
+  icon and a word, so colour never carries the meaning alone.
+- `style()`: adds the stylesheet. It also makes a selected pill or segment solid, in `SELECTED`.
+
+The CSS targets `.st-key-ui-*`, our own keys. A `data-testid` selector is allowed only with a comment that says why.
+`key` tells apart two sections with the same title on one page: Streamlit refuses a repeated key.
 
 ## `duckkit.testing`
 

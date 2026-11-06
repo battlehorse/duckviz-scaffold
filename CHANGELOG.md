@@ -5,6 +5,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: **`duckkit.app.ui`, the shared widgets** (#101): `section`, `subsection`, `card` and `status`, on Streamlit's
+  own widgets, styled by one stylesheet that `common.sidebar` adds to every page. A selected pill or segment is now solid.
+  No code has to change. **Steps:** an app that draws its own sidebar calls `ui.style()`.
 - Template and duckkit: **one modern look for every app** (#101). A managed `.streamlit/theme.toml` sets warm stone
   greys, a petrol selection colour and Hanken Grotesk, in light and dark. The font is embedded in the file, so the app
   asks no other host for it. `duckkit.app.theme` is the one source, and `INK`, `PAGE` and `FONT` have new values:
