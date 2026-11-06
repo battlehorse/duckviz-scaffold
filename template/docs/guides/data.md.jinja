@@ -45,7 +45,8 @@ Nothing: no command sends the data anywhere.
   which must be private (`doctor --remote` checks).
 {%- endif %}
 {%- if ask %}
-- **The Ask window:** each question, and the rows of each query Claude runs to answer it, go to Anthropic.
+- **The Ask window:** each question, and the rows of each query Claude runs to answer it, go to Anthropic. Those rows
+  come from the contract's views, never the tables, and at most 200 at a time.
 {%- endif %}
 {%- if motherduck %}
 - **`publish`:** the contract's views go to MotherDuck (`md:{{ motherduck_db }}`), only when you run it. Only those

@@ -5,6 +5,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: **`duckkit.app.ask`, Claude's tools in the Ask window** (#83): `describe_schema` and `run_sql`, with a guard that
+  lets a query read only the contract's views, a cap of 200 rows and a timeout.
+- duckkit and template: **the browser app's data stays out of `.tmp`** (#83). `contract_snapshot` no longer spills to disk,
+  so a query too big for memory fails, where DuckDB would have written the data to `.tmp` in the app's folder, which git
+  didn't ignore. `.tmp/` is now ignored. **Steps:** an app that has a `.tmp` folder deletes it.
 - duckkit: **`duckkit.app.claude`, Claude for the browser app** (#83): the chat loop of the Ask window, with streaming,
   tool use, the prompt cache, and limits on rounds and spend. The client, `PRICES`, `Usage` and `LLMError` moved here
   from `duckkit.llm`, which still exports them, so no code has to change. `FakeAnthropic` also streams (`chat_reply`).
