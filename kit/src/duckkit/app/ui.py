@@ -40,7 +40,7 @@ def stylesheet() -> str:
 [class*="st-key-ui-subsection-"] h3 {{ font-size: 0.95rem; padding: 0 0 1rem; color: {both(muted)}; }}
 [class*="st-key-ui-card-"] {{ background: {both(surface)}; }}
 /* The one selected segment reads at a glance. Pills stay as Streamlit draws them: a multi-select is often all on, and a
-   row of solid pills shouts. A key can't reach inside these widgets, so the test id finds them, and ARIA, which is a
+   row of solid pills shouts. A key can't reach inside a button group, so the test id finds it, and ARIA, which is a
    standard, says which is selected. !important: Streamlit's own rule for a selected one wins without. */
 [data-testid="stButtonGroup"] button[aria-checked="true"] {{
   background-color: {both(theme.SELECTED)} !important; border-color: {both(theme.SELECTED)};
@@ -48,8 +48,8 @@ def stylesheet() -> str:
 }}
 [data-testid="stButtonGroup"] button[aria-checked="true"] p {{ color: inherit !important; }}
 /* The filter bar stays under Streamlit's header (60px, opaque) as the page scrolls. The sticky element is the layout
-   wrapper, which has no key: the container alone is as tall as its wrapper, so it has no room to stick. Off on narrow
-   windows, where the bar would fill the screen. */
+   wrapper, which has no key, so its test id finds it: the container alone is as tall as its wrapper, so it has no room
+   to stick. Off on narrow windows, where the bar would fill the screen. */
 @media (min-width: 900px) {{
   [data-testid="stLayoutWrapper"]:has(> [class*="st-key-ui-filters-"]) {{
     position: sticky; top: 60px; z-index: 100; background-color: {both(theme.PAGE)};
@@ -69,7 +69,9 @@ def stylesheet() -> str:
   display: grid; grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
 }}
 [class*="st-key-ui-tiles-"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{ width: auto; min-width: 0; }}
+/* A metric's label has no key either, so its test id reaches it: a long label wraps rather than end in "…". */
 [class*="st-key-ui-tiles-"] [data-testid="stMetricLabel"] p {{ white-space: normal; overflow: visible; }}
+/* Columns again, by their test ids: below 900px, charts side by side would be too narrow to read. */
 @media (max-width: 900px) {{
   [class*="st-key-ui-charts-"] [data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; row-gap: 1.5rem; }}
   [class*="st-key-ui-charts-"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{ min-width: 100%; }}

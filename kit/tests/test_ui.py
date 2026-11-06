@@ -82,10 +82,23 @@ def test_the_stylesheet_takes_its_colours_from_the_tokens():
         assert theme.SELECTED[m] in css and theme.BORDER[m] in css and theme.INK[m]["surface"] in css
 
 
-def test_every_test_id_in_the_stylesheet_is_a_known_one():
-    """A key can't change under us, but a test id can. Each one here has a comment that says why: add a new one with care."""
-    assert set(re.findall(r'data-testid="(\w+)"', ui.stylesheet())) == {
-        "stButtonGroup", "stLayoutWrapper", "stHorizontalBlock", "stColumn", "stMetricLabel"}
+# Each test id in the stylesheet, and the word that the comment above its rule must use to explain it.
+TEST_IDS = {"stButtonGroup": "button", "stLayoutWrapper": "wrapper", "stHorizontalBlock": "Columns", "stColumn": "Columns",
+            "stMetricLabel": "label"}
+
+
+def test_every_test_id_in_the_stylesheet_says_why():
+    """A key can't change under us, but a test id can: the comment right above a rule explains each id that it uses."""
+    before_any_comment, *parts = ui.stylesheet().split("/*")
+    assert "data-testid" not in before_any_comment
+    for part in parts:
+        comment, rules = part.split("*/", 1)
+        for test_id in re.findall(r'data-testid="(\w+)"', rules):
+            assert "test id" in comment and TEST_IDS[test_id] in comment, test_id
+
+
+def test_the_test_ids_in_use_are_the_known_ones():
+    assert set(re.findall(r'data-testid="(\w+)"', ui.stylesheet())) == set(TEST_IDS)
 
 
 def test_tiles_filters_and_chart_rows_render():
@@ -107,13 +120,19 @@ def test_tiles_filters_and_chart_rows_render():
     assert at.metric[1].delta == "no change"
 
 
-def test_each_filter_bar_needs_its_own_key():
-    def page():
+def test_two_filter_bars_need_their_own_keys():
+    def same_key():
+        from duckkit.app import ui
+        ui.filter_bar("a")
+        ui.filter_bar("a")
+
+    def own_keys():
         from duckkit.app import ui
         ui.filter_bar("a")
         ui.filter_bar("b")
 
-    run(page)
+    assert AppTest.from_function(same_key).run().exception
+    run(own_keys)
 
 
 def test_only_a_single_choice_is_solid():

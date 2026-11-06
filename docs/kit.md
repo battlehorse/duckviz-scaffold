@@ -570,6 +570,8 @@ stylesheet to every page. Without it the widgets still work, and look like plain
 - `tile_row(n, key="page")` and `tile(where, label, value, note=None, **metric_args)`: headline tiles that wrap rather
   than cut a number short.
 - `chart_row(spec, key="page")`: columns for charts, one under the other below 900px.
+  A page with two filter bars, tile rows or chart rows gives each its own `key`. A tile's `note` is a grey line under
+  the number: `ui.tile(columns[0], "Shops", "48", "no change")`.
 - `style()`: adds the stylesheet. It also makes the selected segment of a segmented control solid, in `SELECTED`. Pills
   stay as Streamlit draws them: a multi-select is often all on, and a row of solid pills shouts.
 

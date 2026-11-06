@@ -10,8 +10,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   No code has to change. **Steps:** an app that draws its own sidebar calls `ui.style()`.
 - duckkit: **the helpers that apps copied are now shared** (#101): `ui.filter_bar`, `ui.tile_row`, `ui.tile`,
   `ui.chart_row`, and in `duckkit.app.theme` `contrast`, `color_distance`, `ink_on`, `mix`, `shades`, `hex_rgb`, `oklab`,
-  `to_oklch` and `from_oklch`. **Steps** (optional): an app with its own copies can delete them and use these. Keep a
-  copy that does more, and note that `tile_row` has no `label_lines` and `chart_row` has no `caption_lines`.
+  `to_oklch` and `from_oklch`. **Steps** (optional): an app with its own copies can delete them and use these. An app
+  that uses `label_lines` or `caption_lines` keeps its own copy of that function.
 - Template and duckkit: **one modern look for every app** (#101). A managed `.streamlit/theme.toml` sets warm stone
   greys, a petrol selection colour and Hanken Grotesk, in light and dark. The font is embedded in the file, so the app
   asks no other host for it. `duckkit.app.theme` is the one source, and `INK`, `PAGE` and `FONT` have new values:

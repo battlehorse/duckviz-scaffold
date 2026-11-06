@@ -73,3 +73,7 @@ def test_shades_start_at_the_colour_and_stay_visible_on_the_page(m):
     for color in theme.CATEGORICAL[m]:
         steps = theme.shades(color, 4, m)
         assert len(set(steps)) == 4 and theme.color_distance(steps[0], color) < 1
+
+
+def test_no_shades_asked_means_none():
+    assert theme.shades("#2a78d6", 0, "light") == []
