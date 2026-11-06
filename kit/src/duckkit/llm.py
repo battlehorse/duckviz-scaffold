@@ -1,4 +1,4 @@
-"""`duckkit.llm`: one structured call to Claude, what the calls cost, and the gate before a paid run.
+"""`duckkit.llm`: one structured call to Claude, and the gate before a paid run.
 
 Needs the `llm` extra (`duckkit[llm]`, the anthropic package). The app keeps its own prompts and schemas: this module
 only sends them, with the settings every app wants:
@@ -10,6 +10,9 @@ only sends them, with the settings every app wants:
   request is retried on Anthropic's fallback model;
 - the API errors as one `LLMError`, with a message for the user;
 - the tokens of every call in `Claude.usage`, and their cost.
+
+What the browser app needs too (the client, the prices, `Usage`, `LLMError`) is in `duckkit.app.claude`: the browser app
+may not import this module. It stays importable from here.
 
 A large paid run is a hard stop (docs/work/how-we-work.md): the user says yes in the chat first. `cost_gate` shows the
 estimate of every run. It starts a small one at once (at most `SMALL_RUN` rows waiting), and a larger one, or a full
@@ -23,69 +26,29 @@ from decimal import Decimal
 
 import typer
 
+from duckkit.app.claude import (
+    CACHE_WRITE,
+    DEFAULT_MODEL,
+    FALLBACK_BETA,
+    FALLBACK_MODELS,
+    LONG_PRICES,
+    LONG_PROMPT,
+    PRICES,
+    LLMError,
+    Usage,
+    anthropic_module,
+    api_error,
+    estimate_cost,
+    new_client,
+    refusal_message,
+)
 from duckkit.spec import AppSpec
 
-DEFAULT_MODEL = "claude-opus-5-5"
+__all__ = ["CACHE_WRITE", "DEFAULT_MODEL", "EFFORT", "FALLBACK_BETA", "FALLBACK_MODELS", "LONG_PRICES", "LONG_PROMPT",
+           "PRICES", "SMALL_RUN", "Claude", "LLMError", "Usage", "cost_gate", "estimate_cost"]
+
 EFFORT = "low"  # simple, well-specified judgments: low effort holds the quality at a fraction of the cost
-FALLBACK_BETA = "server-side-fallback-2026-07-01"
-
-# $ per million tokens: (input, output, cache read). A cache write (5 minutes) costs 1.25 times the input price.
-# Claude Haiku 5.5's cache read is the usual tenth of its input price (the pricing page gives no separate figure).
-PRICES = {
-    "claude-opus-5-5": (Decimal(4), Decimal(20), Decimal("0.20")),
-    "claude-sonnet-5-5": (Decimal(2), Decimal(10), Decimal("0.20")),
-    "claude-haiku-5-5": (Decimal("0.10"), Decimal("0.50"), Decimal("0.01")),
-}
-# The prices of a request whose prompt (input, cache writes and reads) is over LONG_PROMPT tokens, where they differ.
-LONG_PROMPT = 100_000
-LONG_PRICES = {"claude-haiku-5-5": (Decimal("0.50"), Decimal("2.50"), Decimal("0.05"))}
-CACHE_WRITE = Decimal("1.25")
-FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5"}  # Claude Haiku 5.5 has no server-side fallback
 SMALL_RUN = 500  # rows waiting: a run with this many or fewer starts without --yes (cost_gate)
-
-
-class LLMError(RuntimeError):
-    """A call to Claude failed: the message says why, for the user."""
-
-
-def estimate_cost(model: str, input_tokens: int, output_tokens: int, cache_read_tokens: int = 0,
-                  cache_write_tokens: int = 0) -> Decimal:
-    """The cost in $ of one request's tokens with `model`. Raises LLMError for a model that PRICES does not know."""
-    if model not in PRICES:
-        raise LLMError(f"no price for the model {model!r}: add it to duckkit.llm.PRICES")
-    prompt = input_tokens + cache_read_tokens + cache_write_tokens
-    price_in, price_out, price_read = LONG_PRICES.get(model, PRICES[model]) if prompt > LONG_PROMPT else PRICES[model]
-    return (input_tokens * price_in + cache_write_tokens * price_in * CACHE_WRITE + cache_read_tokens * price_read
-            + output_tokens * price_out) / 1_000_000
-
-
-@dataclass
-class Usage:
-    """The tokens of a run's calls, and what they cost."""
-
-    model: str
-    input_tokens: int = 0
-    cache_write_tokens: int = 0
-    cache_read_tokens: int = 0
-    output_tokens: int = 0
-    calls: int = 0
-    cost: Decimal = Decimal(0)  # each call priced by its own prompt size
-
-    def add(self, usage) -> None:
-        """Add the `usage` of one API response. After a server-side fallback, it counts only the attempt that
-        answered, at this model's prices: the cost of such a call is approximate."""
-        self.calls += 1
-        self.input_tokens += usage.input_tokens
-        self.cache_write_tokens += usage.cache_creation_input_tokens or 0
-        self.cache_read_tokens += usage.cache_read_input_tokens or 0
-        self.output_tokens += usage.output_tokens
-        self.cost += estimate_cost(self.model, usage.input_tokens, usage.output_tokens,
-                                   usage.cache_read_input_tokens or 0, usage.cache_creation_input_tokens or 0)
-
-    def line(self) -> str:
-        """One line for the command's output."""
-        tokens_in = self.input_tokens + self.cache_write_tokens + self.cache_read_tokens
-        return f"API: {self.calls} calls, {tokens_in} input / {self.output_tokens} output tokens, ≈ ${self.cost:.2f}"
 
 
 @dataclass
@@ -101,17 +64,12 @@ class Claude:
     def __post_init__(self):
         if self.model not in PRICES:
             raise LLMError(f"no price for the model {self.model!r}: add it to duckkit.llm.PRICES")
-        if self.client is None:
-            anthropic = _anthropic()
-            key = self.spec.anthropic_api_key()
-            if not key:
-                raise LLMError(f"no Anthropic API key: set {self.spec.where_anthropic_key()}")
-            self.client = anthropic.Anthropic(api_key=key)
+        self.client = self.client or new_client(self.spec)
         self.usage = Usage(self.model)
 
     def call(self, system: str, user: str, schema: dict, max_tokens: int = 16000) -> dict:
         """Send one request and return its answer, a dict that matches `schema`. Raises LLMError."""
-        anthropic = _anthropic()
+        anthropic = anthropic_module()
         fallback = {"betas": [FALLBACK_BETA], "fallbacks": "default"} if self.model in FALLBACK_MODELS else {}
         try:
             response = self.client.beta.messages.create(
@@ -122,20 +80,11 @@ class Claude:
                 output_config={"effort": self.effort, "format": {"type": "json_schema", "schema": schema}},
                 **fallback,
             )
-        except anthropic.AuthenticationError as e:
-            raise LLMError(f"the API key was rejected (expired or revoked?): {self.spec.where_anthropic_key()}") from e
-        except anthropic.APIStatusError as e:
-            raise LLMError(f"API error {e.status_code}: {e.message}") from e
-        except anthropic.APIConnectionError as e:
-            raise LLMError("could not reach the Anthropic API") from e
-        except anthropic.APIError as e:  # an answer the SDK could not read, say
-            raise LLMError(f"API error: {e}") from e
+        except anthropic.APIError as e:
+            raise api_error(self.spec, e) from e
         self.usage.add(response.usage)
         if response.stop_reason == "refusal":
-            details = response.stop_details
-            category = getattr(details, "category", None) or "no category"
-            explanation = getattr(details, "explanation", None) or "no explanation"
-            raise LLMError(f"the request was declined ({category}): {explanation}")
+            raise LLMError(refusal_message(response))
         if response.stop_reason == "max_tokens":
             raise LLMError("the answer was cut off (max_tokens): send a smaller batch")
         text = next((block.text for block in response.content if block.type == "text"), None)
@@ -145,15 +94,6 @@ class Claude:
             return json.loads(text)
         except json.JSONDecodeError as e:
             raise LLMError(f"the answer is not the JSON the schema asks for: {e}") from e
-
-
-def _anthropic():
-    """The anthropic package, or an LLMError that says how to install it."""
-    try:
-        import anthropic
-    except ImportError as e:
-        raise LLMError("the anthropic package is missing: depend on duckkit[llm] (the llm extra)") from e
-    return anthropic
 
 
 def cost_gate(spec: AppSpec, what: str, rows: int, estimate: Decimal, yes: bool, command: str,
