@@ -1,4 +1,4 @@
-"""The shared widgets: sections, cards and status chips, thin wrappers on Streamlit's own.
+"""The shared widgets: sections, cards, status chips, tiles and layout, thin wrappers on Streamlit's own.
 
 Each one is a Streamlit widget in a keyed container, styled by one stylesheet (`style()`, which `common.sidebar` adds to
 every page). Without the stylesheet they still work, and look like plain Streamlit. The CSS targets `.st-key-ui-*`, our
@@ -46,6 +46,33 @@ def stylesheet() -> str:
   color: {both(on_selected)} !important;
 }}
 [data-testid="stButtonGroup"] button:is([aria-checked="true"], [aria-pressed="true"]) p {{ color: inherit !important; }}
+/* The filter bar stays under Streamlit's header (60px, opaque) as the page scrolls. The sticky element is the layout
+   wrapper, which has no key: the container alone is as tall as its wrapper, so it has no room to stick. Off on narrow
+   windows, where the bar would fill the screen. */
+@media (min-width: 900px) {{
+  [data-testid="stLayoutWrapper"]:has(> [class*="st-key-ui-filters-"]) {{
+    position: sticky; top: 60px; z-index: 100; background-color: {both(theme.PAGE)};
+    border-bottom: 1px solid {both(theme.BORDER)};
+    box-shadow: 0 8px 10px -8px light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.35));
+    padding-bottom: 0.5rem; margin-bottom: 0.5rem;
+  }}
+}}
+/* Columns have no key of their own, so their test ids reach them inside our keyed containers. Short of room, filters
+   wrap and keep each button in sight, tiles wrap and keep their numbers whole, and charts stack. */
+[class*="st-key-ui-filters-"] [data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; row-gap: 0.5rem; }}
+[class*="st-key-ui-filters-"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{ min-width: min(100%, 12rem); }}
+[class*="st-key-ui-filters-"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:has([data-testid="stButtonGroup"]) {{
+  flex: 0 1 max-content !important; width: auto !important; max-width: 100%;
+}}
+[class*="st-key-ui-tiles-"] [data-testid="stHorizontalBlock"] {{
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+}}
+[class*="st-key-ui-tiles-"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{ width: auto; min-width: 0; }}
+[class*="st-key-ui-tiles-"] [data-testid="stMetricLabel"] p {{ white-space: normal; overflow: visible; }}
+@media (max-width: 900px) {{
+  [class*="st-key-ui-charts-"] [data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; row-gap: 1.5rem; }}
+  [class*="st-key-ui-charts-"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{ min-width: 100%; }}
+}}
 </style>"""
 
 
@@ -82,6 +109,32 @@ def card(key: str, title: str | None = None, caption: str | None = None):
         with box:
             subsection(title, caption, key=f"card-{key}")  # its own key: a page may also have a subsection `key`
     return box
+
+
+def filter_bar(key: str = "page"):
+    """A container for a page's filters, pinned under the header as the page scrolls."""
+    return st.container(key=f"ui-filters-{key}")
+
+
+def tile_row(n: int, key: str = "page") -> list:
+    """`n` columns for headline tiles. Short of room they wrap onto more rows, rather than cut a number short."""
+    with st.container(key=f"ui-tiles-{key}"):
+        return st.columns(n)
+
+
+def tile(where, label: str, value: str, note: str | None = None, **kwargs) -> None:
+    """A headline tile in `where` (a column): a bordered metric as tall as its row. `note` is a grey line under the
+    number, a delta with no arrow or colour. Any other st.metric argument passes through and wins."""
+    if note is not None:
+        kwargs = {"delta": note, "delta_color": "off", "delta_arrow": "off", **kwargs}
+    where.metric(label, value, **{"border": True, "height": "stretch", **kwargs})
+
+
+def chart_row(spec, key: str = "page") -> list:
+    """Columns for charts side by side (`spec` as in st.columns), one under the other below 900px, where they would be
+    too narrow to read."""
+    with st.container(key=f"ui-charts-{key}"):
+        return st.columns(spec, gap="large")
 
 
 def status(kind: str, text: str) -> None:

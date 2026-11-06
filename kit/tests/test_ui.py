@@ -1,5 +1,7 @@
 """The shared widgets: each renders, keeps to its keys, and takes its colours from the tokens."""
 
+import re
+
 import pytest
 from streamlit.testing.v1 import AppTest
 
@@ -80,8 +82,35 @@ def test_the_stylesheet_takes_its_colours_from_the_tokens():
         assert theme.SELECTED[m] in css and theme.BORDER[m] in css and theme.INK[m]["surface"] in css
 
 
-def test_every_test_id_in_the_stylesheet_says_why():
-    """A key can't change under us, but a test id can: each one comes with a comment."""
-    css = ui.stylesheet()
-    assert css.count('data-testid="stButtonGroup"') == 2 and "A key can't reach inside these widgets" in css
-    assert css.count("data-testid") == 2
+def test_every_test_id_in_the_stylesheet_is_a_known_one():
+    """A key can't change under us, but a test id can. Each one here has a comment that says why: add a new one with care."""
+    assert set(re.findall(r'data-testid="(\w+)"', ui.stylesheet())) == {
+        "stButtonGroup", "stLayoutWrapper", "stHorizontalBlock", "stColumn", "stMetricLabel"}
+
+
+def test_tiles_filters_and_chart_rows_render():
+    def page():
+        import streamlit as st
+
+        from duckkit.app import ui
+        with ui.filter_bar():
+            st.segmented_control("Period", ["All"], key="period")
+        a, b = ui.tile_row(2)
+        ui.tile(a, "Spend", "£4,125", delta="+6%", delta_color="inverse")
+        ui.tile(b, "Shops", "48", "no change")
+        left, right = ui.chart_row([2, 1])
+        left.write("chart")
+        right.write("table")
+
+    at = run(page)
+    assert [(m.label, m.value) for m in at.metric] == [("Spend", "£4,125"), ("Shops", "48")]
+    assert at.metric[1].delta == "no change"
+
+
+def test_each_filter_bar_needs_its_own_key():
+    def page():
+        from duckkit.app import ui
+        ui.filter_bar("a")
+        ui.filter_bar("b")
+
+    run(page)

@@ -1,7 +1,6 @@
 """The look every app shares: the template's theme file follows the tokens, and the tokens keep their rules."""
 
 import base64
-import math
 import tomllib
 from pathlib import Path
 
@@ -11,30 +10,6 @@ from duckkit.app import theme
 
 REPO = Path(__file__).parents[2]
 MODES = ("light", "dark")
-
-
-def channel(value: int) -> float:
-    c = value / 255
-    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-
-
-def linear(color: str) -> list[float]:
-    return [channel(int(color[i:i + 2], 16)) for i in (1, 3, 5)]
-
-
-def contrast(a: str, b: str) -> float:
-    lum = sorted(sum(w * c for w, c in zip((0.2126, 0.7152, 0.0722), linear(x), strict=True)) for x in (a, b))
-    return (lum[1] + 0.05) / (lum[0] + 0.05)
-
-
-def oklab(color: str) -> tuple[float, float, float]:
-    r, g, b = linear(color)
-    lc = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
-    mc = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
-    sc = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
-    return (0.2104542553 * lc + 0.7936177850 * mc - 0.0040720468 * sc,
-            1.9779984951 * lc - 2.4285922050 * mc + 0.4505937099 * sc,
-            0.0259040371 * lc + 0.7827717662 * mc - 0.8086757660 * sc)
 
 
 @pytest.fixture(scope="module")
@@ -62,7 +37,7 @@ def test_the_config_uses_the_theme_file():
 
 @pytest.mark.parametrize("m", MODES)
 def test_a_selection_never_reads_as_a_chart_series(m):
-    distance = min(100 * math.dist(oklab(theme.SELECTED[m]), oklab(c)) for c in theme.CATEGORICAL[m])
+    distance = min(theme.color_distance(theme.SELECTED[m], c) for c in theme.CATEGORICAL[m])
     assert distance >= 8
 
 
@@ -70,6 +45,31 @@ def test_a_selection_never_reads_as_a_chart_series(m):
 @pytest.mark.parametrize("surface", [theme.PAGE, theme.SIDEBAR, theme.TABLE_HEADER])
 def test_text_reads_on_every_surface(m, surface):
     for ink in ("primary", "secondary", "muted"):
-        assert contrast(theme.INK[m][ink], surface[m]) >= 4.5, ink
+        assert theme.contrast(theme.INK[m][ink], surface[m]) >= 4.5, ink
     for color in (theme.SELECTED, theme.RED, theme.GREEN):
-        assert contrast(color[m], surface[m]) >= 4.5
+        assert theme.contrast(color[m], surface[m]) >= 4.5
+
+
+def test_contrast_and_distance_have_their_known_values():
+    assert theme.contrast("#000000", "#ffffff") == pytest.approx(21)
+    assert theme.color_distance("#123456", "#123456") == 0
+
+
+def test_a_colour_survives_the_trip_through_oklch():
+    for color in theme.CATEGORICAL["light"]:
+        assert theme.color_distance(color, theme.from_oklch(*theme.to_oklch(color))) < 1
+
+
+def test_ink_on_picks_the_text_that_reads():
+    assert theme.ink_on("#ffffff") == "#0b0b0b" and theme.ink_on("#0b0b0b") == "#ffffff"
+
+
+def test_mix_goes_from_one_colour_to_the_other():
+    assert theme.mix("#000000", "#ffffff", 0) == "#000000" and theme.mix("#000000", "#ffffff", 1) == "#ffffff"
+
+
+@pytest.mark.parametrize("m", MODES)
+def test_shades_start_at_the_colour_and_stay_visible_on_the_page(m):
+    for color in theme.CATEGORICAL[m]:
+        steps = theme.shades(color, 4, m)
+        assert len(set(steps)) == 4 and theme.color_distance(steps[0], color) < 1
