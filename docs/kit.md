@@ -19,7 +19,7 @@ see where the modules fit in an app, read docs/architecture.md first.
   [serve](#duckkitserve) · [cli](#duckkitcli) · [demo](#duckkitdemo) · [curated](#duckkitcurated) ·
   [llm](#duckkitllm) · [doctor](#duckkitdoctor) · [hosting](#duckkithosting) · [specdiff](#duckkitspecdiff) ·
   [app.common](#duckkitappcommon) ·
-  [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
+  [app.claude](#duckkitappclaude) · [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
 - [Hooks](#hooks-where-an-apps-domain-goes-in)
 - [Compatibility](#compatibility)
 
@@ -67,6 +67,7 @@ module belongs to one of them:
 | [`contract`](#duckkitcontract) | both | the contract: reference schema, descriptions, conformance check |
 | [`snapshot`](#duckkitsnapshot) | both | read-only, in-memory copies of the database or of its contract views |
 | [`app.common`](#duckkitappcommon) | browser | the cached snapshot, sidebar, theme and idle watchers, tables |
+| [`app.claude`](#duckkitappclaude) | browser | the client, the prices, `Usage`, and the chat loop of the Ask window |
 | [`app.theme`](#duckkitapptheme) | browser | colour palettes and shared chart options, light and dark |
 | [`testing`](#duckkittesting) | tests | isolate tests from real data; build contract databases |
 | [`testing.guard`](#duckkittestingguard) | tests | keep the browser app on the contract |
@@ -364,11 +365,31 @@ file is.
 `publish` refuses a demo database, and `status` says "Demo: made-up data" for one. An app's own commands that send or
 curate data should refuse one too (`curated.curating` does).
 
+## `duckkit.app.claude`
+
+**What it is for:** Claude in the browser app. It holds the client, the prices, `Usage` and `LLMError`, which
+`duckkit.llm` re-exports, because the browser app may not import `duckkit.llm`. It needs the `llm` extra, and imports
+the anthropic package only when a call is made.
+
+- `Chat(spec, system, tools, run_tool, model=DEFAULT_MODEL, effort="medium", client=None)`: one conversation. A
+  conversation keeps its model: thinking blocks and the prompt cache belong to one model.
+- `Chat.ask(question, context=None)` runs a question to its answer, and yields what happens: `Text`, `Progress` (a note
+  between tool calls) and `ToolCall`. `context` says what the user is looking at. It goes with the question, never in
+  the system prompt, so a change of filter doesn't break the cache.
+- `run_tool(name, input)` returns a `ToolResult`. A tool that raises, or sets `is_error`, tells Claude that the call
+  failed, and Claude can try another way.
+- `Chat.usage` adds up the tokens and the cost of every request of the conversation.
+- **Limits.** After `MAX_TOOL_ROUNDS` (8) requests with tools, the next one allows none, so a long question still ends
+  in an answer. Past `MAX_CONVERSATION_COST` ($2), a conversation stops and asks for a new one.
+- **Failures.** Each is an `LLMError` with a message for the user. The conversation then goes back to where it was
+  before the question, and can go on. It does the same when the caller stops reading an answer.
+
 ## `duckkit.llm`
 
 **What it is for:** an app's command that asks Claude to make decisions, such as classifying rows. The app keeps
 its prompts, its schemas and its batches. This module sends them with what every app wants, and keeps the cost in
-view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the anthropic package).
+view. It needs the `llm` extra: `duckkit[llm]` in the app's dependencies (the anthropic package). Its prices, `Usage`
+and `LLMError` come from [`duckkit.app.claude`](#duckkitappclaude), and stay importable from here.
 
 - `Claude(spec, model=DEFAULT_MODEL, effort="low", client=None)`: Claude for one run. Without `client`, it makes an
   anthropic client with `spec.anthropic_api_key()`, and raises `LLMError` with where to put the key when there is
@@ -554,7 +575,8 @@ its own.
   open so the test can fill it. The browser app's tests build their data this way.
 - `FakeAnthropic(*replies)` stands in for the anthropic client: `Claude(spec, client=FakeAnthropic(...))` gets each
   reply in turn (an exception reply is raised), and `requests` keeps what was sent. `claude_reply(payload)` builds a
-  reply whose answer is `payload`. No test needs the network or a key.
+  reply whose answer is `payload`. `Chat` takes it too, with `chat_reply(text, tools, progress, stop_reason)` for a
+  streamed reply. No test needs the network or a key.
 
 ## `duckkit.testing.guard`
 

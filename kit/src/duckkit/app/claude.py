@@ -185,8 +185,10 @@ class Chat:
         """Run `question` to its answer. `context` says what the user is looking at. It goes with the question, never in
         the system prompt, so a change of filter doesn't break the cache.
 
-        Raises LLMError. The conversation then goes back to where it was before the question, and can go on."""
+        Raises LLMError. The conversation then goes back to where it was before the question, and can go on. It does the
+        same when the caller stops reading: a tool call with no result would make the API refuse the next question."""
         before = len(self.messages)
+        answered = False
         try:
             content = [{"type": "text", "text": text} for text in (context, question) if text]
             self.messages.append({"role": "user", "content": content})
@@ -198,12 +200,17 @@ class Chat:
                 self.messages.append({"role": "assistant", "content": response.content})
                 calls = [block for block in response.content if block.type == "tool_use"]
                 if not calls:
+                    answered = True
                     return
                 yield from self._run_tools(calls)
         except Exception as e:
-            del self.messages[before:]
             error = api_error(self.spec, e)
+            if error is e:
+                raise
             raise error from e
+        finally:
+            if not answered:
+                del self.messages[before:]
 
     def _check_spend(self) -> None:
         if self.usage.cost >= MAX_CONVERSATION_COST:
