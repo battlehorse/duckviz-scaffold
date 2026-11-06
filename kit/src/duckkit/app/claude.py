@@ -9,8 +9,8 @@ it comes:
 - the tools and the system prompt stay the same, byte for byte, so the prompt cache holds;
 - the history only grows, with each response whole: thinking blocks belong to one model and one conversation, so a
   conversation keeps its model;
-- `tool_choice` stays `auto`, since forced tool use returns a 400 on these models, and the last round allows no tool, so
-  a long question still ends in an answer;
+- `tool_choice` is `auto`, since forced tool use returns a 400 on these models. In the last round it is `none`, so a
+  long question still ends in an answer;
 - effort is set on each request: the models have different defaults.
 
 Tests use `duckkit.testing.FakeAnthropic`: no network and no key.
@@ -53,7 +53,7 @@ def estimate_cost(model: str, input_tokens: int, output_tokens: int, cache_read_
                   cache_write_tokens: int = 0) -> Decimal:
     """The cost in $ of one request's tokens with `model`. Raises LLMError for a model that PRICES does not know."""
     if model not in PRICES:
-        raise LLMError(f"no price for the model {model!r}: add it to duckkit.llm.PRICES")
+        raise LLMError(f"no price for the model {model!r}: add it to duckkit.app.claude.PRICES")
     prompt = input_tokens + cache_read_tokens + cache_write_tokens
     price_in, price_out, price_read = LONG_PRICES.get(model, PRICES[model]) if prompt > LONG_PROMPT else PRICES[model]
     return (input_tokens * price_in + cache_write_tokens * price_in * CACHE_WRITE + cache_read_tokens * price_read
@@ -109,7 +109,10 @@ def new_client(spec: AppSpec):
 
 def api_error(spec: AppSpec, error: Exception) -> LLMError:
     """The LLMError for an exception of the anthropic package. Any other exception comes back as it is, to raise."""
-    anthropic = anthropic_module()
+    try:
+        anthropic = anthropic_module()
+    except LLMError:  # no package, so it isn't one of its errors: a test's fake client, or the caller's own bug
+        return error
     if isinstance(error, anthropic.AuthenticationError):
         return LLMError(f"the API key was rejected (expired or revoked?): {spec.where_anthropic_key()}")
     if isinstance(error, anthropic.APIStatusError):
@@ -202,7 +205,11 @@ class Chat:
                 if not calls:
                     answered = True
                     return
+                if tool_round == MAX_TOOL_ROUNDS:  # it should not happen, and silence would hide a paid-for failure
+                    raise LLMError(f"no answer after {MAX_TOOL_ROUNDS} rounds of queries: ask for less at a time")
                 yield from self._run_tools(calls)
+        except LLMError:
+            raise
         except Exception as e:
             error = api_error(self.spec, e)
             if error is e:

@@ -1,6 +1,6 @@
 """Test helpers for apps: isolation from the real data (`isolate`), a database with the contract's exact shape
-(`contract_db`), a stand-in for Claude (`FakeAnthropic`, `claude_reply`, `chat_reply`), and the guard rails that keep the browser
-app on the contract (`guard`)."""
+(`contract_db`), a stand-in for Claude (`FakeAnthropic`, `claude_reply`, `chat_reply`), and the guard rails that keep
+the browser app on the contract (`guard`)."""
 
 import json
 from pathlib import Path

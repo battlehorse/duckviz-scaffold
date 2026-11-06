@@ -63,7 +63,7 @@ class Claude:
 
     def __post_init__(self):
         if self.model not in PRICES:
-            raise LLMError(f"no price for the model {self.model!r}: add it to duckkit.llm.PRICES")
+            raise LLMError(f"no price for the model {self.model!r}: add it to duckkit.app.claude.PRICES")
         self.client = self.client or new_client(self.spec)
         self.usage = Usage(self.model)
 

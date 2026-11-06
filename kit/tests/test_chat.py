@@ -125,6 +125,31 @@ def test_the_last_round_allows_no_tool_so_there_is_an_answer(spec):
     assert [r["tool_choice"]["type"] for r in c.client.requests] == ["auto"] * MAX_TOOL_ROUNDS + ["none"]
 
 
+def test_a_tool_call_in_the_last_round_is_an_error_not_silence(spec):
+    replies = [chat_reply(tools=(QUERY,)) for _ in range(MAX_TOOL_ROUNDS + 1)]
+    ran = []
+
+    def run_tool(name, tool_input):
+        ran.append(name)
+        return ToolResult("1 row")
+
+    c = chat(spec, *replies, run_tool=run_tool)
+    with pytest.raises(LLMError, match="no answer after"):
+        list(c.ask("First"))
+    assert len(ran) == MAX_TOOL_ROUNDS and not c.messages
+
+
+def test_an_error_keeps_its_message_without_the_anthropic_package(spec, monkeypatch):
+    """A fake client needs no package, so the message mustn't turn into "the anthropic package is missing"."""
+    monkeypatch.setitem(sys.modules, "anthropic", None)
+    c = chat(spec, chat_reply(stop_reason="max_tokens"))
+    with pytest.raises(LLMError, match="cut off"):
+        list(c.ask("First"))
+    bug = chat(spec, ValueError("a bug of the caller"))
+    with pytest.raises(ValueError, match="a bug of the caller"):
+        list(bug.ask("First"))
+
+
 def test_usage_adds_up_across_turns_with_cache_reads(spec):
     c = chat(spec, chat_reply(tools=(QUERY,), input_tokens=100, cache_write=1000, output_tokens=50),
              chat_reply("One.", input_tokens=100, cache_read=1000, output_tokens=50),
