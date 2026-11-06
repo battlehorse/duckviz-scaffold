@@ -101,6 +101,7 @@ There is no question for these. Every app gets:
 | `demo_data` | off | a synthetic demo database: `demo`, `app --demo` |
 | `curations` | off | decisions kept in `curated/*.csv` in git (categories chosen by hand or by a model), restored into a rebuilt database: `curated-check` in the pre-commit hook, `/rebuild-database`, `/fix-curation`. The repo must stay private. |
 | `llm` | off | decisions made by Claude through the Anthropic API (needs `curations`): `duckkit.llm`, a `classify` command that shows the estimate and needs `--yes` over 500 days waiting, `/classify`. It costs money and sends the rows it decides to Anthropic. |
+| `ask` | off | an Ask window in the browser app, where the user chats with Claude about the data (through the Anthropic API, which costs money and sends rows to Anthropic) |
 
 ### Opt-outs
 

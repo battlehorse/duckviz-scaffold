@@ -15,7 +15,8 @@ token = ""           # optional: `{{ project_name }} publish` (MotherDuck → Se
 {%- if (curations and llm) or ask %}
 
 [anthropic]
-api_key = ""         # {% if curations and llm %}`{{ project_name }} classify`{% if ask %} and the Ask window{% endif %}{% else %}the Ask window{% endif %} (console.anthropic.com → API keys). It costs money: set a spending limit.
+{%- set users = ([] if not (curations and llm) else ['`' ~ project_name ~ ' classify`']) + (['the Ask window'] if ask else []) %}
+api_key = ""         # {{ users | join(' and ') }} (console.anthropic.com → API keys). It costs money: set a spending limit.
 {%- endif %}
 
 [privacy]

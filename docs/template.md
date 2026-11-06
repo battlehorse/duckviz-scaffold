@@ -21,7 +21,7 @@ it can.
 | Kind | What it is | Examples |
 |---|---|---|
 | **Answer** | a name or value that each app must have, and that differs between apps by nature | `project_name`, `app_port`, `contract_name` |
-| **Option** | a yes/no choice where each side is right for some app | `motherduck`, `cloud_run`, `backup`, `demo_data`, `curations`, `llm` |
+| **Option** | a yes/no choice where each side is right for some app | `motherduck`, `cloud_run`, `backup`, `demo_data`, `curations`, `llm`, `ask` |
 | **Capability** | something every app has. There is no question. | the contract guard, `privacy-check`, `app --tailnet`, settings in `config.toml` |
 
 **Something is an option only when both of these hold:**
@@ -67,8 +67,8 @@ These come with an option, and are asked only when it is on:
 ## Options: where apps truly differ
 
 Each option adds files, commands and skills (docs/skills.md). An update never writes seeded files, so an app that
-turns `demo_data`, `curations` or `llm` on later copies their seeded files from a fresh render (`/scaffold-update` does
-this). To turn one on later, ask Claude in plain words, such
+turns `demo_data`, `curations`, `llm` or `ask` on later copies their seeded files from a fresh render (`/scaffold-update`
+does this). For `ask`, that is its line in `docs/guides/data.md`, and `[anthropic]` in `config.example.toml`. To turn one on later, ask Claude in plain words, such
 as `/scaffold-update turn on cloud_run`. The skill reads its arguments as text, and runs `copier update` with
 `-d cloud_run=true`. Without Claude, run `uvx copier update --trust -d <option>=true`. Then review the diff like any
 update, and follow the docs it adds.
@@ -89,9 +89,11 @@ update, and follow the docs it adds.
 A hosted app, Claude, or any DuckDB client can then read the views from anywhere. Nothing is ever sent unless
 someone runs `publish`.
 
-**Off:** there is no `publish` command, so `publish` sends nothing. Other options can still send data: `llm` and `ask`
-send rows to Anthropic, and `backup` can copy to your own bucket. Choose off, with those off too, for data that must stay
-local.
+**Off:** there is no `publish` command. Other options can still send data:
+- `llm` and `ask` send rows to Anthropic.
+- `backup` copies the database to your own bucket, when `[backup] remote` is set.
+
+For data that must stay local, turn these off too.
 
 **Needed by:** `cloud_run`, because a hosted app reads the published copy.
 
@@ -189,7 +191,8 @@ Set a spend limit in the Anthropic Console before the first run: it caps what an
 
 **What it decides:** whether the user can chat with Claude about the app's data, in a drawer over each page. It costs
 money for each answer, and it sends each question and the rows of each query to Anthropic, so some apps should refuse
-it. It does not need `motherduck`: the chat reads the data the pages read.
+it. It does not need `motherduck`: the chat reads the data the pages read. It differs from the `/ask` skill, which every
+app has: that runs in Claude Code, for whoever works on the app, and the app itself sends nothing.
 
 **On:**
 - duckkit's `llm` extra (`duckkit[llm]` in `pyproject.toml`);
