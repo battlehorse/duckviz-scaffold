@@ -6,6 +6,8 @@
 font = "Hanken Grotesk, sans-serif"
 headingFont = "Hanken Grotesk, sans-serif"
 baseRadius = "6px"
+baseFontSize = 15
+metricValueFontSize = "1.9rem"
 headingFontWeights = [700, 600, 600, 600, 600, 600]
 metricValueFontWeight = 500
 showWidgetBorder = true
