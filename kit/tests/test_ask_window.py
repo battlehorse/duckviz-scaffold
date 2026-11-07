@@ -53,6 +53,9 @@ def texts(at: AppTest) -> str:
     ("<div onclick='x'>Hi</div>", "Hi"),
     ("Fruit cost $4 and veg $5", "Fruit cost \\$4 and veg \\$5"),
     ("Already \\$4", "Already \\$4"),
+    ("Run `SELECT $1, list<int>` or\n```sql\nSELECT '<b>' AS x, '$2'\n```\nfor $3", 
+     "Run `SELECT $1, list<int>` or\n```sql\nSELECT '<b>' AS x, '$2'\n```\nfor \\$3"),
+    ("```sql\nSELECT '$1' <x>", "```sql\nSELECT '$1' <x>"),
     ("Fresh is 2 < 3 and 5 > 4, see [the docs](https://docs.example)", "Fresh is 2 < 3 and 5 > 4, see [the docs](https://docs.example)"),
 ])
 def test_an_answer_loses_its_images_and_html(text, cleaned):

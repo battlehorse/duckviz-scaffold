@@ -50,7 +50,7 @@ class Turn:
     input_tokens: int = 0
     output_tokens: int = 0
     error: str | None = None
-    done: bool = False  # False after the end: the run stopped before the answer did
+    done: bool = False  # stays False when the run stopped before the answer ended
 
 
 @dataclass
@@ -73,12 +73,19 @@ class Conversation:
 _IMAGE = re.compile(r"!\[([^\]]*)\]\s*(\([^)]*\)|\[[^\]]*\])")
 _REFERENCE = re.compile(r"^ {0,3}\[[^\]]+\]:.*$", re.MULTILINE)  # "[1]: https://…", the target of a reference image
 _TAG = re.compile(r"</?[A-Za-z!][^>]*>")
+_CODE = re.compile(r"(```.*?(?:```|$)|`[^`\n]*`)", re.DOTALL)  # a fenced block (open to the end while it streams), a span
 
 
 def clean(text: str) -> str:
     """`text` with its images (inline and by reference) and its HTML tags taken out, so the browser fetches nothing.
     An image keeps its alt text. Streamlit's Markdown doesn't render HTML anyway: this is the second line. Each $ is
-    escaped, so prices stay prices."""
+    escaped, so prices stay prices. Code stays as it is: Markdown renders nothing inside it, and SQL keeps its `$1`
+    and `<`."""
+    parts = _CODE.split(text)
+    return "".join(part if i % 2 else clean_prose(part) for i, part in enumerate(parts))
+
+
+def clean_prose(text: str) -> str:
     text = _IMAGE.sub(lambda m: m.group(1), text)
     text = _REFERENCE.sub("", text)
     return dollars(_TAG.sub("", text))
@@ -166,6 +173,27 @@ def cost_log(model: str, turn: Turn) -> None:
           f"cost=${turn.cost:.4f}", file=sys.stdout, flush=True)
 
 
+@dataclass(frozen=True)
+class Totals:
+    """What a conversation has used so far: its cost, and its tokens in (cache reads and writes too) and out."""
+
+    cost: Decimal
+    input_tokens: int
+    output_tokens: int
+
+    @classmethod
+    def of(cls, usage: claude.Usage) -> Totals:
+        return cls(usage.cost, usage.input_tokens + usage.cache_read_tokens + usage.cache_write_tokens,
+                   usage.output_tokens)
+
+
+def charge(turn: Turn, before: Totals, after: Totals) -> None:
+    """Give `turn` what it used between `before` and `after`."""
+    turn.cost = after.cost - before.cost
+    turn.input_tokens = after.input_tokens - before.input_tokens
+    turn.output_tokens = after.output_tokens - before.output_tokens
+
+
 # ─── Drawing ───
 
 def queries(turn: Turn) -> list[ask.QueryResult]:
@@ -227,8 +255,7 @@ def answer(spec: AppSpec, conv: Conversation, turn: Turn, context: str | None) -
         rest = st.empty()
         with rest.container():
             working = st.status("Working…", expanded=False)
-        before = (conv.chat.usage.cost, conv.chat.usage.input_tokens + conv.chat.usage.cache_read_tokens
-                  + conv.chat.usage.cache_write_tokens, conv.chat.usage.output_tokens)
+        before = Totals.of(conv.chat.usage)
         try:
             for event in conv.chat.ask(turn.question, context=context):
                 if isinstance(event, Text):
@@ -246,20 +273,16 @@ def answer(spec: AppSpec, conv: Conversation, turn: Turn, context: str | None) -
         except LLMError as e:
             turn.error = str(e)
         finally:
-            usage = conv.chat.usage
-            turn.cost = usage.cost - before[0]
-            turn.input_tokens = usage.input_tokens + usage.cache_read_tokens + usage.cache_write_tokens - before[1]
-            turn.output_tokens = usage.output_tokens - before[2]
+            charge(turn, before, Totals.of(conv.chat.usage))
             if turn.cost:
                 cost_log(conv.model, turn)
         with rest.container():
             show_answer_parts(spec, turn, conv)
 
 
-def window(spec: AppSpec, caption: str | None = None) -> None:
-    """The drawer's contents: the data line, the model, the toggle, the conversation and the question box. A plain
-    function, so tests can draw it without the dialog."""
-    conv = conversation(spec)
+def controls(spec: AppSpec, conv: Conversation, caption: str | None) -> Conversation:
+    """The top of the drawer: the data line, the model picker and "New conversation". Returns the conversation, a new
+    one when the model changed before the first question."""
     # A question sent in this run: the picker and "New conversation" are drawn before it is answered, and lock now.
     started = bool(conv.turns or st.session_state.get("ask-question"))
     st.caption(" · ".join(p for p in (f"Reads {where(spec)}", caption) if p))
@@ -272,20 +295,32 @@ def window(spec: AppSpec, caption: str | None = None) -> None:
         # A callback runs before the rerun, so the rerun draws the new conversation.
         st.button("New conversation", icon=":material/add_comment:", disabled=not started, width="stretch",
                   on_click=lambda: st.session_state.pop(STATE, None))
-    if model and model != conv.model and not conv.turns:  # a change before the first question
+    if model and model != conv.model and not conv.turns:
         conv = st.session_state[STATE] = new_conversation(spec, model)
+    return conv
 
+
+def page_toggle() -> str | None:
+    """The "Include what's on screen" toggle, and what it lets through: the page's summary, or None."""
     include = st.toggle("Include what's on screen", value=True, key=INCLUDE,
                         help="A summary of this page (its filters and numbers) goes with each question")
     summary = screen()
     if not include:
         st.caption("Claude doesn't see the page: only your question goes.")
-    elif summary is None:
+        return None
+    if summary is None:
         st.caption("Claude has no view of this page: it gives no summary. Claude can still query the data.")
     else:
         with st.expander("What Claude sees of the page"):
             st.text(summary)
+    return summary
 
+
+def window(spec: AppSpec, caption: str | None = None) -> None:
+    """The drawer's contents: the controls, the toggle, the conversation and the question box. A plain function, so
+    tests can draw it without the dialog."""
+    conv = controls(spec, conversation(spec), caption)
+    summary = page_toggle()
     if conv.error:
         st.info(f"The Ask window can't start: {conv.error}.", icon=":material/key:")
         return
@@ -294,14 +329,15 @@ def window(spec: AppSpec, caption: str | None = None) -> None:
     live = st.container()
     question = st.chat_input("Ask about the data", key="ask-question")
     if question:
-        context = summary if include else None
-        turn = Turn(question, saw_page=context is not None)
+        turn = Turn(question, saw_page=summary is not None)
         conv.turns.append(turn)
+        context = f"What the user is looking at:\n{summary}" if summary is not None else None
         with live:
-            answer(spec, conv, turn, context and f"What the user is looking at:\n{context}")
+            answer(spec, conv, turn, context)
 
 
-@st.dialog("Ask", width="medium", position="right", icon=":material/forum:")
+# on_dismiss="ignore": closing the drawer doesn't rerun the page, so an answer goes on to its end.
+@st.dialog("Ask", width="medium", position="right", icon=":material/forum:", on_dismiss="ignore")
 def drawer(spec: AppSpec, caption: str | None = None) -> None:
     window(spec, caption)
 
