@@ -2,7 +2,7 @@
 
 It holds the client, the prices, what calls cost, and the chat loop of the Ask window. `duckkit.llm` builds on it, and
 re-exports its names. It lives under `app`, because the browser app may not import `duckkit.llm`. It needs the `llm`
-extra (the anthropic package), which it imports only when a call is made, so an app without the extra can load it.
+extra (the anthropic package), which it imports only when a `Chat` or a client is made, so an app without the extra can load it.
 
 `Chat` is one conversation. `Chat.ask` runs one question to its answer and yields what happens, so a page can show it as
 it comes:
@@ -54,11 +54,16 @@ class LLMError(RuntimeError):
     """A call to Claude failed: the message says why, for the user."""
 
 
+def check_priced(model: str) -> None:
+    """Raise LLMError for a model that PRICES does not know: its cost couldn't be counted."""
+    if model not in PRICES:
+        raise LLMError(f"no price for the model {model!r}: add it to duckkit.app.claude.PRICES")
+
+
 def estimate_cost(model: str, input_tokens: int, output_tokens: int, cache_read_tokens: int = 0,
                   cache_write_tokens: int = 0) -> Decimal:
     """The cost in $ of one request's tokens with `model`. Raises LLMError for a model that PRICES does not know."""
-    if model not in PRICES:
-        raise LLMError(f"no price for the model {model!r}: add it to duckkit.app.claude.PRICES")
+    check_priced(model)
     prompt = input_tokens + cache_read_tokens + cache_write_tokens
     price_in, price_out, price_read = LONG_PRICES.get(model, PRICES[model]) if prompt > LONG_PROMPT else PRICES[model]
     return (input_tokens * price_in + cache_write_tokens * price_in * CACHE_WRITE + cache_read_tokens * price_read
@@ -185,8 +190,7 @@ class Chat:
     usage: Usage = field(init=False)
 
     def __post_init__(self):
-        if self.model not in PRICES:
-            raise LLMError(f"no price for the model {self.model!r}: add it to duckkit.app.claude.PRICES")
+        check_priced(self.model)
         self.client = self.client or new_client(self.spec)
         self.usage = Usage(self.model)
 
@@ -196,6 +200,8 @@ class Chat:
 
         Raises LLMError. The conversation then goes back to where it was before the question, and can go on. It does the
         same when the caller stops reading: a tool call with no result would make the API refuse the next question."""
+        if not question.strip():
+            raise LLMError("the question is empty")
         before = len(self.messages)
         answered = False
         try:

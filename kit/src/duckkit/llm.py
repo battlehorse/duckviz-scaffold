@@ -38,6 +38,7 @@ from duckkit.app.claude import (
     Usage,
     anthropic_module,
     api_error,
+    check_priced,
     estimate_cost,
     new_client,
     refusal_message,
@@ -62,8 +63,7 @@ class Claude:
     usage: Usage = field(init=False)
 
     def __post_init__(self):
-        if self.model not in PRICES:
-            raise LLMError(f"no price for the model {self.model!r}: add it to duckkit.app.claude.PRICES")
+        check_priced(self.model)
         self.client = self.client or new_client(self.spec)
         self.usage = Usage(self.model)
 
