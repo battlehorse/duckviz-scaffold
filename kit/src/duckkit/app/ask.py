@@ -32,9 +32,13 @@ CELL_CAP = 500  # characters of one text value
 TIMEOUT_SECONDS = 20
 
 SAFE_TABLE_FUNCTIONS = {"unnest", "range", "generate_series"}
-# Scalar functions that read outside the query. Names are lower case, as DuckDB's parser gives them.
-UNSAFE_FUNCTIONS = {"current_setting", "getvariable", "getenv", "query", "query_table", "which_secret"}
-SYSTEM_PREFIXES = ("duckdb_", "pragma_", "sqlite_", "information_schema", "read_", "sniff_", "parquet_", "glob")
+# Functions that read outside the query, write, or hold a query up. The one denylist here, reviewed against DuckDB 1.5.6:
+# kit/tests/duckdb_functions.txt lists what was reviewed, and a test fails on any function that isn't there, so a new
+# DuckDB gets a new review. Names are lower case, as DuckDB's parser gives them.
+UNSAFE_FUNCTIONS = {"current_setting", "getvariable", "getenv", "query", "query_table", "which_secret", "current_query",
+                    "write_log", "sleep_ms", "pg_sleep"}
+SYSTEM_PREFIXES = ("duckdb_", "pragma_", "sqlite_", "information_schema", "read_", "sniff_", "parquet_", "glob",
+                   "__internal_")
 
 TOOLS = [
     {
@@ -74,7 +78,8 @@ def is_system_name(name: str) -> bool:
 
 def parse(query: str) -> dict:
     """DuckDB's parse tree of `query`. Only SELECT statements have one."""
-    tree = json.loads(duckdb.connect().execute("SELECT json_serialize_sql(?)", [query]).fetchone()[0])
+    with duckdb.connect() as parser:
+        tree = json.loads(parser.execute("SELECT json_serialize_sql(?)", [query]).fetchone()[0])
     if tree.get("error"):
         raise QueryRefused(f"only one SELECT is allowed: {tree.get('error_message', 'it could not be parsed')}")
     if len(tree["statements"]) != 1:
@@ -116,7 +121,7 @@ def check_query(query: str, views: set[str]) -> None:
             function = node["function"].get("function_name", "?").lower()
             if function not in SAFE_TABLE_FUNCTIONS:
                 raise QueryRefused(f"the table function {function} isn't allowed")
-        elif node.get("class") == "FUNCTION":
+        if "function_name" in node:  # any kind of call: a window function is its own class of node
             function = node["function_name"].lower()
             if function in UNSAFE_FUNCTIONS or is_system_name(function):
                 raise QueryRefused(f"the function {function} isn't allowed")
@@ -138,9 +143,10 @@ def run_query(connect: Callable, query: str, views: set[str]) -> QueryResult:
     try:
         cursor.execute(query)
         rows = cursor.fetchmany(ROW_CAP + 1)
+        columns = [column[0] for column in cursor.description]
     finally:
         timer.cancel()
-    columns = [column[0] for column in cursor.description]
+        cursor.close()
     return QueryResult(query, columns, [tuple(shorten(v) for v in row) for row in rows[:ROW_CAP]], len(rows) > ROW_CAP)
 
 

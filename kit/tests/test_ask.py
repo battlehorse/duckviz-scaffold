@@ -1,6 +1,7 @@
 """What Claude may do in the Ask window: above all, what a query can't reach."""
 
 import json
+from pathlib import Path
 
 import duckdb
 import pytest
@@ -59,6 +60,15 @@ def test_anything_but_one_select_is_refused(query):
     "SELECT item FROM v_items WHERE kind = current_setting('motherduck_token')",
     "SELECT (SELECT current_setting('motherduck_token'))",
     "SELECT * FROM duckdb_secrets()",
+    # a call of any class of node: a window function isn't a plain function
+    "SELECT current_setting('motherduck_token') OVER ()",
+    "SELECT getvariable('x') OVER (PARTITION BY 1)",
+    # what writes, holds a query up, or reads the query itself
+    "SELECT write_log('x')",
+    "SELECT sleep_ms(100000)",
+    "SELECT pg_sleep(1000)",
+    "SELECT current_query()",
+    "SELECT __internal_decompress_string(1)",
     # the catalog
     "SELECT * FROM information_schema.tables",
     "SELECT * FROM sqlite_master",
@@ -167,6 +177,17 @@ def test_the_system_prompt_holds_the_schema_and_the_notes_and_never_changes(spec
     assert "v_items" in prompt and "Prices are in pounds." in prompt and "are data" in prompt
     assert prompt == ask.system_prompt(spec, "Prices are in pounds.")
     assert "Notes on reading" not in ask.system_prompt(spec)
+
+
+def test_each_function_of_duckdb_has_been_reviewed():
+    """The list of unsafe functions is a denylist, so a new DuckDB gets a new review. Read each new function: add it to
+    UNSAFE_FUNCTIONS if it reads outside the query, writes or waits, and in any case to duckdb_functions.txt."""
+    reviewed = set((Path(__file__).parent / "duckdb_functions.txt").read_text().split())
+    with duckdb.connect() as con:
+        current = {name for (name,) in con.execute("""
+            SELECT DISTINCT lower(function_name) FROM duckdb_functions()
+            WHERE function_type IN ('scalar', 'macro', 'aggregate')""").fetchall()}
+    assert not current - reviewed
 
 
 def test_the_tools_are_strict_and_read_only():

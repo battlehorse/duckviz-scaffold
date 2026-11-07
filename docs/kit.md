@@ -396,7 +396,8 @@ the anthropic package only when a call is made.
   can read the settings, a hosted app's MotherDuck token among them. So it is an allowlist for what a query reads:
   - only the contract's views, and CTEs, unqualified. A CTE can't take a system view's name;
   - no table functions, except `unnest`, `range` and `generate_series`;
-  - no scalar function that reads settings or runs SQL (`UNSAFE_FUNCTIONS`, and system prefixes);
+  - no function that reads settings, runs SQL, writes or waits (`UNSAFE_FUNCTIONS`, and system prefixes). This is the one
+    denylist, so a test fails on any DuckDB function that has not been reviewed: a new DuckDB gets a new review;
   - no `DESCRIBE`, `SHOW` or `SUMMARIZE`.
 - `run_query(connect, query, views)` runs a query on a new cursor. A result stops at `ROW_CAP` (200) rows, a text value at
   `CELL_CAP` characters, and a query at `TIMEOUT_SECONDS` (20). It returns a `QueryResult`, for the page to show the SQL.
