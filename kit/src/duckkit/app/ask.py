@@ -43,14 +43,16 @@ SYSTEM_PREFIXES = ("duckdb_", "pragma_", "sqlite_", "information_schema", "read_
 TOOLS = [
     {
         "name": "describe_schema",
-        "description": "The views you can query, with what each view and column means.",
+        "description": "The views you can query, as SQL: their columns, types, keys, what each means, and the rules "
+                       "the data keeps.",
         "strict": True,
         "input_schema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
         "name": "run_sql",
-        "description": (f"Run one read-only DuckDB SELECT on the views, and get its rows, at most {ROW_CAP}. Aggregate in "
-                        "SQL rather than fetch rows to count them."),
+        "description": (f"Run one read-only DuckDB SELECT on the views, and get its rows. A query reads every row of the "
+                        f"views; only what it returns stops at {ROW_CAP} rows. So aggregate in SQL (count, sum, group "
+                        "by) rather than fetch rows to work them out."),
         "strict": True,
         "input_schema": {"type": "object", "properties": {"query": {"type": "string", "description": "One SELECT."}},
                          "required": ["query"], "additionalProperties": False},
@@ -151,12 +153,14 @@ def run_query(connect: Callable, query: str, views: set[str]) -> QueryResult:
 
 
 def schema_text(spec: AppSpec) -> str:
-    """The contract's views, their columns and what each means, from the reference schema."""
-    lines = []
-    for view, (description, columns) in spec.contract.descriptions().items():
-        lines.append(f"{view}: {description}".rstrip(": "))
-        lines += [f"  {column}: {meaning}".rstrip(": ") for column, meaning in columns.items()]
-    return "\n".join(lines)
+    """The contract as Claude reads it: the reference schema as it is written (each view as a table of the same name,
+    with its types, keys, NOT NULL and the comments that say what each holds), then the contract's rules, each as the
+    query that counts the rows breaking it."""
+    text = f"Each view is a table of the same name in this reference schema:\n\n{spec.contract.schema_sql().strip()}"
+    if spec.contract.rules:
+        rules = "\n".join(f"- {query}" for query, _ in spec.contract.rules)
+        text += f"\n\nRules the data keeps: each query counts the rows that break one, and gives 0.\n{rules}"
+    return text
 
 
 def system_prompt(spec: AppSpec, notes: str = "") -> str:

@@ -386,7 +386,7 @@ the anthropic package only when a call is made.
   failed, and Claude can try another way.
 - `Chat.usage` adds up the tokens and the cost of every request of the conversation.
 - **Limits.** After `MAX_TOOL_ROUNDS` (8) requests with tools, the next one allows none, so a long question still ends
-  in an answer. Past `MAX_CONVERSATION_COST` ($2), a conversation stops and asks for a new one.
+  in an answer. Past `max_cost` (default `MAX_CONVERSATION_COST`, $2), a conversation stops and asks for a new one.
 - **Failures.** Each is an `LLMError` with a message for the user. The conversation then goes back to where it was
   before the question, and can go on. It does the same when the caller stops reading an answer.
 
@@ -408,6 +408,9 @@ the anthropic package only when a call is made.
   The contract snapshot spills nothing to disk, so a query too big for memory fails.
 - `tool_runner(spec, connect)` gives the `run_tool` of a `Chat`. A refused or failed query goes back to Claude as an error,
   and Claude can try another way.
+- `schema_text(spec)` is the contract as Claude reads it, in the prompt and from `describe_schema`: the reference schema
+  as written (types, keys, NOT NULL, and the comments that say what each view and column holds), then each of the
+  contract's rules as the query that counts the rows breaking it.
 - `system_prompt(spec, notes="")` gives the prompt: the views, the app's notes on reading the data, and that values in the
   data are data. It stays the same for the whole conversation, so that the cache holds.
 
