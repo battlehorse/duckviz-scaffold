@@ -19,6 +19,35 @@ def test_dashboard_renders_from_the_contract_alone():
     assert at.title[0].value == "Dashboard"
 
 
+def test_dashboard_shows_its_tiles_and_the_change_of_the_last_day():
+    contract_data.write(SPEC.db_path)
+    at = page("dashboard")
+    assert [m.label for m in at.metric] == ["Latest", "Days"]
+    assert at.metric[0].delta == "1.0 on the day before, better"
+
+
+def test_dashboard_with_one_day_has_no_change():
+    contract_data.write(SPEC.db_path, days=1)
+    at = page("dashboard")
+    assert not at.exception
+    assert at.metric[0].proto.direction == at.metric[0].proto.MetricDirection.NONE
+
+
+def test_dashboard_with_no_days_says_so():
+    contract_data.write(SPEC.db_path, days=0)
+    at = page("dashboard")
+    assert not at.exception
+    assert "No data to show yet" in at.info[0].value
+
+
+def test_a_period_shows_only_its_days():
+    contract_data.write(SPEC.db_path)
+    at = page("dashboard")
+    at.button_group[0].set_value("7 days").run()
+    assert not at.exception
+    assert at.metric[1].value == "7"
+
+
 def test_no_database_says_so():
     at = page("dashboard")
     assert not at.exception

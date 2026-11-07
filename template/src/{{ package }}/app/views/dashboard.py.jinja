@@ -1,12 +1,14 @@
-"""Dashboard, the landing page: the daily values, as a chart and a table. (An example: replace it with the app's
+"""Dashboard, the landing page: the daily values, as tiles, a chart and a table. (An example: replace it with the app's
 own landing page, keeping the file name.)"""
 
 import streamlit as st
-from duckkit.app import theme
+from duckkit.app import theme, ui
 from streamlit_echarts import st_echarts
 
 from {{ package }}.app.common import DATA_ERRORS, con, no_data, sidebar, table
 from {{ package }}.query.dashboard import load_daily
+
+PERIODS = {"All": None, "30 days": 30, "7 days": 7}
 
 sidebar()
 st.title("Dashboard")
@@ -15,16 +17,47 @@ try:
 except DATA_ERRORS as e:
     no_data(e)
     st.stop()
+if daily.empty:
+    st.info("No data to show yet: the database has no days.")
+    st.stop()
+
+with ui.filter_bar():
+    period = st.segmented_control("Period", list(PERIODS), default="All", key="period") or "All"
+shown = daily.tail(PERIODS[period]) if PERIODS[period] else daily
+first, last = shown["day"].iloc[0], shown["day"].iloc[-1]
+missing = (last - first).days + 1 - len(shown)
+
+ui.section("Daily value", f"{first:%-d %b %Y} to {last:%-d %b %Y}")
+if missing:
+    ui.status("warning", f"{missing} days missing")
+else:
+    ui.status("good", "No days missing")
+
+latest, days = ui.tile_row(2)
+values = shown["value"].tolist()
+change = values[-1] - values[-2] if len(values) > 1 else None
+# `good` is the direction that is good news. Only the app knows it: say it for each value, or leave it out.
+ui.tile(latest, "Latest", f"{values[-1]:.1f}",
+        **ui.delta(change, f"{abs(change or 0):.1f} on the day before", good="up"))
+ui.tile(days, "Days", f"{len(shown)}", f"of {len(daily)}")
+
+left, right = ui.chart_row([2, 1])
+with right, ui.card("days", "Days", "Select a row to mark it on the chart"):
+    # The key holds the period: a row number means another day in another period.
+    rows = shown.assign(day=shown["day"].dt.date)  # a day, with no midnight after it
+    picked = table(rows, on_select="rerun", selection_mode="single-row", key=f"days-{period}").selection.rows
 
 m = theme.mode()
+labels = [f"{d:%Y-%m-%d}" for d in shown["day"]]
+series = {"type": "line", "data": values, "color": theme.CATEGORICAL[m][0]}
+if picked:
+    mark = {"coord": [labels[picked[0]], values[picked[0]]], "itemStyle": {"color": theme.SELECTED[m]}}
+    series["markPoint"] = {"symbol": "circle", "symbolSize": 12, "label": {"show": False}, "data": [mark]}
 option = theme.base_option(m) | {
-    "xAxis": {"type": "category", "data": [f"{d:%Y-%m-%d}" for d in daily["day"]]},
+    "xAxis": {"type": "category", "data": labels},
     "yAxis": {"type": "value", "splitLine": {"lineStyle": {"color": theme.INK[m]["grid"]}}},
-    "series": [{"type": "line", "data": daily["value"].tolist(), "color": theme.CATEGORICAL[m][0]}],
+    "series": [series],
     "tooltip": theme.base_option(m)["tooltip"] | {"trigger": "axis"},
 }
-chart, data = st.tabs(["Chart", "Table"])
-with chart:
+with left, ui.card("chart", "Over time"):
     st_echarts(option, height="360px", key=f"daily-{m}")
-with data:
-    table(daily)

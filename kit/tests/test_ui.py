@@ -84,7 +84,7 @@ def test_the_stylesheet_takes_its_colours_from_the_tokens():
 
 # Each test id in the stylesheet, and the word that the comment above its rule must use to explain it.
 TEST_IDS = {"stButtonGroup": "button", "stLayoutWrapper": "wrapper", "stHorizontalBlock": "Columns", "stColumn": "Columns",
-            "stMetricLabel": "label"}
+            "stMetricLabel": "label", "stMetricDelta": "delta", "stMarkdownContainer": "delta"}
 
 
 def test_every_test_id_in_the_stylesheet_says_why():
@@ -164,3 +164,12 @@ def test_a_fall_that_is_good_news_is_green_with_a_down_arrow_on_the_page():
     assert metric.delta == "£120 less, better"
     assert metric.proto.color == metric.proto.MetricColor.GREEN
     assert metric.proto.direction == metric.proto.MetricDirection.DOWN
+
+
+def test_a_delta_keeps_its_last_word_in_a_narrow_tile():
+    rule = re.search(r'\[data-testid="stMetricDelta"\][^{]*\{[^}]*\}', ui.stylesheet()).group()
+    assert "white-space: normal" in rule
+
+
+def test_the_favicon_is_a_file_of_the_kit():
+    assert ui.FAVICON.is_file()
