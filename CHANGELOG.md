@@ -53,15 +53,15 @@ Also: `/ingest` ends with `backup` (#98), and amounts in skills read right (#97)
      account access to it (`docs/guides/hosting.md`, steps 4 and 5). `/hosting deploy` then passes it.
 - duckkit: **`duckkit.app.ask_window`, the Ask window** (#83): with `AppSpec.ask`, `common.sidebar` adds an **Ask**
   button to every page. It opens a drawer on the right where the user asks about the data. Each answer shows its rows,
-  the SQL it ran and its cost, and pages can tell Claude what they show with `ask_context`. Settings in
-  `config.toml`: `[anthropic] model`, `effort` and `max_conversation_cost` (default USD 2). `duckkit.app.claude.MODELS` is now the one list of models, with their
-  labels and prices: `PRICES` and `FALLBACK_MODELS` come from it, with the same values. `AppSpec.ask` is off by
-  default, so no app changes. The template turns it on with the `ask` option in a later entry.
-- duckkit: **`duckkit.app.ask`, Claude's tools in the Ask window** (#83): `describe_schema` and `run_sql`, with a guard that
-  lets a query read only the contract's views, a cap of 200 rows and a timeout.
-- duckkit and template: **the browser app's data stays out of `.tmp`** (#83). `contract_snapshot` no longer spills to disk,
-  so a query too big for memory fails, where DuckDB would have written the data to `.tmp` in the app's folder, which git
-  didn't ignore. `.tmp/` is now ignored. **Steps:** an app that has a `.tmp` folder deletes it.
+  the SQL it ran and its cost, and pages can tell Claude what they show with `ask_context`. Settings in `config.toml`:
+  `[anthropic] model`, `effort` and `max_conversation_cost` (default USD 2). `duckkit.app.claude.MODELS` is now the one
+  list of models, with their labels and prices: `PRICES` and `FALLBACK_MODELS` come from it, with the same values.
+  `AppSpec.ask` is off by default, so no app changes. The template turns it on with the `ask` option in a later entry.
+- duckkit: **`duckkit.app.ask`, Claude's tools in the Ask window** (#83): `describe_schema` and `run_sql`, with a guard
+  that lets a query read only the contract's views, a cap of 200 rows and a timeout.
+- duckkit and template: **the browser app's data stays out of `.tmp`** (#83). `contract_snapshot` no longer spills to
+  disk, so a query too big for memory fails, where DuckDB would have written the data to `.tmp` in the app's folder,
+  which git didn't ignore. `.tmp/` is now ignored. **Steps:** an app that has a `.tmp` folder deletes it.
 - duckkit: **`duckkit.app.claude`, Claude for the browser app** (#83): the chat loop of the Ask window, with streaming,
   tool use, the prompt cache, and limits on rounds and spend. The client, `PRICES`, `Usage` and `LLMError` moved here
   from `duckkit.llm`, which still exports them, so no code has to change. `FakeAnthropic` also streams (`chat_reply`).
@@ -86,9 +86,9 @@ Also: `/ingest` ends with `backup` (#98), and amounts in skills read right (#97)
   `theme.change_color` give a chart the same answer as the tile beside it. A change with no good direction stays grey.
   **Steps** (optional): an app that colours a change by hand can use these.
 - duckkit: **the helpers that apps copied are now shared** (#101): `ui.filter_bar`, `ui.tile_row`, `ui.tile`,
-  `ui.chart_row`, and in `duckkit.app.theme` `contrast`, `color_distance`, `ink_on`, `mix`, `shades`, `hex_rgb`, `oklab`,
-  `to_oklch` and `from_oklch`. **Steps** (optional): an app with its own copies can delete them and use these. An app
-  that uses `label_lines` or `caption_lines` keeps its own copy of that function.
+  `ui.chart_row`, and in `duckkit.app.theme` `contrast`, `color_distance`, `ink_on`, `mix`, `shades`, `hex_rgb`,
+  `oklab`, `to_oklch` and `from_oklch`. **Steps** (optional): an app with its own copies can delete them and use these.
+  An app that uses `label_lines` or `caption_lines` keeps its own copy of that function.
 - Template and duckkit: **one modern look for every app** (#101). A managed `.streamlit/theme.toml` sets warm stone
   greys, a petrol selection colour and Hanken Grotesk, in light and dark. The font is embedded in the file, so the app
   asks no other host for it. `duckkit.app.theme` is the one source, and `INK`, `PAGE` and `FONT` have new values:
