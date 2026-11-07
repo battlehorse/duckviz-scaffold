@@ -4,10 +4,11 @@ pages/, so Streamlit's legacy multipage discovery leaves them alone."""
 from pathlib import Path
 
 import streamlit as st
+from duckkit.app import ui
 
 PAGES = Path(__file__).parent / "views"
 
-st.set_page_config(page_title="{{ title }}", page_icon=":material/monitoring:", layout="wide")
+st.set_page_config(page_title="{{ title }}", page_icon=ui.FAVICON, layout="wide")
 st.navigation([
     st.Page(PAGES / "dashboard.py", title="Dashboard", icon=":material/monitoring:", default=True),
 ]).run()

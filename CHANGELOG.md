@@ -8,6 +8,14 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 - duckkit: **`duckkit.app.ui`, the shared widgets** (#101): `section`, `subsection`, `card` and `status`, on Streamlit's
   own widgets, styled by one stylesheet that `common.sidebar` adds to every page. The selected segment of a segmented control is now solid.
   No code has to change. **Steps:** an app that draws its own sidebar calls `ui.style()`.
+- Template: **the dashboard shows the kit** (#101): a filter bar, sections, tiles, a status chip, and a table whose
+  selected row marks its day on the chart. The tab's icon is now a file, `ui.FAVICON`: a Material or emoji icon made the
+  browser ask another host for it. A metric's delta now wraps in a narrow window, so it keeps its last word. Docs give
+  the rules of colour, and the browser checks cover them. **Steps:**
+  1. In `src/<package>/app/main.py` (seeded), import `ui` from `duckkit.app`, and pass `page_icon=ui.FAVICON` to
+     `st.set_page_config`. Until then the browser asks `fonts.gstatic.com` for the icon.
+  2. Optional: copy checks 4 to 8 of `docs/design/browser-checks.md` from a new render (seeded), and change them to fit
+     the app's pages.
 - duckkit: **a change says what it means** (#101): `ui.delta(change, text, good=...)` gives a metric its arrow, its word
   ("better" or "worse") and its colour, with the app saying which direction is good. `theme.verdict` and
   `theme.change_color` give a chart the same answer as the tile beside it. A change with no good direction stays grey.

@@ -580,6 +580,8 @@ stylesheet to every page. Without it the widgets still work, and look like plain
 - `chart_row(spec, key="page")`: columns for charts, one under the other below 900px.
   A page with two filter bars, tile rows or chart rows gives each its own `key`. A tile's `note` is a grey line under
   the number: `ui.tile(columns[0], "Shops", "48", "no change")`.
+- `FAVICON`: the tab's icon, for `st.set_page_config(page_icon=ui.FAVICON)`. It is a file, because Streamlit fetches a
+  Material or emoji icon from another host.
 - `style()`: adds the stylesheet. It also makes the selected segment of a segmented control solid, in `SELECTED`. Pills
   stay as Streamlit draws them: a multi-select is often all on, and a row of solid pills shouts.
 

@@ -100,6 +100,14 @@ flowchart LR
   colours for light and dark, and the font, embedded so that the app asks no other host for it.
 - **Charts** use the shared palettes in `duckkit.app.theme`, follow the viewer's light or dark theme
   (`watch_theme`), and have a table view beside them.
+- **What a colour means** is the same in every app:
+  - **Selected:** one colour, `theme.SELECTED`, for a control, a table row and a chart mark.
+  - **Better and worse:** the app says which direction is good (`ui.delta`, `theme.change_color`). Colour shows the
+    meaning, never the direction, and always comes with an arrow and a word.
+  - **Warning and error:** fixed colours, always with an icon and a word (`ui.status`).
+  - **Chart series:** `CATEGORICAL`, in order. Red means bad news, or the eighth series, and nothing else.
+- **Pages** build on `duckkit.app.ui`: thin wrappers on Streamlit's widgets, with one stylesheet. A page that uses none
+  of it still follows the theme.
 
 ### The boundary is tested
 
