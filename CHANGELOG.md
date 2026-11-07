@@ -5,6 +5,7 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **real costs in `docs/guides/ask.md`** (#83): one paid run on the sample app replaced the estimates (about USD 0.01 a question with Sonnet 5.5, 0.03 with Opus 5.5). `docs/guides/ask.md` and the hosting guide (with `cloud_run`) are managed, so `/scaffold-update` brings them.
 - Template: **the Ask window in the app** (#83). With `ask` on, every page has an **Ask** button (`ask=True` in
   `spec.py`). The dashboard tells the window what it shows (`ask_context`), and `src/<package>/app/data_notes.md` holds
   the app's notes on reading its data, which Claude reads with every question. New managed files:
