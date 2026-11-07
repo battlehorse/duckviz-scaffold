@@ -31,6 +31,7 @@ def snapshot(closed_db, spec):
     "SELECT * FROM (VALUES (1)) t(x)",
     "SELECT upper(item), date_trunc('month', DATE '2026-01-05') FROM v_items;",
     "SELECT * FROM V_ITEMS",
+    "WITH global_totals AS (SELECT kind, sum(price) AS total FROM v_items GROUP BY kind) SELECT * FROM global_totals",
 ])
 def test_a_read_of_the_views_is_allowed(query):
     check_query(query, VIEWS)
