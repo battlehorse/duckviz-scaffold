@@ -3,9 +3,34 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
-## Unreleased
+## v0.10.0
 
-- Template: **real costs in `docs/guides/ask.md`** (#83): one paid run on the sample app replaced the estimates (about USD 0.01 a question with Sonnet 5.5, 0.03 with Opus 5.5). `docs/guides/ask.md` and the hosting guide (with `cloud_run`) are managed, so `/scaffold-update` brings them.
+Two outcomes: **one modern look for every app** (#101), with shared widgets and rules of colour, and **the Ask
+window** (#83), a chat with Claude about the app's data on every page, behind the new `ask` option (off by default).
+Also: `/ingest` ends with `backup` (#98), and amounts in skills read right (#97).
+
+**Steps, in order** (each entry below says why):
+1. Before the update: if `opt_out` in `.copier-answers.yml` names `.streamlit/config.toml` or `.streamlit/theme.toml`,
+   follow step 1 of "one modern look" below.
+2. `/scaffold-update`. It brings `.streamlit/theme.toml`, the managed skills and guides.
+3. In `src/<package>/app/main.py`, pass `page_icon=ui.FAVICON` to `st.set_page_config` (`from duckkit.app import ui`).
+   An app that draws its own sidebar, rather than calling `common.sidebar`, calls `ui.style()`.
+4. Replace colours written by hand for Streamlit's old look with `theme.SELECTED` and `theme.PAGE`, and run the
+   dataviz validator again on the app's own chart colours. With `cloud_run`, copy the colours of
+   `app/static/paused.html` from a new render.
+5. With `backup`: if the app's `ingest` command calls `duckkit.backup.backup()`, remove the call, and bring
+   `.claude/skills/ingest/SKILL.md` in line with a new render.
+6. If `doctor` reports a `$` followed by a digit in a skill or command of the app's own, write the amount as
+   "USD 0.02".
+7. Delete the `.tmp` folder, if the app has one.
+8. Optional: copy browser checks 4 to 8 from a new render, use `ui.delta` and `theme.change_color` for changes, and
+   delete the app's own copies of the helpers that duckkit now shares.
+9. Optional, to add the Ask window: `/scaffold-update turn on ask`, then the Steps of "the Ask window in the app"
+   below. It costs money for each answer, and sends query results to Anthropic (`docs/guides/ask.md`).
+
+- Template: **real costs in `docs/guides/ask.md`** (#83): one paid run on the sample app replaced the estimates
+  (about USD 0.01 a question with Sonnet 5.5, 0.03 with Opus 5.5). `docs/guides/ask.md` and the hosting guide (with
+  `cloud_run`) are managed, so `/scaffold-update` brings them.
 - Template: **the Ask window in the app** (#83). With `ask` on, every page has an **Ask** button (`ask=True` in
   `spec.py`). The dashboard tells the window what it shows (`ask_context`), and `src/<package>/app/data_notes.md` holds
   the app's notes on reading its data, which Claude reads with every question. New managed files:
@@ -28,8 +53,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
      account access to it (`docs/guides/hosting.md`, steps 4 and 5). `/hosting deploy` then passes it.
 - duckkit: **`duckkit.app.ask_window`, the Ask window** (#83): with `AppSpec.ask`, `common.sidebar` adds an **Ask**
   button to every page. It opens a drawer on the right where the user asks about the data. Each answer shows its rows,
-  the SQL it ran and its cost, and pages can tell Claude what they show with `ask_context`. Settings in `config.toml`: `[anthropic] model`, `effort`
-  and `max_conversation_cost` (default $2). `duckkit.app.claude.MODELS` is now the one list of models, with their
+  the SQL it ran and its cost, and pages can tell Claude what they show with `ask_context`. Settings in
+  `config.toml`: `[anthropic] model`, `effort` and `max_conversation_cost` (default USD 2). `duckkit.app.claude.MODELS` is now the one list of models, with their
   labels and prices: `PRICES` and `FALLBACK_MODELS` come from it, with the same values. `AppSpec.ask` is off by
   default, so no app changes. The template turns it on with the `ask` option in a later entry.
 - duckkit: **`duckkit.app.ask`, Claude's tools in the Ask window** (#83): `describe_schema` and `run_sql`, with a guard that
@@ -46,8 +71,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
   that turns it on copies the Ask line of `docs/guides/data.md`, and `[anthropic]` of `config.example.toml`, from a new
   render (both are seeded).
 - duckkit: **`duckkit.app.ui`, the shared widgets** (#101): `section`, `subsection`, `card` and `status`, on Streamlit's
-  own widgets, styled by one stylesheet that `common.sidebar` adds to every page. The selected segment of a segmented control is now solid.
-  No code has to change. **Steps:** an app that draws its own sidebar calls `ui.style()`.
+  own widgets, styled by one stylesheet that `common.sidebar` adds to every page. The selected segment of a segmented
+  control is now solid. No code has to change. **Steps:** an app that draws its own sidebar calls `ui.style()`.
 - Template: **the dashboard shows the kit** (#101): a filter bar, sections, tiles, a status chip, and a table whose
   selected row marks its day on the chart. The tab's icon is now a file, `ui.FAVICON`: a Material or emoji icon made the
   browser ask another host for it. A metric's delta now wraps in a narrow window, so it keeps its last word. Docs give
