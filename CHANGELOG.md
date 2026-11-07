@@ -13,6 +13,18 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 - duckkit: **`duckkit.app.ui`, the shared widgets** (#101): `section`, `subsection`, `card` and `status`, on Streamlit's
   own widgets, styled by one stylesheet that `common.sidebar` adds to every page. The selected segment of a segmented control is now solid.
   No code has to change. **Steps:** an app that draws its own sidebar calls `ui.style()`.
+- Template: **the dashboard shows the kit** (#101): a filter bar, sections, tiles, a status chip, and a table whose
+  selected row marks its day on the chart. The tab's icon is now a file, `ui.FAVICON`: a Material or emoji icon made the
+  browser ask another host for it. A metric's delta now wraps in a narrow window, so it keeps its last word. Docs give
+  the rules of colour, and the browser checks cover them. **Steps:**
+  1. In `src/<package>/app/main.py` (seeded), import `ui` from `duckkit.app`, and pass `page_icon=ui.FAVICON` to
+     `st.set_page_config`. Until then the browser asks `fonts.gstatic.com` for the icon.
+  2. Optional: copy checks 4 to 8 of `docs/design/browser-checks.md` from a new render (seeded), and change them to fit
+     the app's pages.
+- duckkit: **a change says what it means** (#101): `ui.delta(change, text, good=...)` gives a metric its arrow, its word
+  ("better" or "worse") and its colour, with the app saying which direction is good. `theme.verdict` and
+  `theme.change_color` give a chart the same answer as the tile beside it. A change with no good direction stays grey.
+  **Steps** (optional): an app that colours a change by hand can use these.
 - duckkit: **the helpers that apps copied are now shared** (#101): `ui.filter_bar`, `ui.tile_row`, `ui.tile`,
   `ui.chart_row`, and in `duckkit.app.theme` `contrast`, `color_distance`, `ink_on`, `mix`, `shades`, `hex_rgb`, `oklab`,
   `to_oklch` and `from_oklch`. **Steps** (optional): an app with its own copies can delete them and use these. An app
@@ -20,8 +32,8 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 - Template and duckkit: **one modern look for every app** (#101). A managed `.streamlit/theme.toml` sets warm stone
   greys, a petrol selection colour and Hanken Grotesk, in light and dark. The font is embedded in the file, so the app
   asks no other host for it. `duckkit.app.theme` is the one source, and `INK`, `PAGE` and `FONT` have new values:
-  code that uses the names follows on its own. New names: `SELECTED`, `SIDEBAR`, `BORDER`, `TABLE_HEADER`, `RED`,
-  `GREEN`, `streamlit_theme()`. **Steps:**
+  code that uses the names follows on its own. New names: `SELECTED`, `SIDEBAR`, `BORDER`, `TABLE_HEADER`, `GOOD`,
+  `BAD`, `streamlit_theme()`. **Steps:**
   1. If `opt_out` names `.streamlit/config.toml`, add the `[theme]` table from a new render by hand. If it names
      `.streamlit/theme.toml`, remove that entry, or remove `base` from `config.toml`: it would point at a missing file,
      and `PAGE`, `INK` and `SELECTED` would no longer match the page.
