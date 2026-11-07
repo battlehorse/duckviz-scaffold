@@ -58,9 +58,9 @@ In `config.toml`, under `[anthropic]`:
 ## What it costs
 
 Each answer shows its cost, and the app's log has one line per answer (`ask: model=… cost=…`, never the question).
-Measured on the scaffold's sample app (two views, a few lines of notes), at the default effort: a question took one or
-two queries and cost about USD 0.01 with Sonnet 5.5 and USD 0.03 with Opus 5.5. A follow-up in the same conversation
-cost a little less, because the prompt cache serves what was sent before. An app with more views, longer notes or
+Measured on the scaffold's sample app (two views, a few lines of notes), at the default effort (`medium`): a question
+cost about USD 0.01 with Sonnet 5.5 and USD 0.03 with Opus 5.5. A follow-up in the same conversation cost a little
+less: the prompt cache makes what was already sent cheaper to read again. An app with more views, longer notes or
 harder questions costs more: each answer shows its own cost, which is the one to trust. A long conversation costs more
 for each question, because Claude rereads it: start a new one for a new subject.
 
