@@ -169,6 +169,13 @@ def test_a_spent_conversation_stops_before_it_sends(spec):
     assert not c.client.requests and not c.messages
 
 
+def test_the_model_lists_come_from_one_table():
+    assert set(claude.PRICES) == set(claude.MODELS)
+    assert claude.FALLBACK_MODELS == {"claude-opus-5-5", "claude-sonnet-5-5"}
+    assert claude.CHAT_MODELS == {"claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5"}
+    assert claude.DEFAULT_MODEL in claude.CHAT_MODELS
+
+
 def test_a_conversation_can_have_its_own_spend_limit(spec):
     c = chat(spec, chat_reply("One."), chat_reply("Never sent."), max_cost=Decimal("0.5"))
     list(c.ask("First"))

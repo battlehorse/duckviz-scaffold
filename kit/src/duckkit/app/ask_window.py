@@ -25,15 +25,26 @@ import pandas as pd
 import streamlit as st
 
 from duckkit.app import ask, claude, common
-from duckkit.app.claude import CHAT_EFFORT, DEFAULT_MODEL, Chat, LLMError, Progress, Text, ToolCall
+from duckkit.app.claude import (
+    CHAT_EFFORT,
+    CHAT_MODELS,
+    DEFAULT_MODEL,
+    MAX_CONVERSATION_COST,
+    Chat,
+    LLMError,
+    Progress,
+    Text,
+    ToolCall,
+)
 from duckkit.spec import AppSpec
 
-MODELS = {"claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5"}  # the picker's choices
 STATE = "ask-conversation"  # st.session_state keys
 CONTEXT = "ask-context"
 INCLUDE = "ask-include-screen"
 PICKER = "ask-model"
-NOTES_FILE = "data_notes.md"  # next to the app's main.py: the app's notes on reading the data
+# The app's notes on reading its data ("amounts are in pounds", "refunds are negative"), next to its main.py, so they
+# ship with a hosted app. They go in the system prompt. The template seeds the file. Without it, the window still works.
+DATA_NOTES_FILE = "data_notes.md"
 
 new_client: Callable = claude.new_client  # tests and browser checks put a FakeAnthropic here
 
@@ -122,9 +133,9 @@ def screen() -> str | None:
 # ─── Settings and the conversation ───
 
 def default_model(spec: AppSpec) -> str:
-    """`[anthropic] model` in config.toml, when it is one of MODELS."""
+    """`[anthropic] model` in config.toml, when it is one of CHAT_MODELS."""
     model = spec.setting("anthropic", "model", default=DEFAULT_MODEL)
-    return model if model in MODELS else DEFAULT_MODEL
+    return model if model in CHAT_MODELS else DEFAULT_MODEL
 
 
 def effort(spec: AppSpec) -> str:
@@ -132,10 +143,15 @@ def effort(spec: AppSpec) -> str:
     return spec.setting("anthropic", "effort", default=CHAT_EFFORT)
 
 
+def max_cost(spec: AppSpec) -> Decimal:
+    """`[anthropic] max_conversation_cost` in config.toml: past this many $, a conversation stops."""
+    return Decimal(str(spec.setting("anthropic", "max_conversation_cost", default=MAX_CONVERSATION_COST)))
+
+
 def notes(spec: AppSpec) -> str:
-    """The app's notes on reading the data (NOTES_FILE, next to main.py), or "" without them."""
+    """The app's notes on reading the data (DATA_NOTES_FILE, next to main.py), or "" without them."""
     try:
-        return (spec.main_script().parent / NOTES_FILE).read_text().strip()
+        return (spec.main_script().parent / DATA_NOTES_FILE).read_text().strip()
     except FileNotFoundError:
         return ""
 
@@ -144,7 +160,7 @@ def new_conversation(spec: AppSpec, model: str) -> Conversation:
     """A conversation with `model`, on the snapshot the pages read."""
     try:
         chat = Chat(spec, ask.system_prompt(spec, notes(spec)), ask.TOOLS,
-                    ask.tool_runner(spec, lambda: common.con(spec)), model=model, effort=effort(spec),
+                    ask.tool_runner(spec, lambda: common.con(spec)), model=model, effort=effort(spec), max_cost=max_cost(spec),
                     client=new_client(spec))
     except LLMError as e:
         return Conversation(model, error=str(e))
@@ -215,7 +231,7 @@ def frame(result: ask.QueryResult) -> pd.DataFrame:
 
 def cost_line(turn: Turn, conv: Conversation) -> str:
     tokens = f"{turn.input_tokens:,} in / {turn.output_tokens:,} out"
-    return f"This answer ≈ ${turn.cost:.2f} ({tokens}) · conversation ≈ ${conv.cost:.2f} · {MODELS[conv.model]}"
+    return f"This answer ≈ ${turn.cost:.2f} ({tokens}) · conversation ≈ ${conv.cost:.2f} · {CHAT_MODELS[conv.model]}"
 
 
 def show_answer_parts(spec: AppSpec, turn: Turn, conv: Conversation) -> None:
@@ -288,7 +304,7 @@ def controls(spec: AppSpec, conv: Conversation, caption: str | None) -> Conversa
     st.caption(" · ".join(p for p in (f"Reads {where(spec)}", caption) if p))
     top = st.columns([3, 2], vertical_alignment="center")
     with top[0]:
-        model = st.segmented_control("Model", list(MODELS), format_func=MODELS.get, default=conv.model, key=PICKER,
+        model = st.segmented_control("Model", list(CHAT_MODELS), format_func=CHAT_MODELS.get, default=conv.model, key=PICKER,
                                      disabled=started, label_visibility="collapsed",
                                      help="Locked after the first question: a new conversation can change it")
     with top[1]:

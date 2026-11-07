@@ -436,9 +436,10 @@ imports this module, nor the anthropic package.
   so in the drawer. Claude gets the data, not the pixels.
 - **`clean(text)`:** answers lose their images and HTML before they render, so the browser fetches nothing that text in
   the data could have asked for. Each `$` is escaped, since Streamlit's Markdown reads `$4 and $5` as LaTeX.
-- **Settings**, in `config.toml`: `[anthropic] api_key`, `model` (the picker's default) and `effort` (default
-  `medium`). Without a key, the drawer says where to set one. The app's notes on reading the data, `data_notes.md`
-  next to `main.py`, go in the system prompt when the file exists.
+- **Settings**, in `config.toml`: `[anthropic] api_key`, `model` (the picker's default, one of `CHAT_MODELS`),
+  `effort` (default `medium`) and `max_conversation_cost` (default 2: past this many $, a conversation stops). Without a key, the drawer says where to set one. The app's notes on reading the data
+  (`DATA_NOTES_FILE`, `data_notes.md` next to `main.py`: units, signs, conventions) go in the system prompt when the
+  file exists. It sits in `src/`, so it ships with a hosted app.
 - **Tests and browser checks** set `ask_window.new_client` to a function that returns a `FakeAnthropic`. `window(spec)` draws
   the drawer's contents without the dialog, for `AppTest`.
 - **Limits:** a turn that the page stops mid-answer (a rerun) shows that it stopped, and its tokens so far are not
@@ -465,6 +466,8 @@ and `LLMError` come from [`duckkit.app.claude`](#duckkitappclaude), and stay imp
 - `Claude.usage` (`Usage`) adds up the tokens of the run's calls: input, cache writes, cache reads and output.
   `usage.cost` is their cost in $, and `usage.line()` is one line for the command's output. After a server-side
   fallback, a call counts only the attempt that answered, at the requested model's prices: its cost is approximate.
+- `MODELS` (in `duckkit.app.claude`) is the one list of models: each one's label, prices, server-side fallback, and
+  whether the Ask window offers it. `PRICES`, `FALLBACK_MODELS` and `CHAT_MODELS` come from it.
 - `PRICES` gives $ per million tokens for each model: input, output and cache read. A cache write costs 1.25 times
   the input price. `estimate_cost(model, input_tokens, output_tokens, cache_read_tokens=0, cache_write_tokens=0)`
   prices one request's tokens. Over 100K prompt tokens, Claude Haiku 5.5 costs 5 times as much (`LONG_PRICES`), so

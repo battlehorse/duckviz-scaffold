@@ -2,6 +2,7 @@
 
 import subprocess
 import sys
+from decimal import Decimal
 
 import pytest
 from streamlit.testing.v1 import AppTest
@@ -163,12 +164,16 @@ def test_the_default_model_and_effort_come_from_config(fake, spec):
     assert fake.requests[0]["output_config"] == {"effort": "low"}
     spec.config_path.write_text('[anthropic]\nmodel = "gpt"\n')
     assert ask_window.default_model(spec) == "claude-opus-5-5"
+    assert ask_window.max_cost(spec) == 2
+    spec.config_path.write_text('[anthropic]\nmax_conversation_cost = 0.5\n')
+    assert ask_window.max_cost(spec) == Decimal("0.5")
+    assert ask_window.new_conversation(spec, "claude-opus-5-5").chat.max_cost == Decimal("0.5")
 
 
 def test_the_notes_next_to_main_go_in_the_system_prompt(fake, spec):
     app = spec.main_script().parent
     app.mkdir(parents=True)
-    (app / ask_window.NOTES_FILE).write_text("Prices are in pounds.\n")
+    (app / ask_window.DATA_NOTES_FILE).write_text("Prices are in pounds.\n")
     fake.replies += [chat_reply("One.")]
     ask(window_page(spec).run(), "First?")
     assert "Notes on reading the data:\nPrices are in pounds." in fake.requests[0]["system"][0]["text"]
