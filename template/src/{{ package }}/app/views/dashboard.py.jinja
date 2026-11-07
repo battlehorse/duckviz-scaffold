@@ -27,18 +27,18 @@ shown = daily.tail(PERIODS[period]) if PERIODS[period] else daily
 first, last = shown["day"].iloc[0], shown["day"].iloc[-1]
 missing = (last - first).days + 1 - len(shown)
 
-ui.section("Daily value", f"{first:%-d %b %Y} to {last:%-d %b %Y}")
+ui.section("Daily value", f"{first:%d %b %Y} to {last:%d %b %Y}")
 if missing:
-    ui.status("warning", f"{missing} days missing")
+    ui.status("warning", f"{missing} {'day' if missing == 1 else 'days'} missing")
 else:
     ui.status("good", "No days missing")
 
 latest, days = ui.tile_row(2)
 values = shown["value"].tolist()
 change = values[-1] - values[-2] if len(values) > 1 else None
+text = f"{abs(change):.1f} on the day before" if change is not None else "no day before"
 # `good` is the direction that is good news. Only the app knows it: say it for each value, or leave it out.
-ui.tile(latest, "Latest", f"{values[-1]:.1f}",
-        **ui.delta(change, f"{abs(change or 0):.1f} on the day before", good="up"))
+ui.tile(latest, "Latest", f"{values[-1]:.1f}", **ui.delta(change, text, good="up"))
 ui.tile(days, "Days", f"{len(shown)}", f"of {len(daily)}")
 
 left, right = ui.chart_row([2, 1])

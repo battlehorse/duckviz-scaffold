@@ -51,12 +51,12 @@ def stylesheet() -> str:
   color: {both(on_selected)} !important;
 }}
 [data-testid="stButtonGroup"] button[aria-checked="true"] p {{ color: inherit !important; }}
-/* The filter bar stays under Streamlit's header (60px, opaque) as the page scrolls. The sticky element is the layout
+/* The filter bar stays under Streamlit's header (3.75rem, opaque) as the page scrolls. The sticky element is the layout
    wrapper, which has no key, so its test id finds it: the container alone is as tall as its wrapper, so it has no room
    to stick. Off on narrow windows, where the bar would fill the screen. */
 @media (min-width: 900px) {{
   [data-testid="stLayoutWrapper"]:has(> [class*="st-key-ui-filters-"]) {{
-    position: sticky; top: 60px; z-index: 100; background-color: {both(theme.PAGE)};
+    position: sticky; top: 3.75rem; z-index: 100; background-color: {both(theme.PAGE)};
     border-bottom: 1px solid {both(theme.BORDER)};
     box-shadow: 0 8px 10px -8px light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.35));
     padding-bottom: 0.5rem; margin-bottom: 0.5rem;

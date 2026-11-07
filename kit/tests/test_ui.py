@@ -171,5 +171,10 @@ def test_a_delta_keeps_its_last_word_in_a_narrow_tile():
     assert "white-space: normal" in rule
 
 
-def test_the_favicon_is_a_file_of_the_kit():
-    assert ui.FAVICON.is_file()
+def test_the_favicon_is_a_file_of_the_kit_in_the_colours_of_the_theme():
+    icon = ui.FAVICON.read_text()
+    assert theme.SELECTED["light"] in icon and theme.PAGE["light"] in icon
+
+
+def test_the_filter_bar_sticks_right_under_the_header_at_any_font_size():
+    assert "top: 3.75rem" in ui.stylesheet()  # the header's height is in rem: in px, a gap opens at another base size
