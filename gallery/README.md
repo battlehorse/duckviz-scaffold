@@ -16,5 +16,5 @@ uv run pytest -q              # every block draws, and shows its own code
 
 The gallery never calls Claude, even with a key in the environment: the Ask window's drawer says that it can't start.
 
-When a block is added to duckkit's look (a new widget in `duckkit.app.ui`, a new token in `duckkit.app.theme`), add a
-block here with `@block`.
+When something is added to duckkit's look (a new widget in `duckkit.app.ui`, a new token in `duckkit.app.theme`), add
+a block for it to `blocks.py`, with `@block`. `app.py` draws the page.

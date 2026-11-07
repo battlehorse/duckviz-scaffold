@@ -28,4 +28,4 @@ testpaths = ["tests"]
 line-length = 120
 
 [tool.ruff.lint.isort]
-known-first-party = ["duckkit"]
+known-first-party = ["duckkit", "blocks"]
