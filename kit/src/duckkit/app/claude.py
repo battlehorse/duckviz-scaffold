@@ -23,8 +23,13 @@ from decimal import Decimal
 from duckkit.spec import AppSpec
 
 DEFAULT_MODEL = "claude-opus-5-5"
+# The server-side fallback: when the model is overloaded, the API retries the request on a fallback model instead of
+# failing. The `fallbacks` argument works only with this beta. An answer from the fallback model is priced here at the
+# requested model's prices, so its cost is approximate.
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
-UPDATES_BETA = "thinking-display-updates-2026-08-18"  # short notes between tool calls, so a long answer doesn't look stuck
+# Progress notes: Claude writes a short note between tool calls ("Counting the items of each kind"), which the Ask window
+# shows while it works, so a long answer doesn't look stuck.
+PROGRESS_NOTES_BETA = "thinking-display-updates-2026-08-18"
 
 # $ per million tokens: (input, output, cache read). A cache write (5 minutes) costs 1.25 times the input price.
 # Claude Haiku 5.5's cache read is the usual tenth of its input price (the pricing page gives no separate figure).
@@ -42,7 +47,7 @@ FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5"}  # Claude Haiku 5.5 h
 CHAT_EFFORT = "medium"
 CHAT_MAX_TOKENS = 64000
 MAX_TOOL_ROUNDS = 8  # requests with tools in one answer: the one after them allows none, and must answer
-MAX_CONVERSATION_COST = Decimal(2)  # $: past this, a conversation stops and asks for a new one
+MAX_CONVERSATION_COST = Decimal(2)  # $: past this, a conversation stops and asks for a new one. Chat(max_cost=…) changes it
 
 
 class LLMError(RuntimeError):
@@ -174,6 +179,7 @@ class Chat:
     run_tool: Callable[[str, dict], ToolResult]
     model: str = DEFAULT_MODEL
     effort: str = CHAT_EFFORT
+    max_cost: Decimal = MAX_CONVERSATION_COST  # $: past this, the conversation stops and asks for a new one
     client: object = None
     messages: list[dict] = field(default_factory=list)
     usage: Usage = field(init=False)
@@ -220,13 +226,13 @@ class Chat:
                 del self.messages[before:]
 
     def _check_spend(self) -> None:
-        if self.usage.cost >= MAX_CONVERSATION_COST:
+        if self.usage.cost >= self.max_cost:
             raise LLMError(f"this conversation has cost ${self.usage.cost:.2f}: start a new one to go on")
 
     def _request(self, allow_tools: bool):
         """Stream one request, yield its text and notes, and return the whole response."""
         fallback = {"fallbacks": "default"} if self.model in FALLBACK_MODELS else {}
-        betas = [UPDATES_BETA, *([FALLBACK_BETA] if fallback else [])]
+        betas = [PROGRESS_NOTES_BETA, *([FALLBACK_BETA] if fallback else [])]
         with self.client.beta.messages.stream(
             model=self.model,
             max_tokens=CHAT_MAX_TOKENS,

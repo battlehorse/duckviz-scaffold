@@ -109,13 +109,13 @@ def test_the_settings_of_each_request(spec):
     assert request["model"] == "claude-sonnet-5-5" and request["output_config"] == {"effort": "medium"}
     assert request["thinking"] == {"type": "adaptive", "display": "updates"}
     assert request["tool_choice"] == {"type": "auto"} and request["fallbacks"] == "default"
-    assert set(request["betas"]) == {claude.UPDATES_BETA, claude.FALLBACK_BETA}
+    assert set(request["betas"]) == {claude.PROGRESS_NOTES_BETA, claude.FALLBACK_BETA}
 
 
 def test_a_model_with_no_fallback_asks_for_none(spec):
     c = chat(spec, chat_reply("Done."), model="claude-haiku-5-5")
     list(c.ask("First"))
-    assert "fallbacks" not in c.client.requests[0] and c.client.requests[0]["betas"] == [claude.UPDATES_BETA]
+    assert "fallbacks" not in c.client.requests[0] and c.client.requests[0]["betas"] == [claude.PROGRESS_NOTES_BETA]
 
 
 def test_the_last_round_allows_no_tool_so_there_is_an_answer(spec):
@@ -167,6 +167,15 @@ def test_a_spent_conversation_stops_before_it_sends(spec):
     with pytest.raises(LLMError, match="start a new one"):
         list(c.ask("First"))
     assert not c.client.requests and not c.messages
+
+
+def test_a_conversation_can_have_its_own_spend_limit(spec):
+    c = chat(spec, chat_reply("One."), chat_reply("Never sent."), max_cost=Decimal("0.5"))
+    list(c.ask("First"))
+    c.usage.cost = Decimal("0.5")
+    with pytest.raises(LLMError, match=r"\$0.50: start a new one"):
+        list(c.ask("Second"))
+    assert len(c.client.requests) == 1
 
 
 def test_spend_is_checked_between_rounds_too(spec):
@@ -268,7 +277,7 @@ def test_the_real_sdk_builds_the_request_and_reads_the_stream(spec):
     headers, first = sent[0]
     assert first["stream"] is True and first["thinking"] == {"type": "adaptive", "display": "updates"}
     assert first["fallbacks"] == "default" and first["output_config"] == {"effort": "medium"}
-    assert claude.UPDATES_BETA in headers["anthropic-beta"] and claude.FALLBACK_BETA in headers["anthropic-beta"]
+    assert claude.PROGRESS_NOTES_BETA in headers["anthropic-beta"] and claude.FALLBACK_BETA in headers["anthropic-beta"]
     second = sent[1][1]["messages"]
     assert [m["role"] for m in second] == ["user", "assistant", "user"]
     assert second[1]["content"][0]["signature"] == "sig", "a thinking block goes back whole"
