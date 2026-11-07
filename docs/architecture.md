@@ -108,6 +108,10 @@ flowchart LR
   - **Chart series:** `CATEGORICAL`, in order. Red means bad news, or the eighth series, and nothing else.
 - **Pages** build on `duckkit.app.ui`: thin wrappers on Streamlit's widgets, with one stylesheet. A page that uses none
   of it still follows the theme.
+- **The Ask window** (the `ask` option): a drawer over every page, where Claude answers questions with read-only
+  queries of the same snapshot, through a guard that lets a query read only the contract's views. A page tells it what
+  it shows with `ask_context`. It sends the question and the rows of each query to Anthropic (docs/kit.md,
+  `duckkit.app.ask_window`).
 
 ### The boundary is tested
 

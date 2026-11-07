@@ -46,7 +46,7 @@ A deploy builds the code of this machine's working tree, so the tree must be the
    ```sh
    gcloud run deploy {{ project_name }} --source . --project={{ gcp_project }} --region={{ gcp_region }} \
        --service-account={{ project_name }}-app@{{ gcp_project }}.iam.gserviceaccount.com \
-       --set-secrets=MOTHERDUCK_TOKEN=motherduck-token:latest \
+       --set-secrets=MOTHERDUCK_TOKEN=motherduck-token:latest{% if ask %},ANTHROPIC_API_KEY=anthropic-api-key:latest{% endif %} \
        --update-labels=commit=<commit> --update-env-vars={{ env_prefix }}_VERSION=<commit> \
        --no-allow-unauthenticated --iap \
        --min-instances=0 --max-instances=1 --cpu=1 --memory=1Gi --timeout=3600 --session-affinity --quiet

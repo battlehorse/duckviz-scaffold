@@ -22,12 +22,16 @@ Read docs/work/scaffold.md (how updates work) and docs/work/deviations.md (where
    - An option can have its own answers: `motherduck` has `motherduck_db`, and `cloud_run` has `gcp_project` and
      `gcp_region`. `--defaults` would take their defaults without a question. So ask the user for each one first,
      and add `-d <answer>=<value>`. `cloud_run` needs `motherduck` on, and `llm` needs `curations`.
-   - An update never writes seeded files. So `demo_data`, `curations` and `llm` bring their managed files only, not
-     their seeded ones (the code in `src/{{ package }}/`, its tests and the `/demo-data`, `/fix-curation` or
-     `/classify` skill, and `config.example.toml`). Render a
+   - An update never writes seeded files. So `demo_data`, `curations`, `llm` and `ask` bring their managed files
+     only, not their seeded ones (the code in `src/{{ package }}/`, its tests and the `/demo-data`, `/fix-curation`
+     or `/classify` skill, and `config.example.toml`). Render a
      new app with this repo's answers and the option on in a temporary folder (`uvx copier copy`). Then copy the
      seeded files that the option adds, and merge their parts that go into this app's own files, such as the
      commands in `cli.py`.
+   - `ask` lives mostly in seeded files: set `ask=True` in `src/{{ package }}/spec.py`, copy
+     `src/{{ package }}/app/data_notes.md` and write the app's own notes in it, and add an `ask_context` call to each
+     page, built from the values it shows (docs/guides/ask.md). Without the calls, the window works but can't see the
+     pages.
 3. **Read the release notes**: the scaffold's CHANGELOG.md entries between `_commit` before and after
    (`git diff .copier-answers.yml`). Do the steps they list by hand.
 4. **Resolve conflicts.** `git grep -n '^<<<<<<< '`. For each:

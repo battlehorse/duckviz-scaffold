@@ -69,6 +69,7 @@ def test_a_question_streams_an_answer_with_its_rows_queries_and_cost(fake, spec,
     at = ask(window_page(spec).run(), "How many items of each kind?")
     shown = texts(at)
     assert "Fruit has **2** items." in shown
+    assert [m.avatar for m in at.chat_message] == [ask_window.USER_AVATAR, ask_window.CLAUDE_AVATAR]
     assert QUERY[1]["query"] in shown and "Returned 2 rows." in shown
     assert at.expander[-1].label == "Queries (1)"
     assert at.dataframe[0].value.to_dict("list") == {"kind": ["fruit", "veg"], "items": [2, 1]}

@@ -97,3 +97,39 @@ def test_no_database_says_so():
     at = page("dashboard")
     assert not at.exception
     assert "No data to show yet" in at.info[0].value
+{%- if ask %}
+
+
+def test_dashboard_tells_the_ask_window_what_it_shows():
+    from duckkit.app import ask_window
+
+    contract_data.write(SPEC.db_path)
+    at = page("dashboard")
+    _, summary = at.session_state[ask_window.CONTEXT]
+    assert "Period: All" in summary and "10 days" in summary and "Latest value: 1.0, 1.0 on the day before, better." in summary
+    at.button_group[0].set_value("7 days").run()
+    assert "Period: 7 days" in at.session_state[ask_window.CONTEXT][1]
+
+
+def test_the_ask_window_answers_from_the_contract(monkeypatch):
+    """With the scripted Claude of tests/app/fake_ask.py: no key, no network."""
+    from duckkit.app import ask_window
+
+    from tests.app.fake_ask import QUERY, ScriptedClaude
+
+    contract_data.write(SPEC.db_path)
+    st.cache_resource.clear()
+    monkeypatch.setattr(ask_window, "new_client", lambda spec: ScriptedClaude())
+    monkeypatch.setattr("tests.app.fake_ask.PAUSE", 0)
+
+    def script(spec):
+        from duckkit.app import ask_window
+
+        ask_window.window(spec)
+
+    at = AppTest.from_function(script, kwargs={"spec": SPEC}, default_timeout=30).run()
+    at.chat_input(key="ask-question").set_value("What happened last week?").run()
+    assert not at.exception
+    assert QUERY in [c.value for c in at.code]
+    assert len(at.dataframe[0].value) == 7
+{%- endif %}

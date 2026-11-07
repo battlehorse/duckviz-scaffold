@@ -1,0 +1,10 @@
+# Notes on reading the data
+
+The Ask window gives these notes to Claude with every question, after the contract's views (docs/guides/ask.md).
+Write what a careful reader of the views couldn't guess: units, signs, time zones, what to sum and what not to.
+Keep them short: every line costs tokens on every question. (Examples: replace them with the app's own.)
+
+- `v_daily.value` is the day's total. Sum it over days for a period total; never average the totals of periods
+  of different lengths.
+- A day is the local day ({{ timezone }}).
+- A day with no row has no data: it is not a zero.

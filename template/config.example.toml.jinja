@@ -17,6 +17,11 @@ token = ""           # optional: `{{ project_name }} publish` (MotherDuck → Se
 [anthropic]
 {%- set users = ([] if not (curations and llm) else ['`' ~ project_name ~ ' classify`']) + (['the Ask window'] if ask else []) %}
 api_key = ""         # {{ users | join(' and ') }} (console.anthropic.com → API keys). It costs money: set a spending limit.
+{%- if ask %}
+model = "claude-opus-5-5"     # the Ask window's default model: claude-opus-5-5 or claude-sonnet-5-5
+effort = "medium"             # the Ask window's effort, how hard Claude thinks: low, medium, high, xhigh or max
+max_conversation_cost = 2     # $: past this, a conversation stops and asks for a new one (docs/guides/ask.md)
+{%- endif %}
 {%- endif %}
 
 [privacy]

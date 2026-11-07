@@ -1,0 +1,57 @@
+"""The app with a scripted Claude, for the Ask window's browser checks: no key, no cost, no network.
+
+    uv run streamlit run tests/app/fake_ask.py --server.port {{ app_port + 50 }}
+
+Each question gets the same answer: Claude queries the last 7 days of `v_daily` (the query runs on the real snapshot,
+through the guard), then says what it did. The answer streams word by word, slowly enough to close the drawer during
+it. Everything else is the app itself (`src/{{ package }}/app/main.py`).
+"""
+
+import runpy
+import time
+from types import SimpleNamespace
+
+from duckkit.app import ask_window
+from duckkit.testing import FakeAnthropic, FakeStream, chat_reply
+
+from {{ package }}.spec import SPEC
+
+QUERY = "SELECT day, value FROM v_daily ORDER BY day DESC LIMIT 7"
+PAUSE = 0.15  # seconds before each word, and 7 times that before a note: time to close the drawer mid-answer
+ANSWER = ("These are the last **7 days** of `v_daily`, newest first: the table and the query are under this answer. "
+          "This is a scripted answer for the browser checks: no question went to Anthropic, and it cost nothing.")
+
+
+class SlowStream(FakeStream):
+    """The reply's text a word at a time, with a pause before each piece."""
+
+    def __iter__(self):
+        for event in super().__iter__():
+            if event.delta.type != "text_delta":
+                time.sleep(PAUSE * 7)
+                yield event
+                continue
+            for word in event.delta.text.split(" "):
+                time.sleep(PAUSE)
+                yield SimpleNamespace(type="content_block_delta",
+                                      delta=SimpleNamespace(type="text_delta", text=word + " "))
+
+
+class ScriptedClaude(FakeAnthropic):
+    """Answers every question with a query, then the answer: as many questions as the check asks."""
+
+    def _next(self, **request):
+        last = request["messages"][-1]["content"]
+        after_query = isinstance(last, list) and last and last[0].get("type") == "tool_result"
+        self.replies = [chat_reply(ANSWER, input_tokens=2000, cache_read=30000, output_tokens=150) if after_query else
+                        chat_reply(progress="Reading the last week of the daily values.",
+                                   tools=(("run_sql", {"query": QUERY}),))]
+        return super()._next(**request)
+
+    def _stream(self, **request):
+        return SlowStream(self._next(**request))
+
+
+if __name__ == "__main__":  # as `streamlit run` runs it; the guard's tests only import it
+    ask_window.new_client = lambda spec: ScriptedClaude()
+    runpy.run_path(str(SPEC.main_script()), run_name="__main__")

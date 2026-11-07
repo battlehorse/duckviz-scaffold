@@ -21,6 +21,9 @@ SPEC = AppSpec(
     {%- endif %}
     timezone="{{ timezone }}",
     motherduck_target={{ ('"md:' ~ motherduck_db ~ '"') if motherduck else 'None' }},
+    {%- if ask %}
+    ask=True,  # the Ask window on every page (docs/guides/ask.md)
+    {%- endif %}
     apps=[
         AppEntry("app", port={{ app_port }}, title="{{ title }}"),
         {%- for a in extra_apps %}
