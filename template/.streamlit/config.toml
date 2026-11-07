@@ -8,3 +8,6 @@ gatherUsageStats = false
 
 [client]
 toolbarMode = "viewer"  # hide the Deploy button and developer options; keep settings (theme)
+
+[theme]
+base = ".streamlit/theme.toml"  # the look every app shares (duckkit.app.theme): `copier update` keeps it current
