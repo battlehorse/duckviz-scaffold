@@ -139,3 +139,28 @@ def test_only_a_single_choice_is_solid():
     """A multi-select is often all on, and a row of solid pills shouts."""
     css = ui.stylesheet()
     assert 'aria-checked="true"' in css and 'aria-pressed="true"' not in css
+
+
+@pytest.mark.parametrize(("change", "good", "text", "color", "arrow"), [
+    (-120, "down", "£120 less, better", "green", "down"),
+    (120, "down", "£120 less, worse", "red", "up"),
+    (120, "up", "£120 less, better", "green", "up"),
+    (-120, None, "£120 less", "gray", "down"),
+    (0, "down", "£120 less", "gray", "off"),
+    (None, "down", "£120 less", "gray", "off"),
+    (float("nan"), "down", "£120 less", "gray", "off"),
+])
+def test_a_delta_shows_its_direction_and_its_meaning(change, good, text, color, arrow):
+    assert ui.delta(change, "£120 less", good) == {"delta": text, "delta_color": color, "delta_arrow": arrow}
+
+
+def test_a_fall_that_is_good_news_is_green_with_a_down_arrow_on_the_page():
+    def page():
+        from duckkit.app import ui
+        where = ui.tile_row(1)[0]
+        ui.tile(where, "Spend", "£1,200", **ui.delta(-120, "£120 less", good="down"))
+
+    metric = run(page).metric[0]
+    assert metric.delta == "£120 less, better"
+    assert metric.proto.color == metric.proto.MetricColor.GREEN
+    assert metric.proto.direction == metric.proto.MetricDirection.DOWN
