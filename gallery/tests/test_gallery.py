@@ -1,9 +1,12 @@
 """The gallery draws every block with no error, so a change to duckkit that breaks one fails here."""
 
+import ast
 from pathlib import Path
 
 import pytest
 from streamlit.testing.v1 import AppTest
+
+import blocks
 
 GALLERY = Path(__file__).parent.parent
 
@@ -15,28 +18,26 @@ def at(monkeypatch) -> AppTest:
     return AppTest.from_file(str(GALLERY / "app.py"), default_timeout=30).run()
 
 
-def blocks(at: AppTest) -> list[str]:
+def headings(at: AppTest) -> list[str]:
     return [h.value for h in at.subheader]
 
 
 def test_every_block_draws(at):
     assert not at.exception
-    import app
-
-    for group, items in app.GROUPS.items():
-        assert group in blocks(at)
+    for group, items in blocks.GROUPS.items():
+        assert group in headings(at)
         for item in items:
-            assert item.title in blocks(at), f"{group}: {item.title} is missing"
+            assert item.title in headings(at), f"{group}: {item.title} is missing"
 
 
 def test_every_block_shows_its_own_code(at):
-    import app
-
     shown = [code.value for code in at.code]
-    for items in app.GROUPS.values():
+    for items in blocks.GROUPS.values():
         for item in items:
-            assert app.source(item.draw) in shown
-            assert "@block" not in app.source(item.draw)
+            code = blocks.source(item.draw)
+            assert code in shown
+            assert code.startswith(f"def {item.draw.__name__}(")  # no part of its @block line
+            ast.parse(code)
 
 
 def test_the_answer_shows_its_rows_query_and_cost(at):
