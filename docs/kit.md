@@ -67,7 +67,7 @@ module belongs to one of them:
 | [`contract`](#duckkitcontract) | both | the contract: reference schema, descriptions, conformance check |
 | [`snapshot`](#duckkitsnapshot) | both | read-only, in-memory copies of the database or of its contract views |
 | [`app.common`](#duckkitappcommon) | browser | the cached snapshot, sidebar, theme and idle watchers, tables |
-| [`app.theme`](#duckkitapptheme) | browser | colour palettes and shared chart options, light and dark |
+| [`app.theme`](#duckkitapptheme) | browser | the shared look: colours, font and chart options, light and dark |
 | [`testing`](#duckkittesting) | tests | isolate tests from real data; build contract databases |
 | [`testing.guard`](#duckkittestingguard) | tests | keep the browser app on the contract |
 
@@ -534,10 +534,20 @@ its own.
 
 ## `duckkit.app.theme`
 
-**What it is for:** charts that look the same in every app and stay readable in light and dark.
+**What it is for:** one look for every app, readable in light and dark. These tokens are the one source:
+`scripts/theme.py` writes them into the template's `.streamlit/theme.toml`, with the font embedded, and a test holds
+the file to them and to the rules below. Streamlit does not pass its theme to CSS on the page, so code that draws on
+the page must take its colours from here.
 - `CATEGORICAL[mode]`: 8 colours, checked for colour-blind separation. Assign them in order and never cycle.
 - `OTHER[mode]`: a grey for the rest.
-- `INK[mode]`: text, grid, axis and surface colours. `PAGE[mode]`: Streamlit's background. `FONT`.
+- `INK[mode]`: text, grid, axis and surface colours. `PAGE[mode]`: the page's background. `SIDEBAR[mode]`,
+  `BORDER[mode]`, `TABLE_HEADER[mode]`.
+- `SELECTED[mode]`: the one colour of a selected control, table row or chart mark. It is Streamlit's primary colour,
+  so widgets and tables follow it with no CSS. It stays at OKLab distance 8 or more from every `CATEGORICAL` colour.
+- `RED[mode]` and `GREEN[mode]`: bad and good news, for Streamlit's deltas and badges. Red never means selected.
+- `FONT`: Hanken Grotesk. Its figures are tabular by default, which a table needs: Streamlit draws tables on a canvas
+  that CSS can't reach.
+- `streamlit_theme(mode)`: the options of `[theme.light]` or `[theme.dark]`.
 - `mode()` returns `"light"` or `"dark"`. It prefers what `watch_theme` saw, because `st.context.theme` can lag.
 - `base_option(mode)` gives the ECharts options every chart shares: font, tooltip, animation.
 - `entity_colors(names, mode)` gives each entity a fixed colour. Pass the full list, so a filter never repaints

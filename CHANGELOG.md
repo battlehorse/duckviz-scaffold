@@ -5,6 +5,18 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template and duckkit: **one modern look for every app** (#101). A managed `.streamlit/theme.toml` sets warm stone
+  greys, a petrol selection colour and Hanken Grotesk, in light and dark. The font is embedded in the file, so the app
+  asks no other host for it. `duckkit.app.theme` is the one source, and `INK`, `PAGE` and `FONT` have new values:
+  code that uses the names follows on its own. New names: `SELECTED`, `SIDEBAR`, `BORDER`, `TABLE_HEADER`, `RED`,
+  `GREEN`, `streamlit_theme()`. **Steps:**
+  1. If `opt_out` names `.streamlit/config.toml`, add the `[theme]` table from a new render by hand. If it names
+     `.streamlit/theme.toml`, remove that entry, or remove `base` from `config.toml`: it would point at a missing file,
+     and `PAGE`, `INK` and `SELECTED` would no longer match the page.
+  2. Replace colours written by hand that stand for Streamlit's old look (`#ff4b4b`, `#0e1117`, `#ffffff` as the page).
+     Use `theme.SELECTED` for a selection and `theme.PAGE` for the page.
+  3. Run the dataviz validator again on the app's own chart colours, against the new `PAGE` and `INK` surfaces.
+  4. With `cloud_run`: copy the colours of `app/static/paused.html` from a new render (the file is seeded).
 - Template: **the costs in `/backup setup-remote` read right** (#97). Claude Code replaces `$0`, `$1`, … in a skill
   with its arguments, so "$0.02" reached Claude as "setup-remote.02". The amounts are now written "USD 0.02".
   `doctor` now fails on a `$` followed by a digit in any skill or command, the app's own too. **Steps:** if
