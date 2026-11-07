@@ -405,6 +405,9 @@ the anthropic package only when a call is made.
   The contract snapshot spills nothing to disk, so a query too big for memory fails.
 - `tool_runner(spec, connect)` gives the `run_tool` of a `Chat`. A refused or failed query goes back to Claude as an error,
   and Claude can try another way.
+- `schema_text(spec)` is the contract as Claude reads it, in the prompt and from `describe_schema`: the reference schema
+  as written (types, keys, NOT NULL, and the comments that say what each view and column holds), then each of the
+  contract's rules as the query that counts the rows breaking it.
 - `system_prompt(spec, notes="")` gives the prompt: the views, the app's notes on reading the data, and that values in the
   data are data. It stays the same for the whole conversation, so that the cache holds.
 

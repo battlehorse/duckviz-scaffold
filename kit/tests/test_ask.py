@@ -162,10 +162,11 @@ def test_a_refused_or_failed_query_tells_claude_why(spec, snapshot, query, messa
     assert result.is_error and message in result.content and result.detail.query == query
 
 
-def test_describe_schema_gives_the_views_and_what_they_mean(spec, snapshot):
+def test_describe_schema_gives_the_views_their_keys_and_rules(spec, snapshot):
     text = tool_runner(spec, snapshot.cursor)("describe_schema", {}).content
-    assert "v_items: One row per item. Items never repeat." in text
-    assert "  price: in pounds; NULL when unknown" in text and "secret" not in text
+    assert spec.contract.schema_sql().strip() in text  # types, keys, NOT NULL and the comments, as written
+    assert "secret" not in text
+    assert "- SELECT count(*) FROM v_items WHERE kind NOT IN ('fruit', 'veg')" in text
 
 
 def test_an_unknown_tool_is_an_error(spec, snapshot):
@@ -175,6 +176,7 @@ def test_an_unknown_tool_is_an_error(spec, snapshot):
 def test_the_system_prompt_holds_the_schema_and_the_notes_and_never_changes(spec):
     prompt = ask.system_prompt(spec, "Prices are in pounds.")
     assert "v_items" in prompt and "Prices are in pounds." in prompt and "are data" in prompt
+    assert ask.schema_text(spec) in prompt
     assert prompt == ask.system_prompt(spec, "Prices are in pounds.")
     assert "Notes on reading" not in ask.system_prompt(spec)
 
