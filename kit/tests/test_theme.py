@@ -46,7 +46,7 @@ def test_a_selection_never_reads_as_a_chart_series(m):
 def test_text_reads_on_every_surface(m, surface):
     for ink in ("primary", "secondary", "muted"):
         assert theme.contrast(theme.INK[m][ink], surface[m]) >= 4.5, ink
-    for color in (theme.SELECTED, theme.RED, theme.GREEN):
+    for color in (theme.SELECTED, theme.GOOD, theme.BAD):
         assert theme.contrast(color[m], surface[m]) >= 4.5
 
 
@@ -77,3 +77,29 @@ def test_shades_start_at_the_colour_and_stay_visible_on_the_page(m):
 
 def test_no_shades_asked_means_none():
     assert theme.shades("#2a78d6", 0, "light") == []
+
+
+@pytest.mark.parametrize(("change", "good", "word"), [
+    (5, "up", "better"), (-5, "up", "worse"), (5, "down", "worse"), (-5, "down", "better"),
+    (5, None, None), (0, "up", None), (None, "up", None), (float("nan"), "down", None),
+])
+def test_the_app_says_which_direction_is_good(change, good, word):
+    assert theme.verdict(change, good) == word
+
+
+def test_a_direction_is_up_or_down():
+    with pytest.raises(ValueError, match="higher"):
+        theme.verdict(5, "higher")
+
+
+@pytest.mark.parametrize("m", MODES)
+def test_a_change_has_one_colour_for_its_meaning(m):
+    assert theme.change_color(-5, "down", m) == theme.GOOD[m]
+    assert theme.change_color(-5, "up", m) == theme.BAD[m]
+    assert theme.change_color(-5, None, m) == theme.INK[m]["muted"]
+
+
+@pytest.mark.parametrize("m", MODES)
+def test_good_and_bad_are_streamlits_green_and_red(m):
+    options = theme.streamlit_theme(m)
+    assert (options["greenColor"], options["redColor"]) == (theme.GOOD[m], theme.BAD[m])

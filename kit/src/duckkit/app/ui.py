@@ -7,6 +7,7 @@ why. Streamlit does not pass its theme to CSS on the page, so colours come from 
 `light-dark()`, which follows the color-scheme Streamlit sets. A theme switch then needs no rerun.
 """
 
+import math
 import re
 
 import streamlit as st
@@ -131,6 +132,20 @@ def tile(where, label: str, value: str, note: str | None = None, **kwargs) -> No
     if note is not None:
         kwargs = {"delta": note, "delta_color": "off", "delta_arrow": "off", **kwargs}
     where.metric(label, value, **{"border": True, "height": "stretch", **kwargs})
+
+
+def delta(change: float | None, text: str, good: str | None = None) -> dict:
+    """The arguments of a metric that shows a change: `ui.tile(where, "Spend", "£1,200", **ui.delta(-120, "£120 less",
+    good="down"))`. `text` says the change and the arrow shows its direction. `good` is the direction that is good news
+    (see `theme.verdict`): the colour and a word then say what it means, so colour never carries that alone. With no
+    `good` the change stays grey, because a direction alone is neither good nor bad."""
+    word = theme.verdict(change, good)
+    moved = bool(change) and not math.isnan(change)
+    return {
+        "delta": f"{text}, {word}" if word else text,
+        "delta_color": {"better": "green", "worse": "red", None: "gray"}[word],
+        "delta_arrow": ("up" if change > 0 else "down") if moved else "off",
+    }
 
 
 def chart_row(spec, key: str = "page") -> list:

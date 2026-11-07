@@ -36,8 +36,10 @@ TABLE_HEADER = {"light": "#f4f3ee", "dark": "#20201e"}
 # follow it with no CSS. Red is not a selection: it is bad news. Kept at OKLab distance 8 or more from every CATEGORICAL
 # colour, so a selection never reads as a series.
 SELECTED = {"light": "#0f6e7c", "dark": "#5fc9d6"}
-RED = {"light": "#b42318", "dark": "#ffa198"}
-GREEN = {"light": "#0b6b2f", "dark": "#7fdc9b"}
+# Good and bad news, and nothing else: they say what a change means, never which way it went (`verdict`). They are
+# Streamlit's red and green, so its deltas and badges follow them.
+GOOD = {"light": "#0b6b2f", "dark": "#7fdc9b"}
+BAD = {"light": "#b42318", "dark": "#ffa198"}
 
 # Its figures are tabular by default. A table needs that: Streamlit draws tables on a canvas that CSS can't reach.
 FONT = "'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif"  # single quotes: safe in SVG attributes
@@ -59,8 +61,8 @@ def streamlit_theme(m: str) -> dict:
         "borderColor": BORDER[m],
         "dataframeBorderColor": BORDER[m],
         "dataframeHeaderBackgroundColor": TABLE_HEADER[m],
-        "redColor": RED[m],
-        "greenColor": GREEN[m],
+        "redColor": BAD[m],
+        "greenColor": GOOD[m],
         "chartCategoricalColors": CATEGORICAL[m],
     }
 
@@ -100,6 +102,21 @@ def entity_colors(names: list[str], m: str) -> dict[str, str]:
     one); entities past the eighth share the OTHER grey."""
     palette = CATEGORICAL[m]
     return {n: palette[i] if i < len(palette) else OTHER[m] for i, n in enumerate(names)}
+
+
+def verdict(change: float | None, good: str | None) -> str | None:
+    """What a change means: "better" or "worse". `good` is the direction that is good news, "up" or "down", and only
+    the app knows it: less spend is good, fewer visitors is not. None when there is no change, or `good` is None."""
+    if good not in ("up", "down", None):
+        raise ValueError(f"no direction {good!r}: use up, down or None")
+    if good is None or not change or math.isnan(change):
+        return None
+    return "better" if (change > 0) == (good == "up") else "worse"
+
+
+def change_color(change: float | None, good: str | None, m: str) -> str:
+    """The colour of a change in a chart, the same as in the tile beside it: GOOD, BAD, or grey when it means neither."""
+    return {"better": GOOD[m], "worse": BAD[m], None: INK[m]["muted"]}[verdict(change, good)]
 
 
 def hex_rgb(color: str) -> list[int]:
