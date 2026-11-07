@@ -46,7 +46,8 @@ Nothing: no command sends the data anywhere.
 {%- endif %}
 {%- if ask %}
 - **The Ask window:** each question, and the rows of each query Claude runs to answer it, go to Anthropic. Those rows
-  come from the contract's views, never the tables, and at most 200 at a time.
+  come from the contract's views, never the tables, and at most 200 at a time. With *Include what's on screen* on (the
+  default), a short summary of the page goes too: its filters and the numbers it shows (docs/guides/ask.md).
 {%- endif %}
 {%- if motherduck %}
 - **`publish`:** the contract's views go to MotherDuck (`md:{{ motherduck_db }}`), only when you run it. Only those

@@ -14,6 +14,10 @@ The user sets the project up once: see the first-time setup in the `/publish` sk
 - **Read the contract first.** The project's files hold `contract.md` (docs/design/contract.md): what each view holds,
   the meaning of each column, and the rules the data keeps (keys, allowed values, what to sum and what not to).
   `schema.sql` (`src/{{ package }}/contract/schema.sql`) is the same contract as SQL: the exact columns and types.
+{%- if ask %}
+- **Read the notes on the data** too: `data_notes.md` (`src/{{ package }}/app/data_notes.md`, in the project's files)
+  says what the views can't: units, signs, what to sum and what not to. The app's Ask window reads the same notes.
+{%- endif %}
 - **The database describes itself too.** Before the first query of a conversation, read its descriptions:
 
   ```sql

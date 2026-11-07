@@ -10,7 +10,7 @@ in `{{ gcp_region }}`, service `{{ project_name }}`.
 | Region | `{{ gcp_region }}` |
 | Service | `{{ project_name }}` |
 | Service account | `{{ project_name }}-app@{{ gcp_project }}.iam.gserviceaccount.com` |
-| Secret | `motherduck-token` |
+| Secret{% if ask %}s{% endif %} | `motherduck-token`{% if ask %}, `anthropic-api-key` (the Ask window){% endif %} |
 | Data | `md:{{ motherduck_db }}`, the copy that `/publish` sends |
 
 ## The architecture
@@ -21,8 +21,11 @@ flowchart LR
     iap -->|not signed in| auth[Google sign-in<br/>Google Auth Platform]
     auth -->|signed in| iap
     iap -->|2. allowed| run[Cloud Run<br/>the Streamlit app]
-    secret[(Secret Manager<br/>MotherDuck token)] -.->|at start| run
+    secret[(Secret Manager<br/>MotherDuck token{% if ask %}<br/>Anthropic API key{% endif %})] -.->|at start| run
     run -->|3. first session, Reload data| md[(MotherDuck<br/>md:{{ motherduck_db }})]
+{%- if ask %}
+    run -->|4. Ask window: questions, query results| anthropic[Anthropic API]
+{%- endif %}
     computer[Your computer] -->|/publish| md
     computer -->|gcloud run deploy| build[Cloud Build] -->|image| registry[(Artifact Registry)] -->|runs| run
 ```
@@ -75,6 +78,14 @@ changes the delay (`--update-env-vars` on the deploy), and `0` disables the idle
 the token out of the code and the image. The service account `{{ project_name }}-app` can only read that secret.
 At each instance start, Cloud Run reads it as that account into `MOTHERDUCK_TOKEN` (`--set-secrets`), which
 overrides `[motherduck] token` in config.toml.
+{%- if ask %}
+
+**Secret Manager also holds the Anthropic API key**, for the Ask window (step 4). Cloud Run reads the secret
+`anthropic-api-key` into `ANTHROPIC_API_KEY` in the same way. Each question sends the question, the page's summary and
+the rows of Claude's queries to Anthropic. Everyone whom IAP lets in spends from that key, so give the app a key of its
+own with a monthly spend limit (docs/guides/ask.md). A chat runs over the page's one connection, which
+`--timeout=3600` already keeps open for an hour.
+{%- endif %}
 
 **MotherDuck holds the data**: the copy that `/publish` sends. The app attaches it `READ_ONLY` (as it does every
 source), but that guards only against the app's own code: a read-write token in the secret could still write to
@@ -114,7 +125,10 @@ flowchart LR
 | Cloud Run (1 vCPU, 1 GiB, 0–1 instances) | nothing for personal use: the free tier is about 50 hours a month of one running instance |
 | Artifact Registry (2 images kept, about 0.4 GB each) | a few cents a month (0.5 GB free) |
 | Cloud Build | nothing (free daily build minutes) |
-| Secret Manager (one secret) | nothing |
+| Secret Manager ({% if ask %}two secrets{% else %}one secret{% endif %}) | nothing |
+{%- if ask %}
+| Anthropic API (the Ask window) | about USD 0.04 to 0.20 a question, by model: capped by the key's monthly limit (docs/guides/ask.md) |
+{%- endif %}
 | MotherDuck | free on the free plan, with a read-write token (a deviation, step 4). The read-scaling token of step 4 needs a paid plan |
 
 The only cost that grows is an instance that an open tab keeps running: the idle pause limits it to 15 minutes,
@@ -170,19 +184,34 @@ your currency, `CLIENT_ID` and `client_secret_….json` with your OAuth client's
    `publish` uses. The scaffold promises a read-only token ({{ scaffold_repo }}, docs/architecture.md), so that is a
    deviation of this app: record it in docs/work/deviations.md. A read-scaling token reads replicas that take up to a
    minute to see a new `publish`.
-5. **Make a service account for the app.** It can read that one secret, and nothing else:
+{%- if ask %}
+
+   **The Anthropic API key, for the Ask window.** Make a key of its own for the hosted app, in a Console workspace
+   with a monthly spend limit (docs/guides/ask.md), and store it the same way:
+   ```sh
+   read -rs KEY && [ -n "$KEY" ] && printf %s "$KEY" |
+       gcloud secrets create anthropic-api-key --replication-policy=user-managed --locations={{ gcp_region }} \
+       --project={{ gcp_project }} --data-file=-; unset KEY
+   ```
+{%- endif %}
+5. **Make a service account for the app.** It can read {% if ask %}those two secrets{% else %}that one secret{% endif %}, and nothing else:
    ```sh
    gcloud iam service-accounts create {{ project_name }}-app --project={{ gcp_project }}
    gcloud secrets add-iam-policy-binding motherduck-token --project={{ gcp_project }} \
        --member=serviceAccount:{{ project_name }}-app@{{ gcp_project }}.iam.gserviceaccount.com \
        --role=roles/secretmanager.secretAccessor
+{%- if ask %}
+   gcloud secrets add-iam-policy-binding anthropic-api-key --project={{ gcp_project }} \
+       --member=serviceAccount:{{ project_name }}-app@{{ gcp_project }}.iam.gserviceaccount.com \
+       --role=roles/secretmanager.secretAccessor
+{%- endif %}
    ```
 6. **Build and deploy** from the repo root, with the command of `/hosting deploy` (the skill holds the canonical
    flags). Cloud Build builds the `Dockerfile`:
    ```sh
    gcloud run deploy {{ project_name }} --source . --project={{ gcp_project }} --region={{ gcp_region }} \
        --service-account={{ project_name }}-app@{{ gcp_project }}.iam.gserviceaccount.com \
-       --set-secrets=MOTHERDUCK_TOKEN=motherduck-token:latest \
+       --set-secrets=MOTHERDUCK_TOKEN=motherduck-token:latest{% if ask %},ANTHROPIC_API_KEY=anthropic-api-key:latest{% endif %} \
        --update-labels=commit=$(git rev-parse --short HEAD) \
        --update-env-vars={{ env_prefix }}_VERSION=$(git rev-parse --short HEAD) \
        --no-allow-unauthenticated --iap \
@@ -251,6 +280,14 @@ status.
   read -rs TOKEN && [ -n "$TOKEN" ] && printf %s "$TOKEN" |
       gcloud secrets versions add motherduck-token --project={{ gcp_project }} --data-file=-; unset TOKEN
   ```
+{%- if ask %}
+- **A new Anthropic API key:** store it as a new version of its secret, deploy again, then revoke the old key in the
+  Console:
+  ```sh
+  read -rs KEY && [ -n "$KEY" ] && printf %s "$KEY" |
+      gcloud secrets versions add anthropic-api-key --project={{ gcp_project }} --data-file=-; unset KEY
+  ```
+{%- endif %}
 
 ## Sharing it with someone
 

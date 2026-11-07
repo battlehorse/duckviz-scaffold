@@ -68,7 +68,8 @@ These come with an option, and are asked only when it is on:
 
 Each option adds files, commands and skills (docs/skills.md). An update never writes seeded files, so an app that
 turns `demo_data`, `curations`, `llm` or `ask` on later copies their seeded files from a fresh render (`/scaffold-update`
-does this). For `ask`, that is its line in `docs/guides/data.md`, and `[anthropic]` in `config.example.toml`. To turn one on later, ask Claude in plain words, such
+does this). For `ask`, that is `ask=True` in `spec.py`, `app/data_notes.md`, an `ask_context` call on each page, its line
+in `docs/guides/data.md`, and `[anthropic]` in `config.example.toml`. To turn one on later, ask Claude in plain words, such
 as `/scaffold-update turn on cloud_run`. The skill reads its arguments as text, and runs `copier update` with
 `-d cloud_run=true`. Without Claude, run `uvx copier update --trust -d <option>=true`. Then review the diff like any
 update, and follow the docs it adds.
@@ -195,9 +196,18 @@ it. It does not need `motherduck`: the chat reads the data the pages read. It di
 app has: that runs in Claude Code, for whoever works on the app, and the app itself sends nothing.
 
 **On:**
-- duckkit's `llm` extra (`duckkit[llm]` in `pyproject.toml`);
-- `[anthropic] api_key` in `config.example.toml` (a private setting for every app: `privacy-check` refuses it);
-- a line in `docs/guides/data.md`, under "What leaves the machine".
+- duckkit's `llm` extra (`duckkit[llm]` in `pyproject.toml`), and `ask=True` in `spec.py`: `common.sidebar` then adds
+  the Ask button to every page (`duckkit.app.ask_window`);
+- `[anthropic]` in `config.example.toml`: `api_key` (a private setting for every app: `privacy-check` refuses it),
+  `model`, `effort` and `max_conversation_cost`;
+- seeded: `src/<package>/app/data_notes.md`, the app's notes on reading its data, which Claude reads with every
+  question; an `ask_context` call at the end of the dashboard, which tells Claude what the page shows; two tests in
+  `tests/app/test_app.py`; a line in `docs/guides/data.md`, under "What leaves the machine"; checks 9 to 15 of
+  `docs/design/browser-checks.md`;
+- managed: `docs/guides/ask.md` (the key, the spend limit, the settings, what is sent, what it costs), and
+  `tests/app/fake_ask.py`, which runs the app with a scripted Claude for the browser checks: no key, no cost;
+- with `cloud_run`: the secret `anthropic-api-key` in `docs/guides/hosting.md` and in the `/hosting` deploy
+  (`--set-secrets`). The request timeout is already an hour, which a chat over one connection needs.
 
 Set a spend limit in the Anthropic Console, on a key of its own: anyone who can open a hosted app can spend that key.
 

@@ -46,6 +46,10 @@ PICKER = "ask-model"
 # ship with a hosted app. They go in the system prompt. The template seeds the file. Without it, the window still works.
 DATA_NOTES_FILE = "data_notes.md"
 
+# Icons, in the theme's ink: Streamlit's own avatars are red and orange, and red means "bad" (docs/architecture.md).
+USER_AVATAR = ":material/person:"
+CLAUDE_AVATAR = ":material/smart_toy:"
+
 new_client: Callable = claude.new_client  # tests and browser checks put a FakeAnthropic here
 
 
@@ -262,9 +266,9 @@ def show_answer_parts(spec: AppSpec, turn: Turn, conv: Conversation) -> None:
 
 
 def show_turn(spec: AppSpec, turn: Turn, conv: Conversation) -> None:
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar=USER_AVATAR):
         st.markdown(clean(turn.question))
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar=CLAUDE_AVATAR):
         if turn.text:
             st.markdown(clean(turn.text))
         show_answer_parts(spec, turn, conv)
@@ -272,9 +276,9 @@ def show_turn(spec: AppSpec, turn: Turn, conv: Conversation) -> None:
 
 def answer(spec: AppSpec, conv: Conversation, turn: Turn, context: str | None) -> None:
     """Stream the answer to `turn`, drawing it as it comes, and keep it in `turn`."""
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar=USER_AVATAR):
         st.markdown(clean(turn.question))
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar=CLAUDE_AVATAR):
         text_slot = st.empty()
         rest = st.empty()
         with rest.container():

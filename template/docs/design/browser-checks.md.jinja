@@ -13,3 +13,26 @@ Scenarios `/app-check` walks in the running app (light and dark). Add one for ev
 6. **A change.** The Latest tile has an arrow, a word (better or worse) and a colour that agrees with the word.
 7. **Narrow window.** At phone width, tiles keep their numbers and their words whole, and the chart and the table stack.
 8. **No other host.** In the browser's network log, every request goes to the app itself.
+{%- if ask %}
+
+The Ask window's checks run on the app with a scripted Claude, which needs no key and costs nothing:
+`uv run streamlit run tests/app/fake_ask.py --server.port {{ app_port + 50 }}`, then open
+http://localhost:{{ app_port + 50 }}. Every question gets the same answer: a query of the last 7 days.
+
+9. **Ask button.** Each page shows *Ask* at the bottom right, over the content, in light and dark. It opens a drawer
+   on the right; the page behind it is dimmed.
+10. **An answer.** Ask anything. A progress note shows, then the answer streams in. Under it: a table of 7 days, a
+    *Queries (1)* expander with the exact SQL and "Returned 7 rows.", and the cost of the answer and of the
+    conversation, with the model.
+11. **Close during an answer.** Ask again, and close the drawer while the words still come. Wait 10 s and open it: the
+    whole answer is there. *New conversation* clears it, and frees the model picker.
+12. **On screen.** On the dashboard, *What Claude sees of the page* names the period and the latest value. Close the
+    drawer, choose *7 days*, open it again: the summary says *7 days*. With the toggle off, the drawer says that
+    Claude doesn't see the page.
+13. **The data line.** The drawer's first line says "Reads the local database"{% if demo_data %} (with `/app demo`,
+    the demo database){% endif %}, and how fresh the data is.
+14. **No key.** In the app itself (`/app`), without `[anthropic] api_key`: the drawer says where to set it, and the
+    rest of the page works.
+15. **Phone width.** The drawer fills the screen; the answer, its table and the question box fit, with no sideways
+    scroll.
+{%- endif %}

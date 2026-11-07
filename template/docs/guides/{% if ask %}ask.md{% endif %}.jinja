@@ -1,0 +1,83 @@
+# The Ask window
+
+Every page of the browser app has an **Ask** button at the bottom right. It opens a drawer where you ask about the
+data in plain words, and Claude answers by querying the same contract views that the pages read. duckkit draws the
+window (`duckkit.app.ask_window`); the app turns it on with `ask=True` in `src/{{ package }}/spec.py`.
+
+## What it does
+
+- **It reads only what the pages read:** the in-memory copy of the contract's views. Locally that is the local
+  database (`app`) or the demo database (`app --demo`){% if cloud_run %}; hosted, the copy that `/publish` sends to
+  MotherDuck{% endif %}. The drawer's first line says which. Claude can't write, and can't read files, URLs, settings
+  or anything outside the views.
+- **Each answer shows its work:** under it are the rows of its last query, a **Queries** expander with the exact SQL
+  and its row count, and the cost of the answer and of the conversation. A wrong number looks just like a right one:
+  check the SQL when a number matters.
+- **It can see the page behind it.** With *Include what's on screen* on (the default), a short summary of the page
+  goes with each question: its filters and headline numbers. Claude gets that text, not the pixels: it can't see a
+  hover, a zoom or how a chart looks. Turn the toggle off to send only the question.
+- **The model:** Opus 5.5 or Sonnet 5.5, picked in the drawer before the first question. It then stays for the
+  conversation; *New conversation* frees it.
+
+## What it sends to Anthropic
+
+Each question sends Anthropic the question, the page's summary (with the toggle on), the contract's schema, the notes
+of `data_notes.md`, and **the rows of every query Claude runs** (at most 200 rows a query). Nothing else of the
+database leaves the machine. Anthropic's commercial terms say how API data is kept. If some of the data must not
+leave the machine, don't turn `ask` on.
+
+## Setting it up
+
+1. **Get an API key.** In the Anthropic Console (console.anthropic.com), make a **workspace of its own** for this app,
+   set a **monthly spend limit** on it, and make an API key in it. The key is for this app only:
+   when the limit is reached, only this app stops.
+2. **Put the key in `config.toml`** (gitignored), under `[anthropic]`:
+   ```toml
+   [anthropic]
+   api_key = "sk-ant-…"
+   ```
+   The environment variable `ANTHROPIC_API_KEY` overrides it. Without a key, the drawer says where to set one, and the
+   rest of the app works as before.
+{%- if cloud_run %}
+3. **Hosted:** the key goes in Secret Manager, not in the image. See docs/guides/hosting.md (steps 4 to 6): the secret
+   `anthropic-api-key`, read access for the app's service account, and the deploy's `--set-secrets`. Everyone whom
+   IAP lets in spends from that key: the spend limit is what caps it.
+{%- endif %}
+
+## Settings
+
+In `config.toml`, under `[anthropic]`:
+
+| Key | Default | What it does |
+|---|---|---|
+| `api_key` | none | the key; without it the drawer explains what to set |
+| `model` | `claude-opus-5-5` | the drawer's default model: `claude-opus-5-5` or `claude-sonnet-5-5` |
+| `effort` | `medium` | how hard Claude thinks: `low`, `medium`, `high`, `xhigh` or `max`. More effort costs more |
+| `max_conversation_cost` | `2` | US dollars: past this, a conversation stops and asks for a new one |
+
+## What it costs
+
+Each answer shows its cost, and the app's log has one line per answer (`ask: model=… cost=…`, never the question).
+A typical question costs about USD 0.08 to 0.20 with Opus 5.5 and about USD 0.04 to 0.10 with Sonnet 5.5: most of the
+input is the schema and the notes, which the prompt cache makes cheap after the first question. A long conversation
+costs more for each question, because Claude rereads it: start a new one for a new subject. These figures are
+estimates; the costs that the drawer shows are the ones to trust.
+
+## Making answers better
+
+- **`src/{{ package }}/app/data_notes.md`** holds the notes Claude reads with every question: units, signs, time zones,
+  what to sum and what not to. Write there what a careful reader of the views couldn't guess. It ships with the app
+  (it is under `src/`).
+- **The contract's descriptions** (`src/{{ package }}/contract/schema.sql`) reach Claude as they are: a clear comment
+  on a column saves a wrong answer.
+- **A page's summary:** each page calls `ask_context(text)` (`from duckkit.app.ask_window import ask_context`), on
+  each run, with what it shows. Build the text from the same values the page draws: the period, the filters, the
+  headline numbers, a selected row. The dashboard does this at its end. A page with no summary still works: the
+  drawer says that Claude can't see it.
+
+## Testing it
+
+Tests and browser checks need no key and cost nothing: they replace the client with a scripted fake
+(`duckkit.testing.FakeAnthropic`). `uv run streamlit run tests/app/fake_ask.py` runs the app with a fake that answers
+every question with a query of `v_daily`: docs/design/browser-checks.md walks the window that way. A real question
+costs money: ask the user before you send one.

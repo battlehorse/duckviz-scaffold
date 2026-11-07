@@ -3,6 +3,9 @@ own landing page, keeping the file name.)"""
 
 import streamlit as st
 from duckkit.app import theme, ui
+{%- if ask %}
+from duckkit.app.ask_window import ask_context
+{%- endif %}
 from streamlit_echarts import st_echarts
 
 from {{ package }}.app.common import DATA_ERRORS, con, no_data, sidebar, table
@@ -38,7 +41,8 @@ values = shown["value"].tolist()
 change = values[-1] - values[-2] if len(values) > 1 else None
 text = f"{abs(change):.1f} on the day before" if change is not None else "no day before"
 # `good` is the direction that is good news. Only the app knows it: say it for each value, or leave it out.
-ui.tile(latest, "Latest", f"{values[-1]:.1f}", **ui.delta(change, text, good="up"))
+latest_change = ui.delta(change, text, good="up")
+ui.tile(latest, "Latest", f"{values[-1]:.1f}", **latest_change)
 ui.tile(days, "Days", f"{len(shown)}", f"of {len(daily)}")
 
 left, right = ui.chart_row([2, 1])
@@ -61,3 +65,15 @@ option = theme.base_option(m) | {
 }
 with left, ui.card("chart", "Over time"):
     st_echarts(option, height="360px", key=f"daily-{m}")
+{%- if ask %}
+
+# What the Ask window tells Claude about this page, built from the values it shows (docs/guides/ask.md).
+summary = [
+    "Page: Dashboard, the daily value.",
+    f"Period: {period}, {first:%d %b %Y} to {last:%d %b %Y}, {len(shown)} days ({missing} missing).",
+    f"Latest value: {values[-1]:.1f}, {latest_change['delta']}.",
+]
+if picked:
+    summary.append(f"Selected in the table: {labels[picked[0]]}, value {values[picked[0]]:.1f}.")
+ask_context("\n".join(summary))
+{%- endif %}

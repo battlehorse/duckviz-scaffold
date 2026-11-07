@@ -5,6 +5,26 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **the Ask window in the app** (#83). With `ask` on, every page has an **Ask** button (`ask=True` in
+  `spec.py`). The dashboard tells the window what it shows (`ask_context`), and `src/<package>/app/data_notes.md` holds
+  the app's notes on reading its data, which Claude reads with every question. New managed files:
+  - `docs/guides/ask.md`: the key, the spend limit, the settings, what is sent and what it costs;
+  - `tests/app/fake_ask.py`: the app with a scripted Claude, for the browser checks (no key, no cost).
+
+  `config.example.toml` gains `model`, `effort` and `max_conversation_cost` under `[anthropic]`. With `cloud_run`, the
+  hosting guide and `/hosting` deploy with a second secret, `anthropic-api-key`. In duckkit, the chat's avatars are now
+  neutral icons: Streamlit's own were red and orange, and red means bad news. No app changes until it turns `ask` on.
+  **Steps** for an app that turns `ask` on (`/scaffold-update turn on ask`; these files are seeded, so the update
+  doesn't bring them):
+  1. In `src/<package>/spec.py`, add `ask=True` to the `AppSpec`.
+  2. Copy `src/<package>/app/data_notes.md` from a new render, and replace its examples with the app's own notes.
+  3. At the end of each page, call `ask_context(text)` (`from duckkit.app.ask_window import ask_context`) with what the
+     page shows, built from the values it draws. The dashboard of a new render shows how.
+  4. Copy the `[anthropic]` settings of `config.example.toml`, and the Ask line of `docs/guides/data.md`, from a new
+     render. Put a key in `config.toml` (`docs/guides/ask.md`).
+  5. Optional: copy checks 9 to 15 of `docs/design/browser-checks.md`, and the two Ask tests of `tests/app/test_app.py`.
+  6. With `cloud_run`, before the next deploy: create the secret `anthropic-api-key` and give the app's service
+     account access to it (`docs/guides/hosting.md`, steps 4 and 5). `/hosting deploy` then passes it.
 - duckkit: **`duckkit.app.ask_window`, the Ask window** (#83): with `AppSpec.ask`, `common.sidebar` adds an **Ask**
   button to every page. It opens a drawer on the right where the user asks about the data. Each answer shows its rows,
   the SQL it ran and its cost, and pages can tell Claude what they show with `ask_context`. Settings in `config.toml`: `[anthropic] model`, `effort`

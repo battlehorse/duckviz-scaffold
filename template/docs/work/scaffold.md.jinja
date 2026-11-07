@@ -23,8 +23,8 @@ Template-managed files:
 {%- if cloud_run %}
 - `Dockerfile`, `.dockerignore`, `.gcloudignore`, `docs/guides/hosting.md`
 {%- endif %}
-- `docs/work/scaffold.md`, `docs/guides/cli.md`{% if motherduck %}, `docs/guides/claude-chat.md`{% endif %}
-- `tests/app/test_contract_only.py`
+- `docs/work/scaffold.md`, `docs/guides/cli.md`{% if motherduck %}, `docs/guides/claude-chat.md`{% endif %}{% if ask %}, `docs/guides/ask.md`{% endif %}
+- `tests/app/test_contract_only.py`{% if ask %}, `tests/app/fake_ask.py`{% endif %}
 - the skills: `app`, `app-check`, `catch-up`, `deliver-outcome`, `scaffold-update`{% if motherduck %}, `publish`{% endif %}{% if backup %}, `backup`{% endif %}{% if cloud_run %}, `hosting`{% endif %}{% if curations %}, `rebuild-database`{% endif %}
 
 The answers this repo was made with (its name, port, and options) are in `.copier-answers.yml`.
@@ -41,6 +41,7 @@ and the pre-commit hook, `app --tailnet`, settings in `config.toml`. These optio
 | `backup` | {{ 'yes' if backup else 'no' }} | `backup`, `backups`, `restore`, `/backup` |
 | `demo_data` | {{ 'yes' if demo_data else 'no' }} | `demo` builds `data/demo.duckdb` (`src/{{ package }}/demo.py`), `app --demo` reads it, `/demo-data` |
 | `curations` | {{ 'yes' if curations else 'no' }} | decisions in `curated/*.csv`, committed (`src/{{ package }}/curated.py`), restored by `ingest`; `/rebuild-database`, `/fix-curation`; the repo stays private |
+| `ask` | {{ 'yes' if ask else 'no' }} | the Ask window on every page: a chat with Claude about the data, through the Anthropic API (docs/guides/ask.md) |
 
 To turn one on, ask `/scaffold-update`, such as `/scaffold-update turn on cloud_run`. Without Claude, run
 `uvx copier update --trust -d <option>=true`. Then review the diff like any update.
