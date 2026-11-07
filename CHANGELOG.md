@@ -3,6 +3,12 @@
 Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to a release with
 `/scaffold-update` (`copier update`). **Steps** are what an app must do by hand.
 
+## Unreleased
+
+- **A gallery of duckkit's look** (#115), in `gallery/`: the palette, the type, the widgets of `duckkit.app.ui`, the
+  chart helpers, tables and the Ask window, on synthetic data, each with the code that draws it. It lives in this
+  repo only: apps get nothing, and have no **Steps**.
+
 ## v0.10.0
 
 Two outcomes: **one modern look for every app** (#101), with shared widgets and rules of colour, and **the Ask

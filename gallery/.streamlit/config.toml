@@ -1,0 +1,13 @@
+[server]
+address = "localhost"
+port = 8690
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "viewer"
+
+[theme]
+base = "../template/.streamlit/theme.toml"  # the apps' own theme file, not a copy: run the gallery from gallery/
