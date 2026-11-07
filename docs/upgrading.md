@@ -19,7 +19,8 @@ In this repo, run `/upstream <app path> <what>` (the skill in `.claude/skills/up
 
 ## 3. Release
 
-Through a PR, like every change here:
+Through a PR, like every change here. When duckkit's look changed since the last release, remake the screenshots of
+docs/design-system.md first (`cd gallery && uv run python screenshots.py`), in their own PR.
 
 ```sh
 git switch -c release/vX.Y.Z

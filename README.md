@@ -39,6 +39,7 @@ only its own code: what it ingests, its tables, its contract views and its pages
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | how an app made from the scaffold works: the two sides, the contract, the database, the browser app, where it runs, the CLI, settings and privacy, backups, the repo layout |
 | [docs/kit.md](docs/kit.md) | the `AppSpec`, and every duckkit module: what it is for, its functions, which command uses it, and the hooks where an app plugs in its domain |
+| [docs/design-system.md](docs/design-system.md) | how every app looks: the palette, the type, the widgets, charts, tables and the Ask window, in screenshots from [the gallery](gallery/README.md) |
 | [docs/template.md](docs/template.md) | the template: every answer and option and what it decides, options vs capabilities, which files it manages and which it seeds once, deviations |
 | [docs/skills.md](docs/skills.md) | the Claude Code skills of an app: what each one does, the option that adds it, managed or seeded |
 | [docs/upgrading.md](docs/upgrading.md) | the update cycle in detail, and adopting the scaffold in an existing repo |

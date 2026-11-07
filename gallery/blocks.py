@@ -332,6 +332,8 @@ def table_and_chart():
     }
     with left, ui.card("demo-chart", "North, the last 14 days"):
         st_echarts(option, height="360px", key=f"chart-table-{m}-{picked}")
+        if picked:
+            st.caption(f"Selected: {labels[picked[0]]}")
 
 
 # Ask window
