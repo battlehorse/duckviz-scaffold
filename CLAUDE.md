@@ -85,6 +85,8 @@ building on top of it, in stacked PRs. docs/work/how-we-work.md is the canonical
 - `cd kit && uv run pytest -q && uv run ruff check .` must pass.
 - `scripts/render.sh` must pass after a change to the template, `copier.yml` or duckkit. It renders three sample
   apps (every option on, every option off, and curations), then runs their ruff, tests and `doctor`. CI runs it.
+- `cd gallery && uv run pytest -q && uv run ruff check .` must pass after a change to `duckkit.app` (the gallery of
+  duckkit's look, gallery/README.md). CI runs it.
 - Run the tests after a significant change. When a test fails, find the cause and fix it before you continue.
 
 ## Notifications
