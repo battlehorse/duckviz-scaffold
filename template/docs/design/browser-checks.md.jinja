@@ -3,6 +3,13 @@
 Scenarios `/app-check` walks in the running app (light and dark). Add one for every page and interaction.
 
 1. **Dashboard loads.** Open http://localhost:{{ app_port }}. The title is "Dashboard"; the chart shows one line; the
-   Table tab lists the days.
+   table beside it lists the days.
 2. **Theme.** Switch the theme (⋮, then Light or Dark). The chart's colours follow without a reload.
 3. **Reload data.** Click *Reload data* in the sidebar. The page reruns with no error.
+4. **Selected.** Select a row of the table. The chart marks that day. The row's checkbox, the mark and the selected
+   Period have one colour.
+5. **Period.** Choose *7 days*. The tiles, the chart and the table show those days, and the bar stays in sight as the
+   page scrolls.
+6. **A change.** The Latest tile has an arrow, a word (better or worse) and a colour that agrees with the word.
+7. **Narrow window.** At phone width, tiles keep their numbers and their words whole, and the chart and the table stack.
+8. **No other host.** In the browser's network log, every request goes to the app itself.

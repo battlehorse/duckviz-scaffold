@@ -38,7 +38,9 @@ The browser app reads only the contract's views ([the contract](../design/contra
 
 ## A page of the app
 
-1. Add the page in `src/{{ package }}/app/`, reading only the contract views.
+1. Add the page in `src/{{ package }}/app/`, reading only the contract views. Build it with `duckkit.app.ui` (sections,
+   cards, tiles, a filter bar), and keep to what each colour means: `theme.SELECTED` for a selection, `ui.delta` for a
+   change, with the direction that is good, and `ui.status` for how something stands.
 2. Add its questions to [the dashboard](../design/dashboard.md), and its checks to
    [the browser checks](../design/browser-checks.md).
 3. Walk the checks with `/app-check`.

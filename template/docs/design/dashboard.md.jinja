@@ -5,4 +5,6 @@ The questions each page answers, and how its numbers are defined. Update this pa
 ## Dashboard (the landing page, `views/dashboard.py`)
 
 - **Question:** how does the daily value change over time?
-- **Chart:** a line of `v_daily.value` per day, with a table view.
+- **Tiles:** the latest value, its change on the day before, and the days shown.
+- **Chart:** a line of `v_daily.value` per day, with a table beside it. A selected row marks its day on the chart.
+- **Filter:** the period: all days, or the last 30 or 7.
