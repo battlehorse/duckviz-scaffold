@@ -170,6 +170,14 @@ def test_the_default_model_and_effort_come_from_config(fake, spec):
     assert ask_window.new_conversation(spec, "claude-opus-5-5").chat.max_cost == Decimal("0.5")
 
 
+@pytest.mark.parametrize("value", ['"two"', "0", "-1", '"nan"'])
+def test_a_bad_spend_limit_is_named_in_the_drawer(fake, spec, value):
+    spec.config_path.write_text(f"[anthropic]\nmax_conversation_cost = {value}\n")
+    at = window_page(spec).run()
+    assert not at.exception
+    assert "max_conversation_cost in config.toml" in at.info[0].value and not at.chat_input
+
+
 def test_the_notes_next_to_main_go_in_the_system_prompt(fake, spec):
     app = spec.main_script().parent
     app.mkdir(parents=True)

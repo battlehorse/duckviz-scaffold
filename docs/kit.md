@@ -437,8 +437,9 @@ imports this module, nor the anthropic package.
 - **`clean(text)`:** answers lose their images and HTML before they render, so the browser fetches nothing that text in
   the data could have asked for. Each `$` is escaped, since Streamlit's Markdown reads `$4 and $5` as LaTeX.
 - **Settings**, in `config.toml`: `[anthropic] api_key`, `model` (the picker's default, one of `CHAT_MODELS`),
-  `effort` (default `medium`) and `max_conversation_cost` (default 2: past this many $, a conversation stops). Without a key, the drawer says where to set one. The app's notes on reading the data
-  (`DATA_NOTES_FILE`, `data_notes.md` next to `main.py`: units, signs, conventions) go in the system prompt when the
+  `effort` (default `medium`) and `max_conversation_cost` (default 2). Past that many $, a conversation stops and asks
+  for a new one. Without a key, or with a limit that isn't a number above 0, the drawer says what to set. The app's
+  notes on reading the data (`DATA_NOTES_FILE`, `data_notes.md` next to `main.py`: units, signs, conventions) go in the system prompt when the
   file exists. It sits in `src/`, so it ships with a hosted app.
 - **Tests and browser checks** set `ask_window.new_client` to a function that returns a `FakeAnthropic`. `window(spec)` draws
   the drawer's contents without the dialog, for `AppTest`.

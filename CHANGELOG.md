@@ -7,7 +7,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 - duckkit: **`duckkit.app.ask_window`, the Ask window** (#83): with `AppSpec.ask`, `common.sidebar` adds an **Ask**
   button to every page. It opens a drawer on the right where the user asks about the data. Each answer shows its rows,
-  the SQL it ran and its cost, and pages can tell Claude what they show with `ask_context`. `AppSpec.ask` is off by
+  the SQL it ran and its cost, and pages can tell Claude what they show with `ask_context`. Settings in `config.toml`: `[anthropic] model`, `effort`
+  and `max_conversation_cost` (default $2). `duckkit.app.claude.MODELS` is now the one list of models, with their
+  labels and prices: `PRICES` and `FALLBACK_MODELS` come from it, with the same values. `AppSpec.ask` is off by
   default, so no app changes. The template turns it on with the `ask` option in a later entry.
 - duckkit: **`duckkit.app.ask`, Claude's tools in the Ask window** (#83): `describe_schema` and `run_sql`, with a guard that
   lets a query read only the contract's views, a cap of 200 rows and a timeout.

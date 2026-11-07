@@ -19,7 +19,7 @@ import re
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import pandas as pd
 import streamlit as st
@@ -144,8 +144,16 @@ def effort(spec: AppSpec) -> str:
 
 
 def max_cost(spec: AppSpec) -> Decimal:
-    """`[anthropic] max_conversation_cost` in config.toml: past this many $, a conversation stops."""
-    return Decimal(str(spec.setting("anthropic", "max_conversation_cost", default=MAX_CONVERSATION_COST)))
+    """`[anthropic] max_conversation_cost` in config.toml: past this many $, a conversation stops. LLMError when it isn't
+    a number above 0, so the drawer says what to fix."""
+    value = spec.setting("anthropic", "max_conversation_cost", default=MAX_CONVERSATION_COST)
+    try:
+        limit = Decimal(str(value))
+    except InvalidOperation:
+        limit = None
+    if limit is None or not limit.is_finite() or limit <= 0:
+        raise LLMError(f"[anthropic] max_conversation_cost in config.toml is {value!r}: write a number of $ above 0")
+    return limit
 
 
 def notes(spec: AppSpec) -> str:
@@ -160,8 +168,8 @@ def new_conversation(spec: AppSpec, model: str) -> Conversation:
     """A conversation with `model`, on the snapshot the pages read."""
     try:
         chat = Chat(spec, ask.system_prompt(spec, notes(spec)), ask.TOOLS,
-                    ask.tool_runner(spec, lambda: common.con(spec)), model=model, effort=effort(spec), max_cost=max_cost(spec),
-                    client=new_client(spec))
+                    ask.tool_runner(spec, lambda: common.con(spec)), model=model, effort=effort(spec),
+                    max_cost=max_cost(spec), client=new_client(spec))
     except LLMError as e:
         return Conversation(model, error=str(e))
     return Conversation(model, chat)
