@@ -24,7 +24,6 @@ SETTLE = 1.5  # seconds for charts to draw and animate (theme.base_option: 400 m
 HIDE = '.st-key-ui-ask-button, [data-testid="stHeader"] { visibility: hidden; }'
 
 
-
 def start() -> subprocess.Popen:
     server = subprocess.Popen(
         [sys.executable, "-m", "streamlit", "run", "app.py", "--server.port", str(PORT)],
@@ -63,6 +62,8 @@ def select_row(page: Page) -> None:
     page.wait_for_selector('[data-testid="stApp"][data-test-script-state="running"]', timeout=5_000)
     page.mouse.move(0, 0)  # off the table, which shows its toolbar while the mouse is over it
     still(page)
+    if not page.get_by_text("Selected: 20 Feb").is_visible():  # Streamlit drew its rows at another size
+        raise SystemExit("the click selected no row, or another one: fix the sizes in select_row")
 
 
 def shoot(page: Page, mode: str) -> list[Path]:
