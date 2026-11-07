@@ -5,6 +5,11 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- Template: **the `ask` option** (#83), off by default: the question, the `llm` extra and the API key's setting. The
+  window itself comes in later entries. `docs/template.md` no longer says that with `motherduck` off no data ever leaves
+  the machine: `llm`, `ask` and `backup` can each send data. No app changes until it turns `ask` on. **Steps:** an app
+  that turns it on copies the Ask line of `docs/guides/data.md`, and `[anthropic]` of `config.example.toml`, from a new
+  render (both are seeded).
 - duckkit: **`duckkit.app.ui`, the shared widgets** (#101): `section`, `subsection`, `card` and `status`, on Streamlit's
   own widgets, styled by one stylesheet that `common.sidebar` adds to every page. The selected segment of a segmented control is now solid.
   No code has to change. **Steps:** an app that draws its own sidebar calls `ui.style()`.
