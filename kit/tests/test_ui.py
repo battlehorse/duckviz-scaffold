@@ -1,5 +1,7 @@
 """The shared widgets: each renders, keeps to its keys, and takes its colours from the tokens."""
 
+import re
+
 import pytest
 from streamlit.testing.v1 import AppTest
 
@@ -80,8 +82,60 @@ def test_the_stylesheet_takes_its_colours_from_the_tokens():
         assert theme.SELECTED[m] in css and theme.BORDER[m] in css and theme.INK[m]["surface"] in css
 
 
+# Each test id in the stylesheet, and the word that the comment above its rule must use to explain it.
+TEST_IDS = {"stButtonGroup": "button", "stLayoutWrapper": "wrapper", "stHorizontalBlock": "Columns", "stColumn": "Columns",
+            "stMetricLabel": "label"}
+
+
 def test_every_test_id_in_the_stylesheet_says_why():
-    """A key can't change under us, but a test id can: each one comes with a comment."""
+    """A key can't change under us, but a test id can: the comment right above a rule explains each id that it uses."""
+    before_any_comment, *parts = ui.stylesheet().split("/*")
+    assert "data-testid" not in before_any_comment
+    for part in parts:
+        comment, rules = part.split("*/", 1)
+        for test_id in re.findall(r'data-testid="(\w+)"', rules):
+            assert "test id" in comment and TEST_IDS[test_id] in comment, test_id
+
+
+def test_the_test_ids_in_use_are_the_known_ones():
+    assert set(re.findall(r'data-testid="(\w+)"', ui.stylesheet())) == set(TEST_IDS)
+
+
+def test_tiles_filters_and_chart_rows_render():
+    def page():
+        import streamlit as st
+
+        from duckkit.app import ui
+        with ui.filter_bar():
+            st.segmented_control("Period", ["All"], key="period")
+        a, b = ui.tile_row(2)
+        ui.tile(a, "Spend", "£4,125", delta="+6%", delta_color="inverse")
+        ui.tile(b, "Shops", "48", "no change")
+        left, right = ui.chart_row([2, 1])
+        left.write("chart")
+        right.write("table")
+
+    at = run(page)
+    assert [(m.label, m.value) for m in at.metric] == [("Spend", "£4,125"), ("Shops", "48")]
+    assert at.metric[1].delta == "no change"
+
+
+def test_two_filter_bars_need_their_own_keys():
+    def same_key():
+        from duckkit.app import ui
+        ui.filter_bar("a")
+        ui.filter_bar("a")
+
+    def own_keys():
+        from duckkit.app import ui
+        ui.filter_bar("a")
+        ui.filter_bar("b")
+
+    assert AppTest.from_function(same_key).run().exception
+    run(own_keys)
+
+
+def test_only_a_single_choice_is_solid():
+    """A multi-select is often all on, and a row of solid pills shouts."""
     css = ui.stylesheet()
-    assert css.count('data-testid="stButtonGroup"') == 2 and "A key can't reach inside these widgets" in css
-    assert css.count("data-testid") == 2
+    assert 'aria-checked="true"' in css and 'aria-pressed="true"' not in css

@@ -549,6 +549,8 @@ the page must take its colours from here.
 - `FONT`: Hanken Grotesk. Its figures are tabular by default, which a table needs: Streamlit draws tables on a canvas
   that CSS can't reach.
 - `streamlit_theme(mode)`: the options of `[theme.light]` or `[theme.dark]`.
+- Colour helpers: `contrast(a, b)` (WCAG), `color_distance(a, b)` (the dataviz delta E), `ink_on(color)`,
+  `mix(color, other, t)`, `shades(color, n, mode)`, `hex_rgb`, `oklab`, `to_oklch`, `from_oklch`.
 - `mode()` returns `"light"` or `"dark"`. It prefers what `watch_theme` saw, because `st.context.theme` can lag.
 - `base_option(mode)` gives the ECharts options every chart shares: font, tooltip, animation.
 - `entity_colors(names, mode)` gives each entity a fixed colour. Pass the full list, so a filter never repaints
@@ -564,10 +566,17 @@ stylesheet to every page. Without it the widgets still work, and look like plain
 - `card(key, title=None, caption=None)`: a container that stands apart from the page, for `with card("spend"): ...`.
 - `status(kind, text)`: a chip that says how something stands: `good`, `info`, `warning` or `error`. It always has an
   icon and a word, so colour never carries the meaning alone.
+- `filter_bar(key="page")`: a container for a page's filters, pinned under the header as the page scrolls.
+- `tile_row(n, key="page")` and `tile(where, label, value, note=None, **metric_args)`: headline tiles that wrap rather
+  than cut a number short.
+- `chart_row(spec, key="page")`: columns for charts, one under the other below 900px.
+  A page with two filter bars, tile rows or chart rows gives each its own `key`. A tile's `note` is a grey line under
+  the number: `ui.tile(columns[0], "Shops", "48", "no change")`.
 - `style()`: adds the stylesheet. It also makes the selected segment of a segmented control solid, in `SELECTED`. Pills
   stay as Streamlit draws them: a multi-select is often all on, and a row of solid pills shouts.
 
-The CSS targets `.st-key-ui-*`, our own keys. A `data-testid` selector is allowed only with a comment that says why.
+The CSS targets `.st-key-ui-*`, our own keys. A `data-testid` selector is allowed only with a comment that says why,
+and a test lists the ones in use.
 `key` tells apart two sections with the same title on one page: Streamlit refuses a repeated key.
 
 The colours use CSS `light-dark()`, so a theme switch needs no rerun. It needs Chrome or Edge 123, Firefox 120 or Safari
