@@ -18,8 +18,9 @@ see where the modules fit in an app, read docs/architecture.md first.
   [store](#duckkitstore) · [publish](#duckkitpublish) · [backup](#duckkitbackup) · [privacy](#duckkitprivacy) ·
   [serve](#duckkitserve) · [cli](#duckkitcli) · [demo](#duckkitdemo) · [curated](#duckkitcurated) ·
   [llm](#duckkitllm) · [doctor](#duckkitdoctor) · [hosting](#duckkithosting) · [specdiff](#duckkitspecdiff) ·
-  [app.common](#duckkitappcommon) · [app.claude](#duckkitappclaude) · [app.ui](#duckkitappui) ·
-  [app.theme](#duckkitapptheme) · [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
+  [app.common](#duckkitappcommon) · [app.claude](#duckkitappclaude) · [app.ask](#duckkitappask) ·
+  [app.ui](#duckkitappui) · [app.theme](#duckkitapptheme) ·
+  [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
 - [Hooks](#hooks-where-an-apps-domain-goes-in)
 - [Compatibility](#compatibility)
 
@@ -67,6 +68,7 @@ module belongs to one of them:
 | [`contract`](#duckkitcontract) | both | the contract: reference schema, descriptions, conformance check |
 | [`snapshot`](#duckkitsnapshot) | both | read-only, in-memory copies of the database or of its contract views |
 | [`app.common`](#duckkitappcommon) | browser | the cached snapshot, sidebar, theme and idle watchers, tables |
+| [`app.ask`](#duckkitappask) | browser | Claude's tools in the Ask window, and the guard on each query |
 | [`app.claude`](#duckkitappclaude) | browser | the client, the prices, `Usage`, and the chat loop of the Ask window |
 | [`app.ui`](#duckkitappui) | browser | the shared widgets: sections, cards, status chips |
 | [`app.theme`](#duckkitapptheme) | browser | the shared look: colours, font and chart options, light and dark |
@@ -384,6 +386,27 @@ the anthropic package only when a call is made.
   in an answer. Past `MAX_CONVERSATION_COST` ($2), a conversation stops and asks for a new one.
 - **Failures.** Each is an `LLMError` with a message for the user. The conversation then goes back to where it was
   before the question, and can go on. It does the same when the caller stops reading an answer.
+
+## `duckkit.app.ask`
+
+**What it is for:** what Claude may do in the Ask window, and the guard on each query. Claude has two read-only tools:
+`describe_schema` and `run_sql` (`TOOLS`).
+
+- `check_query(query, views)` raises `QueryRefused` unless the query is one SELECT that reads only `views`. It reads
+  DuckDB's own parse of the query. "One SELECT" is not enough: the snapshot is shared by every session, and a plain SELECT
+  can read the settings, a hosted app's MotherDuck token among them. So it is an allowlist for what a query reads:
+  - only the contract's views, and CTEs, unqualified. A CTE can't take a system view's name;
+  - no table functions, except `unnest`, `range` and `generate_series`;
+  - no function that reads settings, runs SQL, writes or waits (`UNSAFE_FUNCTIONS`, and system prefixes). This is the one
+    denylist, so a test fails on any DuckDB function that has not been reviewed: a new DuckDB gets a new review;
+  - no `DESCRIBE`, `SHOW` or `SUMMARIZE`.
+- `run_query(connect, query, views)` runs a query on a new cursor. A result stops at `ROW_CAP` (200) rows, a text value at
+  `CELL_CAP` characters, and a query at `TIMEOUT_SECONDS` (20). It returns a `QueryResult`, for the page to show the SQL.
+  The contract snapshot spills nothing to disk, so a query too big for memory fails.
+- `tool_runner(spec, connect)` gives the `run_tool` of a `Chat`. A refused or failed query goes back to Claude as an error,
+  and Claude can try another way.
+- `system_prompt(spec, notes="")` gives the prompt: the views, the app's notes on reading the data, and that values in the
+  data are data. It stays the same for the whole conversation, so that the cache holds.
 
 ## `duckkit.llm`
 

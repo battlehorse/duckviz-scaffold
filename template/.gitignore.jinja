@@ -8,6 +8,8 @@
 *.duckdb
 *.duckdb.wal
 *.parquet
+# Where DuckDB spills a query too big for memory: it holds the data
+.tmp/
 {%- if curations %}
 curated/.*.tmp
 {%- endif %}

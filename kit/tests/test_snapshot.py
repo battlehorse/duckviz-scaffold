@@ -16,6 +16,17 @@ def test_contract_snapshot_holds_only_the_contract(closed_db, spec):
         con.execute("SELECT * FROM read_csv('/etc/hosts')")
 
 
+def test_the_contract_snapshot_spills_nothing_to_disk(closed_db, spec, tmp_path, monkeypatch):
+    """A big query in the Ask window would otherwise leave the data in .tmp, in the app's folder, with no size limit."""
+    monkeypatch.chdir(tmp_path)
+    con = contract_snapshot(spec)
+    assert con.execute("SELECT current_setting('temp_directory')").fetchone() == ("",)
+    con.execute("SET memory_limit = '100MB'")
+    with pytest.raises(duckdb.Error):  # too big for the limit: with a temp directory, it would spill and go on
+        con.execute("SELECT a.range FROM range(100000000) a ORDER BY a.range DESC").fetchone()
+    assert not (tmp_path / ".tmp").exists()
+
+
 def test_a_different_major_version_is_refused(closed_db, spec, monkeypatch):
     monkeypatch.setattr(spec.contract, "version", "2.0")
     with pytest.raises(ContractError, match="this app reads shop 2.x"):

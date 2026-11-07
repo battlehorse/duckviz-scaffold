@@ -24,8 +24,10 @@ def contract_snapshot(spec: AppSpec, source: Path | str | None = None) -> duckdb
     `spec.app_db` when set (a hosted app), else the local database. Refuses a database whose contract has another
     name or major version (ContractError). Each view becomes a table of the same name with only the reference
     schema's columns, so a query naming anything else fails. External access is off: it can't read or write files.
+    Nothing spills to disk either, so a query too big for memory fails, and the data stays out of DuckDB's `.tmp` folder.
     """
     con = contract_copy(spec, source or spec.app_db)
+    con.execute("SET temp_directory = ''")  # before external access goes off: it locks this setting
     con.execute("SET enable_external_access = false")
     return con
 
