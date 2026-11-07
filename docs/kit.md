@@ -370,9 +370,10 @@ curate data should refuse one too (`curated.curating` does).
 
 **What it is for:** Claude in the browser app. It holds the client, the prices, `Usage` and `LLMError`, which
 `duckkit.llm` re-exports, because the browser app may not import `duckkit.llm`. It needs the `llm` extra, and imports
-the anthropic package only when a call is made.
+the anthropic package only when a `Chat` or a client is made.
 
-- `Chat(spec, system, tools, run_tool, model=DEFAULT_MODEL, effort="medium", client=None)`: one conversation. A
+- `Chat(spec, system, tools, run_tool, model=DEFAULT_MODEL, effort="medium", max_cost=MAX_CONVERSATION_COST,
+  client=None, messages=[])`: one conversation. `messages` is its history, to go on with an earlier one. A
   conversation keeps its model: thinking blocks and the prompt cache belong to one model.
 - `Chat.ask(question, context=None)` runs a question to its answer, and yields what happens: `Text`, `Progress` (a note
   between tool calls) and `ToolCall`. `context` says what the user is looking at. It goes with the question, never in
