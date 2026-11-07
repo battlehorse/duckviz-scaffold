@@ -5,9 +5,10 @@ DuckDB's own parse of it.
 
 "One SELECT" is not enough. The snapshot is shared by every session, so a write would reach every user. And a plain
 SELECT can read far more than the contract: `duckdb_settings()` and `current_setting()` hold the settings, a hosted app's
-MotherDuck token among them, and whatever a query returns goes to Anthropic. So the check is an allowlist for what a
-query reads:
-- only the contract's views, and CTEs, unqualified;
+MotherDuck token among them, and whatever a query returns goes to Anthropic. So the check is an allowlist. A query may
+read:
+- only the contract's views, unqualified, and CTEs where they are defined. A CTE can't take the name of anything in the
+  catalog (`pg_settings`, say), so it can't let the real one through in another part of the query;
 - no table functions, except a few that only make numbers or unnest a list;
 - no scalar function that reads settings or runs SQL;
 - no statement that shows the catalog (`DESCRIBE`, `SHOW`, `SUMMARIZE`).
@@ -16,6 +17,7 @@ A result stops at ROW_CAP rows, and a query at TIMEOUT_SECONDS. Text in the data
 prompt says that it is data. The tools only read, so such text can't change anything.
 """
 
+import functools
 import json
 import re
 import threading
@@ -32,11 +34,12 @@ CELL_CAP = 500  # characters of one text value
 TIMEOUT_SECONDS = 20
 
 SAFE_TABLE_FUNCTIONS = {"unnest", "range", "generate_series"}
-# Functions that read outside the query, write, or hold a query up. The one denylist here, reviewed against DuckDB 1.5.6:
-# kit/tests/duckdb_functions.txt lists what was reviewed, and a test fails on any function that isn't there, so a new
-# DuckDB gets a new review. Names are lower case, as DuckDB's parser gives them.
+# Functions that read outside the query, run SQL, write, or hold a query up. This is the one denylist here. It was
+# reviewed against DuckDB 1.5.6, and kit/tests/duckdb_functions.txt lists what was reviewed. A test fails on any function
+# that isn't on that list, so a new DuckDB gets a new review. Names are lower case, as DuckDB's parser gives them.
+# External access is off on the snapshot, which stops the rest (load_extension, say).
 UNSAFE_FUNCTIONS = {"current_setting", "getvariable", "getenv", "query", "query_table", "which_secret", "current_query",
-                    "write_log", "sleep_ms", "pg_sleep"}
+                    "write_log", "sleep_ms", "pg_sleep", "json_execute_serialized_sql"}
 SYSTEM_PREFIXES = ("duckdb_", "pragma_", "sqlite_", "information_schema", "read_", "sniff_", "parquet_", "glob",
                    "__internal_")
 
@@ -103,23 +106,38 @@ def nodes(tree) -> list[dict]:
     return found
 
 
-def check_query(query: str, views: set[str]) -> None:
-    """Raise QueryRefused unless `query` is one SELECT that reads only `views` (see the module's docstring)."""
-    every_node = nodes(parse(query))
-    ctes = {entry["key"].lower() for node in every_node for entry in node.get("cte_map", {}).get("map", [])}
-    # A CTE named like a system view would let the real one through, in another scope of the same query.
-    if unsafe := sorted(name for name in ctes if is_system_name(name)):
-        raise QueryRefused(f"a CTE can't be named {', '.join(unsafe)}")
-    allowed = {view.lower() for view in views} | ctes
+@functools.cache
+def builtin_names() -> frozenset[str]:
+    """The names of the tables and views that every DuckDB connection has: pg_catalog, information_schema and the rest."""
+    with duckdb.connect() as con:
+        return frozenset(row[0] for row in con.execute(CATALOG_NAMES).fetchall())
+
+
+CATALOG_NAMES = ("SELECT lower(view_name) FROM duckdb_views() UNION "
+                 "SELECT lower(table_name) FROM duckdb_tables()")
+
+
+def cte_names(node: dict) -> set[str]:
+    return {entry["key"].lower() for entry in node.get("cte_map", {}).get("map", [])}
+
+
+def check_query(query: str, views: set[str], catalog: frozenset[str] = frozenset()) -> None:
+    """Raise QueryRefused unless `query` is one SELECT that reads only `views` (see the module's docstring). `catalog`
+    adds the names of the database the query will run on to those of every connection."""
+    tree = parse(query)
+    every_node = nodes(tree)
+    views = {view.lower() for view in views}
+    ctes = set().union(*(cte_names(node) for node in every_node))
+    # A CTE that takes a catalog name would let the real table through where the CTE isn't in scope.
+    taken = (builtin_names() | catalog) - views
+    if unsafe := sorted(name for name in ctes if name in taken or is_system_name(name)):
+        raise QueryRefused(f"a CTE can't take the name {', '.join(unsafe)}: it is a name of the catalog")
+    check_scope(tree, views, frozenset())
     for node in every_node:
         kind = node.get("type")
         if kind == "SHOW_REF":
             raise QueryRefused("DESCRIBE, SHOW and SUMMARIZE aren't allowed: describe_schema gives the views")
-        if kind == "BASE_TABLE":
-            name = node["table_name"].lower()
-            if node.get("schema_name") or node.get("catalog_name") or name not in allowed:
-                raise QueryRefused(f"{node['table_name']} is not one of the views: use {', '.join(sorted(views))}")
-        elif kind == "TABLE_FUNCTION":
+        if kind == "TABLE_FUNCTION":
             function = node["function"].get("function_name", "?").lower()
             if function not in SAFE_TABLE_FUNCTIONS:
                 raise QueryRefused(f"the table function {function} isn't allowed")
@@ -127,6 +145,23 @@ def check_query(query: str, views: set[str]) -> None:
             function = node["function_name"].lower()
             if function in UNSAFE_FUNCTIONS or is_system_name(function):
                 raise QueryRefused(f"the function {function} isn't allowed")
+
+
+def check_scope(node, views: set[str], visible: frozenset[str]) -> None:
+    """Each table that `node` reads is one of `views`, unqualified, or a CTE in scope: defined at this node or above it."""
+    if isinstance(node, list):
+        for item in node:
+            check_scope(item, views, visible)
+        return
+    if not isinstance(node, dict):
+        return
+    visible = visible | cte_names(node)
+    if node.get("type") == "BASE_TABLE":
+        name = node["table_name"].lower()
+        if node.get("schema_name") or node.get("catalog_name") or name not in views | visible:
+            raise QueryRefused(f"{node['table_name']} is not one of the views: use {', '.join(sorted(views))}")
+    for value in node.values():
+        check_scope(value, views, visible)
 
 
 def shorten(value):
@@ -138,8 +173,12 @@ def shorten(value):
 
 def run_query(connect: Callable, query: str, views: set[str]) -> QueryResult:
     """Run `query` on a new cursor, within the guard, ROW_CAP and TIMEOUT_SECONDS. Raises QueryRefused, or duckdb.Error."""
-    check_query(query, views)
     cursor = connect()
+    try:
+        check_query(query, views, frozenset(row[0] for row in cursor.execute(CATALOG_NAMES).fetchall()))
+    except Exception:
+        cursor.close()
+        raise
     timer = threading.Timer(TIMEOUT_SECONDS, cursor.interrupt)
     timer.start()
     try:

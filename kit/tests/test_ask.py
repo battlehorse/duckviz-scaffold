@@ -93,6 +93,14 @@ def test_anything_but_one_select_is_refused(query):
     # a CTE with a system view's name, to let the real one through in another scope
     "SELECT * FROM (WITH sqlite_master AS (SELECT 1) SELECT * FROM sqlite_master), sqlite_master",
     "SELECT * FROM (WITH duckdb_settings AS (SELECT 1) SELECT * FROM duckdb_settings), duckdb_settings",
+    "select * from (with pg_settings as (select 1) select 1) x, pg_settings",
+    "SELECT * FROM (WITH pg_tables AS (SELECT 1) SELECT 1) x, pg_tables",
+    "SELECT * FROM (WITH tables AS (SELECT 1) SELECT 1) x, tables",
+    # a CTE used outside its scope, whatever its name
+    "SELECT * FROM (WITH s AS (SELECT 1) SELECT 1) x, s",
+    # a CTE read before its sibling of a catalog name is defined: DuckDB reads the real one there
+    "WITH a AS (SELECT * FROM pg_settings), pg_settings AS (SELECT 1 AS x) SELECT * FROM a",
+    "SELECT json_execute_serialized_sql(json_serialize_sql('SELECT 1'))",
     # hidden deeper in the query
     "WITH s AS (SELECT * FROM duckdb_settings()) SELECT * FROM s",
     "SELECT * FROM v_items WHERE item IN (SELECT name FROM duckdb_settings())",
@@ -167,6 +175,16 @@ def test_describe_schema_gives_the_views_their_keys_and_rules(spec, snapshot):
     assert spec.contract.schema_sql().strip() in text  # types, keys, NOT NULL and the comments, as written
     assert "secret" not in text
     assert "- SELECT count(*) FROM v_items WHERE kind NOT IN ('fruit', 'veg')" in text
+
+
+def test_a_cte_cant_take_a_name_of_the_live_catalog(snapshot):
+    query = "WITH md_settings AS (SELECT 1) SELECT * FROM md_settings"
+    check_query(query, VIEWS)
+    with pytest.raises(QueryRefused, match="can't take the name md_settings"):
+        check_query(query, VIEWS, catalog=frozenset({"md_settings"}))
+    snapshot.execute("CREATE TABLE md_settings AS SELECT 1 AS x")  # as an extension might add to the hosted snapshot
+    with pytest.raises(QueryRefused, match="can't take the name md_settings"):
+        run_query(snapshot.cursor, query, VIEWS)
 
 
 def test_an_unknown_tool_is_an_error(spec, snapshot):

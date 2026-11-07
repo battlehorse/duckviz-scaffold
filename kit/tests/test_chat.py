@@ -176,6 +176,13 @@ def test_the_model_lists_come_from_one_table():
     assert claude.DEFAULT_MODEL in claude.CHAT_MODELS
 
 
+def test_an_empty_question_is_refused_before_it_is_sent(spec):
+    c = chat(spec, chat_reply("Never sent."))
+    with pytest.raises(LLMError, match="the question is empty"):
+        list(c.ask("  ", context="Page: Dashboard."))
+    assert not c.client.requests and not c.messages
+
+
 def test_a_conversation_can_have_its_own_spend_limit(spec):
     c = chat(spec, chat_reply("One."), chat_reply("Never sent."), max_cost=Decimal("0.5"))
     list(c.ask("First"))

@@ -375,9 +375,10 @@ curate data should refuse one too (`curated.curating` does).
 
 **What it is for:** Claude in the browser app. It holds the client, the prices, `Usage` and `LLMError`, which
 `duckkit.llm` re-exports, because the browser app may not import `duckkit.llm`. It needs the `llm` extra, and imports
-the anthropic package only when a call is made.
+the anthropic package only when a `Chat` or a client is made.
 
-- `Chat(spec, system, tools, run_tool, model=DEFAULT_MODEL, effort="medium", client=None)`: one conversation. A
+- `Chat(spec, system, tools, run_tool, model=DEFAULT_MODEL, effort="medium", max_cost=MAX_CONVERSATION_COST,
+  client=None, messages=[])`: one conversation. `messages` is its history, to go on with an earlier one. A
   conversation keeps its model: thinking blocks and the prompt cache belong to one model.
 - `Chat.ask(question, context=None)` runs a question to its answer, and yields what happens: `Text`, `Progress` (a note
   between tool calls) and `ToolCall`. `context` says what the user is looking at. It goes with the question, never in
@@ -398,7 +399,8 @@ the anthropic package only when a call is made.
 - `check_query(query, views)` raises `QueryRefused` unless the query is one SELECT that reads only `views`. It reads
   DuckDB's own parse of the query. "One SELECT" is not enough: the snapshot is shared by every session, and a plain SELECT
   can read the settings, a hosted app's MotherDuck token among them. So it is an allowlist for what a query reads:
-  - only the contract's views, and CTEs, unqualified. A CTE can't take a system view's name;
+  - only the contract's views, unqualified, and CTEs where they are in scope. A CTE can't take the name of anything in
+    the catalog (`pg_settings`, say): DuckDB would read the real one where the CTE isn't in scope;
   - no table functions, except `unnest`, `range` and `generate_series`;
   - no function that reads settings, runs SQL, writes or waits (`UNSAFE_FUNCTIONS`, and system prefixes). This is the one
     denylist, so a test fails on any DuckDB function that has not been reviewed: a new DuckDB gets a new review;
