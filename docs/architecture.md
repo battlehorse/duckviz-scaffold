@@ -179,12 +179,14 @@ The template writes `docs/guides/cli.md` for each app, and the Claude Code skill
   - the app's own terms, such as names found in its database.
 
   The pre-commit hook in `.githooks/` runs it before every commit. Tests and docs use synthetic data only.
-- **Data leaves the machine only where a command or an option says so**, and nothing sends it on its own:
+- **Data leaves the machine only where a command or an option says so.** Nothing sends it on its own:
   - `publish` sends the contract's views to MotherDuck: only the command, or `/publish` after showing what will leave;
+  - the hosted app (`cloud_run` option) reads that published copy, behind Google sign-in (the app's
+    `docs/guides/hosting.md`);
   - `backup` with a remote copies the snapshots to the app's private Cloud Storage bucket (`backup` option);
-  - `classify` sends the rows it labels to Anthropic (`llm` option);
-  - the Ask window sends each question, the page's summary and the rows of Claude's queries to Anthropic (`ask`
-    option).
+  - `classify` sends the text of the items it labels to Anthropic (`llm` option);
+  - the Ask window sends each question to Anthropic, with the rows of Claude's queries: rows of the contract's views,
+    at most 200 at a time. With *Include what's on screen* on, the page's summary goes too (`ask` option).
 
   The app's `docs/guides/data.md` lists what leaves, for the options it has on.
 
