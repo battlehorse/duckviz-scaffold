@@ -1,8 +1,15 @@
 """The pages render on a database that holds only the contract's views, and say so when there is none."""
 
+import sys
+from datetime import timedelta
+from types import SimpleNamespace
+
+import duckdb
 import streamlit as st
+from duckkit.app import theme
 from streamlit.testing.v1 import AppTest
 
+from {{ package }}.app import common
 from {{ package }}.spec import SPEC
 from tests.app import contract_data
 
@@ -17,6 +24,73 @@ def test_dashboard_renders_from_the_contract_alone():
     at = page("dashboard")
     assert not at.exception
     assert at.title[0].value == "Dashboard"
+
+
+def test_dashboard_shows_its_tiles_and_the_change_of_the_last_day():
+    contract_data.write(SPEC.db_path)
+    at = page("dashboard")
+    assert [m.label for m in at.metric] == ["Latest", "Days"]
+    assert at.metric[0].delta == "1.0 on the day before, better"
+
+
+def test_dashboard_with_one_day_has_no_change():
+    contract_data.write(SPEC.db_path, days=1)
+    at = page("dashboard")
+    assert not at.exception
+    assert at.metric[0].delta == "no day before"
+    assert at.metric[0].proto.direction == at.metric[0].proto.MetricDirection.NONE
+
+
+def test_dashboard_with_no_days_says_so():
+    contract_data.write(SPEC.db_path, days=0)
+    at = page("dashboard")
+    assert not at.exception
+    assert "No data to show yet" in at.info[0].value
+
+
+def test_a_period_shows_only_its_days():
+    contract_data.write(SPEC.db_path)
+    at = page("dashboard")
+    at.button_group[0].set_value("7 days").run()
+    assert not at.exception
+    assert at.metric[1].value == "7"
+
+
+def remove_days(*days: int) -> None:
+    """Take days out of the data, counted from the start: not the first or the last, which set the period."""
+    with duckdb.connect(str(SPEC.db_path)) as con:
+        for day in days:
+            con.execute("DELETE FROM v_daily WHERE day = ?", [contract_data.START + timedelta(days=day)])
+
+
+def shown_text(at: AppTest) -> str:
+    return " ".join(m.value for m in at.markdown)
+
+
+def test_dashboard_counts_the_missing_days():
+    contract_data.write(SPEC.db_path)
+    assert "No days missing" in shown_text(page("dashboard"))
+    remove_days(3)
+    assert "1 day missing" in shown_text(page("dashboard"))
+    remove_days(4)
+    assert "2 days missing" in shown_text(page("dashboard"))
+
+
+def test_a_selected_row_marks_its_day_on_the_chart_in_the_selected_colour(monkeypatch):
+    contract_data.write(SPEC.db_path)
+    options = []
+    # In the place of the module, which can't be imported outside a running page.
+    chart = SimpleNamespace(st_echarts=lambda option, **kwargs: options.append(option))
+    monkeypatch.setitem(sys.modules, "streamlit_echarts", chart)
+    assert not page("dashboard").exception
+    assert "markPoint" not in options[-1]["series"][0]
+
+    picked = SimpleNamespace(selection=SimpleNamespace(rows=[2]))
+    monkeypatch.setattr(common, "table", lambda *args, **kwargs: picked)
+    assert not page("dashboard").exception
+    (mark,) = options[-1]["series"][0]["markPoint"]["data"]
+    assert mark["coord"] == ["2026-01-03", 2.0]
+    assert mark["itemStyle"]["color"] == theme.SELECTED["light"]
 
 
 def test_no_database_says_so():

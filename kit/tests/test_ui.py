@@ -84,7 +84,7 @@ def test_the_stylesheet_takes_its_colours_from_the_tokens():
 
 # Each test id in the stylesheet, and the word that the comment above its rule must use to explain it.
 TEST_IDS = {"stButtonGroup": "button", "stLayoutWrapper": "wrapper", "stHorizontalBlock": "Columns", "stColumn": "Columns",
-            "stMetricLabel": "label"}
+            "stMetricLabel": "label", "stMetricDelta": "delta", "stMarkdownContainer": "delta"}
 
 
 def test_every_test_id_in_the_stylesheet_says_why():
@@ -139,3 +139,42 @@ def test_only_a_single_choice_is_solid():
     """A multi-select is often all on, and a row of solid pills shouts."""
     css = ui.stylesheet()
     assert 'aria-checked="true"' in css and 'aria-pressed="true"' not in css
+
+
+@pytest.mark.parametrize(("change", "good", "text", "color", "arrow"), [
+    (-120, "down", "£120 less, better", "green", "down"),
+    (120, "down", "£120 less, worse", "red", "up"),
+    (120, "up", "£120 less, better", "green", "up"),
+    (-120, None, "£120 less", "gray", "down"),
+    (0, "down", "£120 less", "gray", "off"),
+    (None, "down", "£120 less", "gray", "off"),
+    (float("nan"), "down", "£120 less", "gray", "off"),
+])
+def test_a_delta_shows_its_direction_and_its_meaning(change, good, text, color, arrow):
+    assert ui.delta(change, "£120 less", good) == {"delta": text, "delta_color": color, "delta_arrow": arrow}
+
+
+def test_a_fall_that_is_good_news_is_green_with_a_down_arrow_on_the_page():
+    def page():
+        from duckkit.app import ui
+        where = ui.tile_row(1)[0]
+        ui.tile(where, "Spend", "£1,200", **ui.delta(-120, "£120 less", good="down"))
+
+    metric = run(page).metric[0]
+    assert metric.delta == "£120 less, better"
+    assert metric.proto.color == metric.proto.MetricColor.GREEN
+    assert metric.proto.direction == metric.proto.MetricDirection.DOWN
+
+
+def test_a_delta_keeps_its_last_word_in_a_narrow_tile():
+    rule = re.search(r'\[data-testid="stMetricDelta"\][^{]*\{[^}]*\}', ui.stylesheet()).group()
+    assert "white-space: normal" in rule
+
+
+def test_the_favicon_is_a_file_of_the_kit_in_the_colours_of_the_theme():
+    icon = ui.FAVICON.read_text()
+    assert theme.SELECTED["light"] in icon and theme.PAGE["light"] in icon
+
+
+def test_the_filter_bar_sticks_right_under_the_header_at_any_font_size():
+    assert "top: 3.75rem" in ui.stylesheet()  # the header's height is in rem: in px, a gap opens at another base size

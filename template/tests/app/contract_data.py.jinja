@@ -17,7 +17,8 @@ START = date(2026, 1, 1)
 def write(path: Path, days: int = 10) -> Path:
     """The reference schema at `path`, with `days` days of values and one good ingest run."""
     con = contract_db(SPEC, path)
-    con.executemany("INSERT INTO v_daily VALUES (?, ?)", [(START + timedelta(days=d), float(d % 4)) for d in range(days)])
+    if days:
+        con.executemany("INSERT INTO v_daily VALUES (?, ?)", [(START + timedelta(days=d), float(d % 4)) for d in range(days)])
     run = datetime(2026, 1, 15, 10, tzinfo=UTC)
     con.execute("INSERT INTO v_ingests VALUES (?, ?, true)", [run, run + timedelta(seconds=5)])
     con.close()

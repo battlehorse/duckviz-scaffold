@@ -566,7 +566,12 @@ the page must take its colours from here.
   `BORDER[mode]`, `TABLE_HEADER[mode]`.
 - `SELECTED[mode]`: the one colour of a selected control, table row or chart mark. It is Streamlit's primary colour,
   so widgets and tables follow it with no CSS. It stays at OKLab distance 8 or more from every `CATEGORICAL` colour.
-- `RED[mode]` and `GREEN[mode]`: bad and good news, for Streamlit's deltas and badges. Red never means selected.
+- `GOOD[mode]` and `BAD[mode]`: good and bad news, and nothing else. They are Streamlit's green and red, so its deltas
+  and badges follow them. They say what a change means, never which way it went. Red never means selected.
+- `verdict(change, good)`: `"better"`, `"worse"` or `None`. `good` is the direction that is good news, `"up"` or
+  `"down"`, and only the app knows it. With `good=None`, or no change, a change means neither.
+- `change_color(change, good, mode)`: the colour of that change in a chart: `GOOD`, `BAD`, or a grey for neither. A
+  chart and the tile beside it then agree.
 - `FONT`: Hanken Grotesk. Its figures are tabular by default, which a table needs: Streamlit draws tables on a canvas
   that CSS can't reach.
 - `streamlit_theme(mode)`: the options of `[theme.light]` or `[theme.dark]`.
@@ -590,9 +595,14 @@ stylesheet to every page. Without it the widgets still work, and look like plain
 - `filter_bar(key="page")`: a container for a page's filters, pinned under the header as the page scrolls.
 - `tile_row(n, key="page")` and `tile(where, label, value, note=None, **metric_args)`: headline tiles that wrap rather
   than cut a number short.
+- `delta(change, text, good=None)`: the arguments of a metric that shows a change:
+  `ui.tile(columns[0], "Spend", "£1,200", **ui.delta(-120, "£120 less", good="down"))` reads "£120 less, better", in
+  green, with a down arrow. Without `good` it stays grey, with its arrow and no word. It works with `st.metric` too.
 - `chart_row(spec, key="page")`: columns for charts, one under the other below 900px.
   A page with two filter bars, tile rows or chart rows gives each its own `key`. A tile's `note` is a grey line under
   the number: `ui.tile(columns[0], "Shops", "48", "no change")`.
+- `FAVICON`: the tab's icon, for `st.set_page_config(page_icon=ui.FAVICON)`. It is a file, because Streamlit fetches a
+  Material or emoji icon from another host.
 - `style()`: adds the stylesheet. It also makes the selected segment of a segmented control solid, in `SELECTED`. Pills
   stay as Streamlit draws them: a multi-select is often all on, and a row of solid pills shouts.
 
