@@ -35,7 +35,7 @@ file). Each command that changes a decision writes the files again. The repo mus
 {%- endif %}
 
 ## What leaves the machine
-{%- if not (motherduck or (curations and llm) or cloud_run or backup) %}
+{%- if not (motherduck or (curations and llm) or cloud_run or backup or ask) %}
 
 Nothing: no command sends the data anywhere.
 {%- endif %}
@@ -43,6 +43,9 @@ Nothing: no command sends the data anywhere.
 
 - **`backup`, with `[backup] remote`:** a copy of the whole database goes to your own Google Cloud Storage bucket,
   which must be private (`doctor --remote` checks).
+{%- endif %}
+{%- if ask %}
+- **The Ask window:** each question, and the rows of each query Claude runs to answer it, go to Anthropic.
 {%- endif %}
 {%- if motherduck %}
 - **`publish`:** the contract's views go to MotherDuck (`md:{{ motherduck_db }}`), only when you run it. Only those
