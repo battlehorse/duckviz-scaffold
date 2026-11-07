@@ -621,6 +621,8 @@ its own.
 
 ## `duckkit.app.theme`
 
+docs/design-system.md shows the tokens, the widgets of `duckkit.app.ui` and the chart helpers, in light and dark mode.
+
 **What it is for:** one look for every app, readable in light and dark. These tokens are the one source:
 `scripts/theme.py` writes them into the template's `.streamlit/theme.toml`, with the font embedded, and a test holds
 the file to them and to the rules below. Streamlit does not pass its theme to CSS on the page, so code that draws on
