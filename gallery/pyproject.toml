@@ -1,0 +1,31 @@
+# The gallery of duckkit's look: a reference page in this repo only, never in the template (gallery/README.md).
+[project]
+name = "duckkit-gallery"
+version = "0"
+description = "A reference page for duckkit's theme and widgets, on synthetic data"
+requires-python = ">=3.14"
+dependencies = [
+    "duckkit[llm]",
+    "streamlit-echarts>=0.7.0",  # the charts library of the apps (the template's pyproject.toml)
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+duckkit = { path = "../kit", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint.isort]
+known-first-party = ["duckkit", "blocks"]
