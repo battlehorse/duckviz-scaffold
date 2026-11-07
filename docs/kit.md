@@ -383,7 +383,7 @@ the anthropic package only when a call is made.
   failed, and Claude can try another way.
 - `Chat.usage` adds up the tokens and the cost of every request of the conversation.
 - **Limits.** After `MAX_TOOL_ROUNDS` (8) requests with tools, the next one allows none, so a long question still ends
-  in an answer. Past `MAX_CONVERSATION_COST` ($2), a conversation stops and asks for a new one.
+  in an answer. Past `max_cost` (default `MAX_CONVERSATION_COST`, $2), a conversation stops and asks for a new one.
 - **Failures.** Each is an `LLMError` with a message for the user. The conversation then goes back to where it was
   before the question, and can go on. It does the same when the caller stops reading an answer.
 
