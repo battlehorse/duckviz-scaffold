@@ -395,7 +395,8 @@ the anthropic package only when a call is made.
 - `check_query(query, views)` raises `QueryRefused` unless the query is one SELECT that reads only `views`. It reads
   DuckDB's own parse of the query. "One SELECT" is not enough: the snapshot is shared by every session, and a plain SELECT
   can read the settings, a hosted app's MotherDuck token among them. So it is an allowlist for what a query reads:
-  - only the contract's views, and CTEs, unqualified. A CTE can't take a system view's name;
+  - only the contract's views, unqualified, and CTEs where they are in scope. A CTE can't take the name of anything in
+    the catalog (`pg_settings`, say): DuckDB would read the real one where the CTE isn't in scope;
   - no table functions, except `unnest`, `range` and `generate_series`;
   - no function that reads settings, runs SQL, writes or waits (`UNSAFE_FUNCTIONS`, and system prefixes). This is the one
     denylist, so a test fails on any DuckDB function that has not been reviewed: a new DuckDB gets a new review;
