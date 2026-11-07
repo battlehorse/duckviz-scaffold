@@ -106,7 +106,8 @@ def test_dashboard_tells_the_ask_window_what_it_shows():
     contract_data.write(SPEC.db_path)
     at = page("dashboard")
     _, summary = at.session_state[ask_window.CONTEXT]
-    assert "Period: All" in summary and "10 days" in summary and "Latest value: 1.0, 1.0 on the day before, better." in summary
+    assert "Period: All" in summary and "10 days" in summary
+    assert "Latest value: 1.0, 1.0 on the day before, better." in summary
     at.button_group[0].set_value("7 days").run()
     assert "Period: 7 days" in at.session_state[ask_window.CONTEXT][1]
 
