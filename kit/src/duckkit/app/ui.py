@@ -7,7 +7,6 @@ why. Streamlit does not pass its theme to CSS on the page, so colours come from 
 `light-dark()`, which follows the color-scheme Streamlit sets. A theme switch then needs no rerun.
 """
 
-import math
 import re
 
 import streamlit as st
@@ -140,11 +139,11 @@ def delta(change: float | None, text: str, good: str | None = None) -> dict:
     (see `theme.verdict`): the colour and a word then say what it means, so colour never carries that alone. With no
     `good` the change stays grey, because a direction alone is neither good nor bad."""
     word = theme.verdict(change, good)
-    moved = bool(change) and not math.isnan(change)
+    rise = theme.verdict(change, "up")  # asked with up as the good direction, "better" means that it went up
     return {
         "delta": f"{text}, {word}" if word else text,
         "delta_color": {"better": "green", "worse": "red", None: "gray"}[word],
-        "delta_arrow": ("up" if change > 0 else "down") if moved else "off",
+        "delta_arrow": {"better": "up", "worse": "down", None: "off"}[rise],
     }
 
 
