@@ -40,7 +40,7 @@ SAFE_TABLE_FUNCTIONS = {"unnest", "range", "generate_series"}
 # External access is off on the snapshot, which stops the rest (load_extension, say).
 UNSAFE_FUNCTIONS = {"current_setting", "getvariable", "getenv", "query", "query_table", "which_secret", "current_query",
                     "write_log", "sleep_ms", "pg_sleep", "json_execute_serialized_sql"}
-SYSTEM_PREFIXES = ("duckdb_", "pragma_", "sqlite_", "information_schema", "read_", "sniff_", "parquet_", "glob",
+SYSTEM_PREFIXES = ("duckdb_", "pragma_", "sqlite_", "information_schema", "read_", "sniff_", "parquet_",
                    "__internal_")
 
 TOOLS = [
@@ -77,8 +77,11 @@ class QueryResult:
     truncated: bool
 
 
+SYSTEM_NAMES = {"glob"}  # whole names: a prefix would refuse global_totals
+
+
 def is_system_name(name: str) -> bool:
-    return name.startswith(SYSTEM_PREFIXES)
+    return name in SYSTEM_NAMES or name.startswith(SYSTEM_PREFIXES)
 
 
 def parse(query: str) -> dict:
@@ -106,15 +109,15 @@ def nodes(tree) -> list[dict]:
     return found
 
 
+CATALOG_NAMES = ("SELECT lower(view_name) FROM duckdb_views() UNION "
+                 "SELECT lower(table_name) FROM duckdb_tables()")
+
+
 @functools.cache
 def builtin_names() -> frozenset[str]:
     """The names of the tables and views that every DuckDB connection has: pg_catalog, information_schema and the rest."""
     with duckdb.connect() as con:
         return frozenset(row[0] for row in con.execute(CATALOG_NAMES).fetchall())
-
-
-CATALOG_NAMES = ("SELECT lower(view_name) FROM duckdb_views() UNION "
-                 "SELECT lower(table_name) FROM duckdb_tables()")
 
 
 def cte_names(node: dict) -> set[str]:
