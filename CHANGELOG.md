@@ -5,6 +5,9 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: **`duckkit.app.claude`, Claude for the browser app** (#83): the chat loop of the Ask window, with streaming,
+  tool use, the prompt cache, and limits on rounds and spend. The client, `PRICES`, `Usage` and `LLMError` moved here
+  from `duckkit.llm`, which still exports them, so no code has to change. `FakeAnthropic` also streams (`chat_reply`).
 - Template: **the `ask` option** (#83), off by default: the question, the `llm` extra and the API key's setting. The
   window itself comes in later entries. `docs/template.md` no longer says that with `motherduck` off no data ever leaves
   the machine: `llm`, `ask` and `backup` can each send data. No app changes until it turns `ask` on. **Steps:** an app
