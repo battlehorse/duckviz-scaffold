@@ -169,6 +169,13 @@ def test_a_spent_conversation_stops_before_it_sends(spec):
     assert not c.client.requests and not c.messages
 
 
+def test_the_model_lists_come_from_one_table():
+    assert set(claude.PRICES) == set(claude.MODELS)
+    assert claude.FALLBACK_MODELS == {"claude-opus-5-5", "claude-sonnet-5-5"}
+    assert claude.CHAT_MODELS == {"claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5"}
+    assert claude.DEFAULT_MODEL in claude.CHAT_MODELS
+
+
 def test_an_empty_question_is_refused_before_it_is_sent(spec):
     c = chat(spec, chat_reply("Never sent."))
     with pytest.raises(LLMError, match="the question is empty"):

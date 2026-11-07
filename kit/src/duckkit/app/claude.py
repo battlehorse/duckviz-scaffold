@@ -31,18 +31,35 @@ FALLBACK_BETA = "server-side-fallback-2026-07-01"
 # shows while it works, so a long answer doesn't look stuck.
 PROGRESS_NOTES_BETA = "thinking-display-updates-2026-08-18"
 
-# $ per million tokens: (input, output, cache read). A cache write (5 minutes) costs 1.25 times the input price.
-# Claude Haiku 5.5's cache read is the usual tenth of its input price (the pricing page gives no separate figure).
-PRICES = {
-    "claude-opus-5-5": (Decimal(4), Decimal(20), Decimal("0.20")),
-    "claude-sonnet-5-5": (Decimal(2), Decimal(10), Decimal("0.20")),
-    "claude-haiku-5-5": (Decimal("0.10"), Decimal("0.50"), Decimal("0.01")),
+
+
+@dataclass(frozen=True)
+class Model:
+    """What duckkit knows of a model. `prices`: $ per million tokens (input, output, cache read). `fallback`: it has the
+    server-side fallback. `chat`: the Ask window offers it."""
+
+    label: str
+    prices: tuple[Decimal, Decimal, Decimal]
+    fallback: bool
+    chat: bool
+
+
+# The one list of models: PRICES, FALLBACK_MODELS and CHAT_MODELS come from it. A cache write (5 minutes) costs 1.25
+# times the input price. Claude Haiku 5.5's cache read is the usual tenth of its input price (the pricing page gives no
+# separate figure), and it has no server-side fallback.
+MODELS = {
+    "claude-opus-5-5": Model("Opus 5.5", (Decimal(4), Decimal(20), Decimal("0.20")), fallback=True, chat=True),
+    "claude-sonnet-5-5": Model("Sonnet 5.5", (Decimal(2), Decimal(10), Decimal("0.20")), fallback=True, chat=True),
+    "claude-haiku-5-5": Model("Haiku 5.5", (Decimal("0.10"), Decimal("0.50"), Decimal("0.01")), fallback=False,
+                              chat=False),
 }
+PRICES = {name: model.prices for name, model in MODELS.items()}
+FALLBACK_MODELS = {name for name, model in MODELS.items() if model.fallback}
+CHAT_MODELS = {name: model.label for name, model in MODELS.items() if model.chat}  # the Ask window's picker
 # The prices of a request whose prompt (input, cache writes and reads) is over LONG_PROMPT tokens, where they differ.
 LONG_PROMPT = 100_000
 LONG_PRICES = {"claude-haiku-5-5": (Decimal("0.50"), Decimal("2.50"), Decimal("0.05"))}
 CACHE_WRITE = Decimal("1.25")
-FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5"}  # Claude Haiku 5.5 has no server-side fallback
 
 CHAT_EFFORT = "medium"
 CHAT_MAX_TOKENS = 64000

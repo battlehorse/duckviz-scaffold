@@ -62,6 +62,10 @@ def stylesheet() -> str:
     padding-bottom: 0.5rem; margin-bottom: 0.5rem;
   }}
 }}
+/* The Ask button (duckkit.app.ask_window) floats at the bottom right of every page, over the content: the sidebar is
+   folded away on a phone, so the button can't live there. */
+.st-key-ui-ask-button {{ position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 990; width: auto; }}
+.st-key-ui-ask-button button {{ box-shadow: 0 4px 14px light-dark(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.5)); }}
 /* Columns have no key of their own, so their test ids reach them inside our keyed containers. Short of room, filters
    wrap and keep each button in sight, tiles wrap and keep their numbers whole, and charts stack. */
 [class*="st-key-ui-filters-"] [data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; row-gap: 0.5rem; }}
