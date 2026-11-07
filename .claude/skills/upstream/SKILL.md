@@ -27,7 +27,8 @@ Read docs/kit.md, docs/template.md and docs/upgrading.md first.
 4. **Draft the CHANGELOG entry** under the next version, with **Steps**: what an app's code must change by hand
    (a renamed function, a new hook to fill in, an option to turn on). An app that has its own copy of the capability
    should delete it: say so in the steps.
-5. **Check**: `cd kit && uv run ruff check . && uv run pytest -q`, then `scripts/render.sh`. Both must pass.
+5. **Check**: `cd kit && uv run ruff check . && uv run pytest -q`, the same in `gallery/`, then `scripts/render.sh`.
+   All must pass.
 6. **Show the user** the split (what went to duckkit, what to the template, what stays in the app) and the
    CHANGELOG entry. Ask before you commit. Commit on a branch and open a PR, never on main. A release is a
    separate step (`scripts/release.py`, docs/upgrading.md), on the user's word.

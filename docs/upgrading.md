@@ -15,7 +15,7 @@ In this repo, run `/upstream <app path> <what>` (the skill in `.claude/skills/up
    `template/`, for every app unless docs/template.md's rule makes it an option; **docs** → docs/kit.md, docs/template.md;
 3. writes a CHANGELOG entry under a new version, with **Steps** for anything an app must do by hand (rename a call,
    add a hook);
-4. runs the kit's tests and `scripts/render.sh`.
+4. runs the kit's tests, the gallery's (gallery/README.md) and `scripts/render.sh`.
 
 ## 3. Release
 
