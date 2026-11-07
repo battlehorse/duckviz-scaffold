@@ -5,6 +5,10 @@ Each release tags the template and duckkit together (`vX.Y.Z`). An app moves to 
 
 ## Unreleased
 
+- duckkit: **`duckkit.app.ask_window`, the Ask window** (#83): with `AppSpec.ask`, `common.sidebar` adds an **Ask**
+  button to every page. It opens a drawer on the right where the user asks about the data. Each answer shows its rows,
+  the SQL it ran and its cost, and pages can tell Claude what they show with `ask_context`. `AppSpec.ask` is off by
+  default, so no app changes. The template turns it on with the `ask` option in a later entry.
 - duckkit: **`duckkit.app.ask`, Claude's tools in the Ask window** (#83): `describe_schema` and `run_sql`, with a guard that
   lets a query read only the contract's views, a cap of 200 rows and a timeout.
 - duckkit and template: **the browser app's data stays out of `.tmp`** (#83). `contract_snapshot` no longer spills to disk,

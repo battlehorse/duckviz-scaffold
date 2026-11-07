@@ -104,8 +104,13 @@ def watch_idle(spec: AppSpec) -> None:
 
 def sidebar(spec: AppSpec, caption: str | None = None) -> None:
     """The top of every page's sidebar: how fresh the data is (`caption`), the version a hosted app runs, the
-    "Reload data" button, the shared widgets' stylesheet, and the theme and idle watchers."""
+    "Reload data" button, the shared widgets' stylesheet, and the theme and idle watchers. With `spec.ask`, also the
+    Ask button, at the bottom right of the page."""
     ui.style()
+    if spec.ask:  # imported only here: without the option, an app never loads the Ask window
+        from duckkit.app.ask_window import ask_button
+
+        ask_button(spec, caption)
     with st.sidebar:
         parts = [p for p in (caption, spec.version and f"version {spec.version}") if p]
         if parts:

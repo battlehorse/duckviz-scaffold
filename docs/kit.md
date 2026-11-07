@@ -19,6 +19,7 @@ see where the modules fit in an app, read docs/architecture.md first.
   [serve](#duckkitserve) · [cli](#duckkitcli) · [demo](#duckkitdemo) · [curated](#duckkitcurated) ·
   [llm](#duckkitllm) · [doctor](#duckkitdoctor) · [hosting](#duckkithosting) · [specdiff](#duckkitspecdiff) ·
   [app.common](#duckkitappcommon) · [app.claude](#duckkitappclaude) · [app.ask](#duckkitappask) ·
+  [app.ask_window](#duckkitappask_window) ·
   [app.ui](#duckkitappui) · [app.theme](#duckkitapptheme) ·
   [testing](#duckkittesting) · [testing.guard](#duckkittestingguard)
 - [Hooks](#hooks-where-an-apps-domain-goes-in)
@@ -69,6 +70,7 @@ module belongs to one of them:
 | [`snapshot`](#duckkitsnapshot) | both | read-only, in-memory copies of the database or of its contract views |
 | [`app.common`](#duckkitappcommon) | browser | the cached snapshot, sidebar, theme and idle watchers, tables |
 | [`app.ask`](#duckkitappask) | browser | Claude's tools in the Ask window, and the guard on each query |
+| [`app.ask_window`](#duckkitappask_window) | browser | the Ask window: the button, the drawer, `ask_context` |
 | [`app.claude`](#duckkitappclaude) | browser | the client, the prices, `Usage`, and the chat loop of the Ask window |
 | [`app.ui`](#duckkitappui) | browser | the shared widgets: sections, cards, status chips |
 | [`app.theme`](#duckkitapptheme) | browser | the shared look: colours, font and chart options, light and dark |
@@ -115,6 +117,7 @@ The fields you set:
 | `refresh_hint` | "Run `<cli> ingest`…" | what to tell the user when the database doesn't offer the contract |
 | `idle_minutes` | 15 | how long before a hosted app pauses an idle tab (0: never) |
 | `backup_prefix` | `<package>-` | the start of each backup folder's name |
+| `ask` | `False` | the Ask window on every page (`app.ask_window`): the switch behind the `ask` option |
 
 The fields resolved when the AppSpec is made, which can be overridden from the environment:
 
@@ -408,6 +411,36 @@ the anthropic package only when a call is made.
 - `system_prompt(spec, notes="")` gives the prompt: the views, the app's notes on reading the data, and that values in the
   data are data. It stays the same for the whole conversation, so that the cache holds.
 
+## `duckkit.app.ask_window`
+
+**What it is for:** the Ask window, where the user asks about the data in plain words. An app needs no code of its own:
+with `spec.ask`, `common.sidebar` adds the **Ask** button at the bottom right of every page. Without it, the app never
+imports this module, nor the anthropic package.
+
+- **The drawer** is `st.dialog(position="right")`. The page behind it is dimmed and can't be clicked, so no click
+  stops an answer. Closing the drawer doesn't rerun the page, so an answer goes on to its end, and opening the drawer
+  again shows it. At phone width the drawer fills the screen.
+- **In the drawer:** which data the chat reads (the local database, the demo database or the published copy, with the
+  sidebar's caption), the model (Opus 5.5 or Sonnet 5.5, locked after the first question), *New conversation*, the
+  *Include what's on screen* toggle, the conversation, and the question box.
+- **Under each answer:** the rows of its last query (`common.table`), a *Queries* expander with the SQL that ran and its
+  row count, and what the answer and the conversation cost. A wrong number looks like a right one, so the SQL is
+  always there to check. Each answer also prints one line to stdout (`ask: model=… input_tokens=… output_tokens=…
+  cost=…`, no question text), which a hosted app's logs keep.
+- **`ask_context(text)`:** a page tells Claude what it shows (the page, its filters, its headline numbers). Build `text`
+  from the values the page draws, and call it on each run. While the toggle is on, it goes with each question, in that
+  turn's message, never in the system prompt, so a filter change doesn't break the cache. A page with no summary says
+  so in the drawer. Claude gets the data, not the pixels.
+- **`clean(text)`:** answers lose their images and HTML before they render, so the browser fetches nothing that text in
+  the data could have asked for. Each `$` is escaped, since Streamlit's Markdown reads `$4 and $5` as LaTeX.
+- **Settings**, in `config.toml`: `[anthropic] api_key`, `model` (the picker's default) and `effort` (default
+  `medium`). Without a key, the drawer says where to set one. The app's notes on reading the data, `data_notes.md`
+  next to `main.py`, go in the system prompt when the file exists.
+- **Tests and browser checks** set `ask_window.new_client` to a function that returns a `FakeAnthropic`. `window(spec)` draws
+  the drawer's contents without the dialog, for `AppTest`.
+- **Limits:** a turn that the page stops mid-answer (a rerun) shows that it stopped, and its tokens so far are not
+  counted. The cost of each answer is an estimate from `PRICES`.
+
 ## `duckkit.llm`
 
 **What it is for:** an app's command that asks Claude to make decisions, such as classifying rows. The app keeps
@@ -569,7 +602,7 @@ its own.
 |---|---|
 | `load_contract_snapshot(spec)` | the contract snapshot, made once per process (`st.cache_resource`) and shared by every session |
 | `con(spec)` | a new cursor on the snapshot, one per query, which is safe across Streamlit's threads |
-| `sidebar(spec, caption=None)` | the top of every sidebar: how fresh the data is, the deployed version, *Reload data*, and the theme and idle watchers |
+| `sidebar(spec, caption=None)` | the top of every sidebar: how fresh the data is, the deployed version, *Reload data*, and the theme and idle watchers. With `spec.ask`, also the Ask button |
 | `reload_button()` | clears the caches, so the next run takes a new snapshot |
 | `watch_theme()` | reruns the page when the browser switches light/dark, so charts drawn in Python follow it |
 | `watch_idle(spec)` | in a hosted app, sends a tab that has been idle for `idle_minutes` to `static/paused.html`, so Cloud Run can scale to zero |

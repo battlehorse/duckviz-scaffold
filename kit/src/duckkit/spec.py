@@ -65,6 +65,7 @@ class AppSpec:
     refresh_hint: str = ""  # what to tell the user when the database doesn't offer the contract
     idle_minutes: int = 15  # a hosted app pauses an idle tab after this long (0: never)
     backup_prefix: str = ""  # the start of each backup snapshot's folder name, default "<package>-"
+    ask: bool = False  # the Ask window on every page (duckkit.app.ask_window): the switch behind the `ask` option
 
     # Resolved in __post_init__
     data_dir: Path = field(init=False)
